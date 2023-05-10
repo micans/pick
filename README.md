@@ -20,15 +20,15 @@ virtue of using a stack language and having just three types. On first
 sight it probably looks arcane and slightly terrifying.
 
 
-[Pick one or more columns](#pick-one-or-more-columns)
-[Pick columns and filter/select rows](#pick-columns-and-filter-or-select-rows)
-[Syntax for computing derived values](#syntax-for-computing-derived-values)
-[Examples of computing derived values](#examples-of-computing-derived-values)
-[Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)
-[Map column values using a dictionary](#map column values using a dictionary)
-[Miscellaneous](#miscellaneous)
-[Pick options](#pick-options)
-[Pick operators](#pick-operators)
+[Pick one or more columns](#pick-one-or-more-columns)  
+[Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
+[Syntax for computing derived values](#syntax-for-computing-derived-values)  
+[Examples of computing derived values](#examples-of-computing-derived-values)  
+[Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
+[Map column values using a dictionary](#map-column-values-using-a-dictionary)  
+[Miscellaneous](#miscellaneous)  
+[Pick options](#pick-options)  
+[Pick operators](#pick-operators)  
 
 
 
