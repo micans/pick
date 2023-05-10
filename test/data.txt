@@ -1,0 +1,13 @@
+name	fib	fib2	sq	fx	ud	ms	num1	num2	num4	foo11	abc	dna
+Ann	1	0	1	dog	1	0.142857	1	2	1	a_n_n	a	ACGTTGCA
+Bob	1	1	4	cat	-2	0.285714	2	3	2	b_o_b	bc	CCGGTTAA
+Charlie	2	1	9	bat	3	0.428571	4	5	3	ch_ar_lie	def	GGGGTAC
+Dan	3	2	16	cow	-4	0.571428	8	7	2	d_a_n	ghij	TTAA
+Esme	5	3	25	owl	5	0.714285	16	11	1	e_s_m_e	klmno	CGCGC
+Fred	8	5	36	pig	-6	0.857142	32	13	2	f_r_e_d	pqrstu	CTTCACT
+Gillian	13	8	49	bug	7	1.000000	64	17	3	gi_ll_ian	vwxyz	C
+Harriet	21	13	64	rat	-8	1.142857	128	19	2	ha_rr_iet	yxwv	G
+Inky	34	21	81	ant	9	1.285714	256	23	1	i_n_k_y	uts	T
+John	55	34	100	fly	-10	1.428571	512	29	2	j_o_h_n	rq	A
+Kelly	89	55	121	eagle	11	1.571428	1024	31	3	k_e_l_l_y	p	AAAAAAAA
+Lucy	144	89	144	swift	-12	1.714285	2048	37	4	l_u_c_y	grace	TCGACACGACTC
