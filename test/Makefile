@@ -1,5 +1,5 @@
 
-p=../pack
+p=../pick
 
 all: runpick rundiff
 

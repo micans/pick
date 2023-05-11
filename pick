@@ -968,17 +968,9 @@ __DATA__
          echo -e "_a_\t3\n_b_\t4\n_d_\t8" | pick -AviK --fdict-foo=dict --cdict-foo=a:Alpha,b:Beta,c:Gamma 1::1^'%5E_\K(.)(?=_$)'^foo,edmap
       -> $1 not the right control? You might want to replace more than just $1, using the map of $1.
          the two-step solution will allow this.
-   -  implement in cimfomfa/C (regular expressions not as good).
    -  get -> option to return field if no match? -> covered by ed; get allows filtering on empty string with uie
-   -  -f is useless in the sense that the same name implies the same content.
-   ?  for 'all' operators; store data in internal buffer; storeall.
-      minall maxall meanall, medianall, countall sdall can refer to it. needs a scope/clearing framework.
    o  numerical comparisons check field is numeric; however duplicates perl's work/warnings
    ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
    ?  would --onames be helpful? (note -K)
    #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
-   ?? ifelse(selectname,compute1,compute2) is beyond scope for now.
-      -> foo::,LD:a:b:c,RD,add         # open/close data
-         foo::,LC:a:b:c,op,op,RC       # open/close code
-         encode scope in a separate datastructure; fast path if no scopes exist.
                                                                                                                            R.I.P. recol
