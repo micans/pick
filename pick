@@ -615,11 +615,15 @@ sub add_column {
   print "\t" if $::N_column_output++; print $_[0];
 }
 
-sub check_list_range_and_regex {
-   my ($spec, $lambda) = @_;
+   ## Returns an arrary of matches; each match is an array [name1, name2].
+   ## name1 is the existing name (found in header), name2 is the new name, normally the same.
+   ## New names can be made by the prefix/suffix convention as well as using regex ().
+   ##
+sub expand_list_range_and_regex {
+   my ($spec, $allow_lambda) = @_;
    my @matches = ();
    my ($suffix, $prefix) = ("", "");
-   if ($lambda) {             # in this case accept p/spec/s syntax for column renaming.
+   if ($allow_lambda) {             # in this case accept p/spec/s syntax for column renaming.
       my @parts = split '/', $spec, -1;
       if (@parts > 3) { die "Handle has more than three /-separated parts"; }
       elsif (@parts == 3) { ($prefix, $spec, $suffix) = @parts; }
@@ -630,25 +634,30 @@ print STDERR "Suffix [$suffix] contains regex characters, did you mean '$spec/$s
         }
       }
    }
-   return (0) unless $spec =~ /[:$REGEXP_CHARS]/ || ($B_headless && $spec =~ /\b(\d+)\-/);
-   for my $item (split ':', $spec) {
+
+   for my $item ($spec eq '' ? ("") : split ':', $spec) {
 print STDERR "-- (output) considering $item\n" if $B_verbose;
       if ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
-         push @matches, grep { $_ =~ qr/$item/ } @::HEADER[0..($::N-1)];
+         for my $name (@::HEADER[0..($::N-1)]) {
+            if ($name =~ qr/$item/) {
+               push @matches, [$name, defined($1) ? $1 : $name];
+            }
+         }
       }
       elsif ($item =~ /^(\d+)\-(\d+)?$/ && $B_headless) {
          my ($x, $y) = ($1, $2);
          $x = 1 if $x > $::N;
          $y = $::N if !defined($y) || $y > $::N;
-         push @matches, @::HEADER[($x-1)..($y-1)];
+         push @matches, map { [$_, $_] } @::HEADER[($x-1)..($y-1)];
       }
       else {
-         push @matches, $item;
+         push @matches, [$item, $item];
       }
    }
    my $n_matches = @matches; local $" = ' ';
-print STDERR "-- (output) expanding pattern $spec ($n_matches matches: @matches)\n" if $B_verbose || !$n_matches;
-   return $lambda ? (1, $prefix, $suffix, @matches) : (1, @matches);
+   $_->[1] = "$prefix$_->[1]$suffix" for @matches;
+print STDERR "-- (output) expanding pattern $spec ($n_matches matches: @matches)\n" if $B_verbose || (!$n_matches && $spec);
+   return @matches;
 }
 
 sub wrangle_header {
@@ -669,21 +678,13 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
       my ($handle, $type, $compute) = (urldecode($1), $2, $3);
-      my ($triggered, $prefix, $suffix, @matches) = check_list_range_and_regex($handle, 1);
-      if ($triggered) {
-        $compute = ":$compute" unless $compute =~ /^[,:^]/;
-        for my $m (@matches) {
-          my $compute_m = $compute; $compute_m =~ s/:__\b/:$m/g;
-          my $parsed_compute = parse_compute($handle, $compute_m);
-          $m = "$prefix$m$suffix";
-          push @::compute, [$m, $parsed_compute];
-          push @::output_nm, $m if $type eq '::';
-        }
-      }
-      else {
-        my $parsed_compute = parse_compute($handle, $compute);
-        push @::compute, [$handle, $parsed_compute];
-        push @::output_nm, $handle if $type eq '::';
+      my @matches = expand_list_range_and_regex($handle, 1);
+      $compute = ":$compute" unless $compute =~ /^[,:^]/;
+      for my $m (@matches) {
+        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->[0]/g;
+        my $parsed_compute = parse_compute($handle, $compute_m);
+        push @::compute, [$m->[1], $parsed_compute];
+        push @::output_nm, $m->[1] if $type eq '::';
       }
     }
                   #  H handle
@@ -717,15 +718,8 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
     }
     else {
       $spec = urldecode($spec);
-      my ($triggered, @matches) = check_list_range_and_regex($spec, 0);
-      if ($triggered) {
-        for my $m (@matches) {
-          push @::output_nm, $m;
-        }
-      }
-      else {
-         push @::output_nm, $spec;
-      }
+      my @matches = expand_list_range_and_regex($spec, 0);
+      for my $m (@matches) { push @::output_nm, $m->[0]; }
     }
   }
 
@@ -776,13 +770,8 @@ print STDERR "-- Identical output column names exist ($job)\n";
     for my $comp (@$compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
-         my ($triggered, @matches) = check_list_range_and_regex($what, 0);
-         if ($triggered) {
-            for my $h (@matches) { push @expanded_compute, [$TYPE_HANDLE, $h]; }
-         }
-         else {
-            push @expanded_compute, $comp;
-         }
+         my @matches = expand_list_range_and_regex($what, 0);
+         for my $h (@matches) { push @expanded_compute, [$TYPE_HANDLE, $h->[0]]; }
       }
       else {
          push @expanded_compute, $comp;
@@ -970,7 +959,6 @@ print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\
 __DATA__
                                             s o m e   i d e a s
 
-   !  in check_list_range_and_regex if ($1) exists, use that for renaming ... then pass back list of renames?
    -  test uniqueness (and combination with -x), combination with INSERT_OFFSET and pushing of new names, -K/-U
    ?  unify column/range/regex selection with a+x-y*k
    -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.

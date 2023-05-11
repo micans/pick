@@ -1,5 +1,5 @@
 
-p=../pick
+p=../pack
 
 all: runpick rundiff
 
@@ -17,6 +17,7 @@ runpick: data.txt
 	$(p) ud fx @ud/gt/0 @fx~a   < $<  > o.udfx-and.test
 	$(p) -h ::'^>:fx^%0A:dna'   < $<  > o.fasta.test
 	$(p) -o ud fx @ud/gt/0 @fx~a < $< > o.udfx-or.test
+	$(p) foo//bar::fib          < $<  > o.emptyinfix.test
 	$(p) -h y::name,uc x::foo11^_,delg,uc @y/=:x                  <  $<  > o.ucdelg.test
 	$(p) --cdict-123/NOTFOUND=1:one,2:two,3:three x::num4^123,map <  $<  > o.123dict.test
 	$(p) x::ms^7,mul y::x,ceil @ud/gt/0 @x/ep/:y                  <  $<  > o.eptest1.test
