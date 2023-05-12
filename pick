@@ -620,22 +620,23 @@ sub add_column {
    ## New names can be made by the prefix/suffix convention as well as using regex ().
    ##
 sub expand_list_range_and_regex {
-   my ($spec, $allow_lambda) = @_;
+   my ($spec, $has_compute) = @_;
    my @matches = ();
-   my ($suffix, $prefix) = ("", "");
-   if ($allow_lambda) {             # in this case accept p/spec/s syntax for column renaming.
-      my @parts = split '/', $spec, -1;
+   my ($suffix, $prefix, $duplicate) = ("", "", 0);
+   if ($has_compute) {             # in this case accept p/spec/s syntax for column renaming and p/spec//s for duplicating
+      $duplicate = $spec =~ /\/\// ? 1 : 0;
+      my @parts = split /\/+/, $spec, -1;
       if (@parts > 3) { die "Handle has more than three /-separated parts"; }
       elsif (@parts == 3) { ($prefix, $spec, $suffix) = @parts; }
       elsif (@parts == 2) {   # to specify just prefix, one needs p/spec/
         ($spec, $suffix) = @parts;
         if ($suffix =~ /[:$REGEXP_CHARS]/) {       # ':' is there as we split on that.
-print STDERR "Suffix [$suffix] contains regex characters, did you mean '$spec/$suffix/'?\n";
+print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$spec/$suffix/'?\n";
         }
       }
    }
 
-   for my $item ($spec eq '' ? ("") : split ':', $spec) {
+   for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
 print STDERR "-- (output) considering $item\n" if $B_verbose;
       if ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
          for my $name (@::HEADER[0..($::N-1)]) {
@@ -657,7 +658,9 @@ print STDERR "-- (output) considering $item\n" if $B_verbose;
    my $n_matches = @matches; local $" = ' ';
    $_->[1] = "$prefix$_->[1]$suffix" for @matches;
 print STDERR "-- (output) expanding pattern $spec ($n_matches matches: @matches)\n" if $B_verbose || (!$n_matches && $spec);
-   return @matches;
+   # dangersign, below is ugly.
+   unshift @matches, $duplicate if $has_compute;
+   return (@matches);
 }
 
 sub wrangle_header {
@@ -678,12 +681,13 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
       my ($handle, $type, $compute) = (urldecode($1), $2, $3);
-      my @matches = expand_list_range_and_regex($handle, 1);
+      my ($duplicate, @matches) = expand_list_range_and_regex($handle, 1);
       $compute = ":$compute" unless $compute =~ /^[,:^]/;
       for my $m (@matches) {
         my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->[0]/g;
         my $parsed_compute = parse_compute($handle, $compute_m);
         push @::compute, [$m->[1], $parsed_compute];
+        push @::output_nm, $m->[0] if $duplicate;
         push @::output_nm, $m->[1] if $type eq '::';
       }
     }

@@ -1,0 +1,13 @@
+name	nomen
+Ann	Arcturus
+Bob	Bellatrix
+Charlie	Caph
+Dan	Diadem
+Esme	Eltanin
+Fred	Fomalhaut
+Gillian	Gienah
+Harriet	Hatsya
+Inky	Inquill
+John	Jabbah
+Kelly	Karakah
+Lucy	Lionrock
