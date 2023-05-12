@@ -77,6 +77,49 @@ multiple `@` selections are possible; default is `AND` of multiple clauses, use 
 pick foo bar @tim/gt/0 < data.txt
 ```
 
+where `tim` is larger than the column value in `zut` (the leading colon in `:zut` indicates
+that the value to compare to should be taken from column `zut`):
+```
+pick foo bar @tim/gt/:zut < data.txt
+```
+
+where `tim` is the string `flub123`:
+```
+pick foo bar @tim=flub123 < data.txt
+```
+
+where `tim` is NOT the string `flub123`:
+```
+pick foo bar @tim/=flub123 < data.txt
+```
+
+where `tim` matches the string `flub123`:
+```
+pick foo bar @tim~flub123 < data.txt
+```
+
+where `tim` matches the string `flub` followed by zero or more digits:
+```
+pick foo bar @tim~flub'\d*' < data.txt
+```
+
+where `tim` matches the string `flub` followed by one or more digits:
+```
+pick foo bar @tim~flub'\d+' < data.txt
+```
+
+where the entirety of the `tim` column value matches the string `flub` followed by one or more digits,
+and nothing else, by anchoring the regular expression:
+```
+pick foo bar @tim~^flub'\d+$' < data.txt
+```
+
+where `tim` _does not_ match the string `flub` followed by one or more digits:
+```
+pick foo bar @tim/~flub'\d+' < data.txt
+```
+
+
 The full list of comparison operators:
 
 ```
