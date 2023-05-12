@@ -14,10 +14,13 @@ Presenting a concise command-line format it can
 - Take the same action on multiple columns using a lambda expression
 
 There is no downside, except, as ever, it comes with its own syntax for computation.
-This is highly concise, powerful, and simple by
-virtue of using a stack language with just three types. On first
-sight it probably looks arcane and slightly terrifying.
+The latter is concise, powerful, and simple by virtue of using a stack language with just three types.
+In order to work as a command line tool, `pick` is **minimalist, terse, and does away with whitespace entirely.**
+On first sight it probably looks arcane and terrifying - a long second look might be required.
+Compensating for the arcane syntax, `pick`'s inner computation loop is very simple.
+
 **For plain selection and filtering usage computation syntax is not needed**.
+
 
 
 [Pick one or more columns](#pick-one-or-more-columns)  
