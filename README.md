@@ -250,70 +250,77 @@ introduced below, followed by more examples and explanation.
 
 -  Simply selecting multiple columns for output. Example usage
 ```
-   pick 'foo\d{2}$' < data.txt
+   pick 'num\d{2}$' < data.txt
 ```
 
 -  Selecting multiple columns and reducing them to a single value by e.g. concatenation,
    taking the minimum or maximum, or adding all values. Example usage
 ```
-   pick foomax::'foo\d{2}$',maxall < data.txt
-   pick 'foo\d{2}$' foomax::'foo\d{2}$',maxall < data.txt
+   pick nummax::'num\d{2}$',maxall < data.txt
+   pick 'num\d{2}$' nummax::'num\d{2}$',maxall < data.txt
 ```
 
 -  Selecting multiple columns and executing the same operation on each column using
-   a lambda expression. Examples are given below - incrementing all selected columns by one.
-   The examples differ in how columns are specified/selected. The first uses a regular expression, the second
-   uses a simple listing of names, the third uses a listing of ranges.
-   The parameter in pick lambda expressions is written `:__`. Each instance of it will be replaced by
-   the column name, multiplexed over all selected columns.
+   a lambda expression.  The parameter in pick lambda expressions is written
+   `:__`. Each instance of it will be replaced by the column name, multiplexed
+   over all selected columns.
 
-   **Currently columns resulting from lambda expressions will retain the column name on which they
-   are defined. A facility to allow templated renaming is planned.**
 
+   Multiple column selection and modification using a regular expression:
 ```
-   pick foo\d{2}$'::__^1,add < data.txt
-   pick foo:bar:zut::__^1,add < data.txt
+   pick -i '^num\d{2}$'::__^1,add < data.txt
+```
+
+   Multiple column selection and modification using a list:
+```
+   pick -i foo:bar:zut::__^1,add < data.txt
+```
+
+   Lists can take a mix of regular expressions and column names:
+```
+   pick -i foo:bar:zut:'num\d+':'yay\d+'::__^1,add < data.txt
+```
+
+   It is possible to rename the columns with a prefix and/or a suffix:
+```
+   pick pfx/foo:bar:zut:'num\d+':'yay\d+'/sfx::__^1,add < data.txt
+   pick foo:bar:zut:'num\d+':'yay\d+'/sfx::__^1,add < data.txt
+   pick pfx/foo:bar:zut:'num\d+':'yay\d+'/::__^1,add < data.txt
+```
+
+   With a regular expression, if parentheses are used then the outer group can
+   be used to capture a single element to be used in renaming:
+```
+   pick newname_/'^num(\d{2})$'/::__^1,add < data.txt
+```
+
+   It can be useful to have two version for each in a set of columns, for example
+   to present a column both as a percentage and as a count. If double slashes are
+   used `pick` will include the original as well as the derived column:
+```
+   pick '^num(\d{2})$'/_pct::__:num01^1,pct < data.txt
+```
+
+### Lambda expressions with index selection rather than column names
+
+   Lambda expressions work with `-k` as well:
+```
    pick -k 3:5-8::__^1,add < data.txt
 ```
 
+### Regular expressions
 
 A pattern that contains any of `[({\*?^$`
 is assumed to be a regular expression rather than just a column name.
 Use `-F` (fixed) to prevent regular expressions being used.
 
-In the first example multiple columns are selected but nothing is done with them.
-
-```
-pick 'foo\d{2}$' < data.txt
-```
-
-In the second example below these columns are put in a derived value computation.
-The maximal value across all columns is taken, giving it the new name foomax.
-Currently `addall mulall maxall minall joinall` consume the entire stack.
-
-```
-pick foomax::'foo\d{2}$',maxall < data.txt
-```
-
 
 Be careful with patterns in the compute part (as above). If the pattern starts with `^`
 (for start of string), it must be url-encoded as `%5E`; otherwise it will be
 interpreted as the `pick` token introducing a constant value.  The characters
-`^ : ,` have special meaning in the pick stack language (see above) and must
+`^ : ,` have special meaning in the `pick` stack language (see above) and must
 be url-encoded.
 
-
-The following is a bit more ambitious and useful.
-Express all columns whose names match `foo\d\d` in
-terms of a percentage relative to column `foo01`. A copy of `foo01` is needed
-(in reference) as it is transformed in-place.  Due to the use of `:=`
-rather than `::` the derived column reference is not output.  The
-placeholder `:__` is used to slot each matching column into the compute
-expression; at the start of a compute part just `__` can be used.
-
-```
-pick -Ai reference:=foo01 '\foo\d{2}$'::__:reference^1,pct < data.txt
-```
 
 
 ## Map column values using a dictionary
