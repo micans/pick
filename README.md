@@ -14,10 +14,10 @@ Presenting a concise command-line format it can
 - Take the same action on multiple columns using a lambda expression
 
 There is no downside, except, as ever, it comes with its own syntax for computation.
-_For plain selection and filtering usage computation syntax is not needed_.
-It is highly concise, powerful, and quite simple by
-virtue of using a stack language and having just three types. On first
+This is highly concise, powerful, and simple by
+virtue of using a stack language with just three types. On first
 sight it probably looks arcane and slightly terrifying.
+**For plain selection and filtering usage computation syntax is not needed**.
 
 
 [Pick one or more columns](#pick-one-or-more-columns)  
@@ -82,6 +82,8 @@ that the value to compare to should be taken from column `zut`):
 ```
 pick foo bar @tim/gt/:zut < data.txt
 ```
+It is possible for `zut` to be [a newly computed value derived from other (existing or computed) columns](#examples-of-computing-derived-values).
+
 
 where `tim` is the string `flub123`:
 ```
@@ -435,9 +437,11 @@ octal and hex, reverse complement DNA/RNA, and extract statistics from cigar
 strings. Display options include formatting of fractions and percentages
 and zero padding of integers.
 
+For an idea of the possibilities you could look at the [Makefile in the test directory](test/Makefile),
+although it is more geared towards tests of selection of and operations on multiple columns.
+
 The documentation is output when given `-H` - `-h` is the option to prevent
-output of column names, or `-l` for a more concise summary of options and
-syntax.
+output of column names, or `-l` for a more concise summary of options and syntax.
 
 Operators for compute:
 
