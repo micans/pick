@@ -1,9 +1,14 @@
 
 # Unix file/stream column and row manipulation using column names
 
-`pick` is a command-line query/programming tool to manipulate streamed data columns and rows.
+`pick` is a command-line query/programming tool to manipulate streamed tabular data.
 It can be thought of as (unix) `cut` on steroids, augmented with aspects of `R` and `awk`.
-Presenting a concise command-line format it can
+Its use and purpose is to take away in some simple cases the need for a script (Python, Ruby et cetera)
+to **transform and select from tabular data**. It is **robust** by using column names (if present) rather
+than positional indexes and *lightweight* as it handles data per-line without the need to
+load the table into memory.
+
+Presenting a concise command-line format `pick` can
 
 - Use column names or column indexes to
 - Select columns
@@ -15,7 +20,7 @@ Presenting a concise command-line format it can
 
 There is no downside, except, as ever, it comes with its own syntax for computation.
 The latter is concise, powerful, and simple by virtue of using a stack language with just three types.
-In order to work as a command line tool, `pick` is **minimalist, terse, and does away with whitespace entirely.**
+In order to work as a command line tool, the `pick` computation language is **minimalist, terse, and does away with whitespace entirely.**
 On first sight it probably looks arcane and terrifying - a long second look might be required.
 Compensating for the arcane syntax, `pick`'s inner computation loop is very simple.
 
@@ -301,7 +306,7 @@ introduced below, followed by more examples and explanation.
    to present a column both as a percentage and as a count. If double slashes are
    used `pick` will include the original as well as the derived column:
 ```
-   pick '^num(\d{2})$'/_pct::__:num01^1,pct < data.txt
+   pick '^num(\d{2})$'//_pct::__:num01^1,pct < data.txt
 ```
 
 ### Lambda expressions with index selection rather than column names
