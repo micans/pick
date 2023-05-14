@@ -29,7 +29,7 @@ runpick: data.txt
 	$(p) -Pi fib:fib2:sq//_pct::__:fib2^1,pct                     <  $<  > o.pct4.test
 	$(p) -x 'num\d+' foo_/'num\d+'/::__                           <  $<  > o.rename.test
 	$(p) --fdict-star/---=dict.txt Starname::name^D,del^star,map  <  $<  > o.dictstarname.test
-	PICK_DIV_INF='😳'; $(p) -Pi fib:fib2:sq//_pct::__:fib2^1,pct  <  $<  > o.pct5.test
+	export PICK_DIV_INF='😳'; $(p) -Pi fib:fib2:sq//_pct::__:fib2^1,pct  <  $<  > o.pct5.test
 	$(p) -i numsum1::'num\d+',addall foo_/'num\d+'/_bar::__,sq numsum2::'num\d+',addall 'num\d+'  <  $<  > o.numsum.test
 
 
