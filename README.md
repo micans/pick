@@ -5,7 +5,7 @@
 It can be thought of as (unix) `cut` on steroids, augmented with aspects of `R` and `awk`.
 Its use and purpose is to take away in some simple cases the need for a script (Python, Ruby et cetera)
 to **transform and select from tabular data**. It is **robust** by using column names (if present) rather
-than positional indexes and *lightweight* as it handles data per-line without the need to
+than positional indexes and **lightweight** as it handles data per-line without the need to
 load the table into memory.
 
 Presenting a concise command-line format `pick` can
@@ -19,13 +19,13 @@ Presenting a concise command-line format `pick` can
 - Take the same action on multiple columns using a lambda expression
 
 There is no downside, except, as ever, it comes with its own syntax for computation.
-The latter is concise, powerful, and simple by virtue of using a stack language with just three types.
-In order to work as a command line tool, the `pick` computation language is **minimalist, terse, and does away with whitespace entirely.**
-On first sight it probably looks arcane and terrifying - a long second look might be required.
-Compensating for the arcane syntax, `pick`'s inner computation loop is very simple.
 
 **For plain selection and filtering usage computation syntax is not needed**.
 
+The syntax is minimalist and terse by virtue of using a stack language with just three types.
+In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
+On first sight it probably looks arcane and terrifying - a long second look might be required.
+Compensating for the arcane syntax, `pick`'s inner computation loop is very simple.
 
 
 [Pick one or more columns](#pick-one-or-more-columns)  
