@@ -1,14 +1,15 @@
 
 # Unix file/stream column and row manipulation using column names
 
-`pick` is a command-line query/programming tool to manipulate streamed tabular data.
-It can be thought of as (unix) `cut` on steroids, augmented with aspects of `R` and `awk`.
-Its use and purpose is to take away in some simple cases the need for a script (Python, Ruby et cetera)
-to **transform and select from tabular data**. It is **robust** by using column names (if present) rather
-than positional indexes and **lightweight** as it handles data per-line without the need to
-load the table into memory.
+`pick` is a **command-line** query/programming tool to *manipulate streamed tabular data*,
+by *transforming, recombining and selecting columns* as well as *filtering rows*.
+It is a mix of aspects of unix `cut`, `R` and `awk`.
+In some simple to middling cases it can avoid both the need for a script (R, Python, Ruby et cetera) and
+having to load the entire data set into memory.
 
-Presenting a concise command-line format `pick` can
+`pick` is **robust** by using column names (if present) rather than positional
+indexes and **lightweight** as it handles data per-line without the need to
+load the table into memory.  With `pick` you can
 
 - Use column names or column indexes to
 - Select columns
@@ -22,10 +23,10 @@ There is no downside, except, as ever, it comes with its own syntax for computat
 
 **For plain selection and filtering usage computation syntax is not needed**.
 
-The syntax is minimalist and terse by virtue of using a stack language with just three types.
+The syntax is minimalist and terse, employing a stack language with just three types.
 In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
-On first sight it probably looks arcane and terrifying - a long second look might be required.
-Compensating for the arcane syntax, `pick`'s inner computation loop is very simple.
+On first sight it might look arcane or terrifying, requiring a long second look.
+Compensating for the arcane syntax, `pick`'s inner computation loop is simple and dependable.
 
 
 [Pick one or more columns](#pick-one-or-more-columns)  
