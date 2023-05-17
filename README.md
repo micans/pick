@@ -8,8 +8,10 @@ In some simple to middling cases it can avoid both the need for a script (R, Pyt
 having to load the entire data set into memory.
 
 `pick` is **robust** by using column names (if present) rather than positional
-indexes and **lightweight** as it handles data per-line without the need to
-load the table into memory.  With `pick` you can
+indexes. It is **lightweight** as it handles data per-line without the need to
+load the table into memory. Finally, it is **expressive** 
+in that short command lines are sufficient to get at the data.
+With `pick` you can
 
 - Use column names or column indexes to
 - Select columns
@@ -23,7 +25,7 @@ There is no downside, except, as ever, it comes with its own syntax for computat
 
 **For plain selection and filtering usage computation syntax is not needed**.
 
-The syntax is minimalist and terse, employing a stack language with just three types.
+Computation syntax is minimalist and terse, employing a stack language with just three types.
 In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
 On first sight it might look arcane or terrifying, requiring a long second look.
 Compensating for the arcane syntax, `pick`'s inner computation loop is simple and dependable.
