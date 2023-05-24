@@ -1,14 +1,14 @@
 
 # Unix file/stream column and row manipulation using column names
 
-`pick` is a **command-line** query/programming tool to *manipulate streamed tabular data*,
-by *transforming, recombining and selecting columns* as well as *filtering rows*.
-It is a mix of aspects of unix `cut`, `R` and `awk`.
-In some simple to middling cases it can avoid both the need for a script (R, Python, Ruby et cetera) and
+`pick` is a **command-line** query/programming tool to manipulate streamed tabular data,
+by transforming, recombining and selecting columns as well as filtering rows.
+Its functionality is a mix of aspects of unix `cut`, `R` and `awk`.
+In some simple to middling cases it can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
 
-`pick` is **robust** by using column names (if present) rather than positional
-indexes. It is **lightweight** as it handles data per-line without the need to
+`pick` is **robust** and **intuitive** by using column names if present and positional
+indexes otherwise. It is **lightweight** as it handles data per-line without the need to
 load the table into memory. Finally, it is **expressive** 
 in that short command lines are sufficient to get at the data.
 With `pick` you can
@@ -21,9 +21,8 @@ With `pick` you can
 - Select multiple colummns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression
 
-There is no downside, except, as ever, it comes with its own syntax for computation.
-
-**For plain selection and filtering usage computation syntax is not needed**.
+There is no downside, except, as ever, it comes with its own syntax for
+computation. However, for plain selection and filtering this syntax is not needed.
 
 Computation syntax is minimalist and terse, employing a stack language with just three types.
 In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
