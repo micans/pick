@@ -264,7 +264,7 @@ my $help_options=q{Options:
     NOTE an empty field is recognised and mapped to _ automatically
   -f force processing (allows both identical input and output column names)
   -F fixed names; do not interpret names as regular expressions.
-     Default behaviour is to assume a regular expression if a name contains one of [ \{ ( \ * ?
+     Default behaviour is to assume a regular expression if a name contains one of ^ $ [ \{ ( \ * ?
   -W (weird mode) header exists but use 1 2 .. for column names (selection not applied to header)
     1. consider using a=longcolumnname b=longercolumname; pick $a $b @$b/gt/0 @$a/lt/0 < data.txt
     2. consider using --inames=CSV (see below; this will change names in the output)

@@ -31,6 +31,8 @@ runpick: data.txt
 	$(p) --fdict-star/---=dict.txt Starname::name^D,del^star,map  <  $<  > o.dictstarname.test
 	export PICK_DIV_INF='😳'; $(p) -Pi fib:fib2:sq//_pct::__:fib2^1,pct  <  $<  > o.pct5.test
 	$(p) -i numsum1::'num\d+',addall foo_/'num\d+'/_bar::__,sq numsum2::'num\d+',addall 'num\d+'  <  $<  > o.numsum.test
+	$(p) x::name^'%5EG.*',get^-,uie                               <  $<  > o.re-caret.test
+	$(p) x::name^'%5E[%5EG].*',get^-,uie                          <  $<  > o.re-caret2.test
 
 
 %.ref : %.test
