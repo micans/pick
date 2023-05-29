@@ -921,7 +921,7 @@ while (<>) {
     $::Nrows++;
   }
 
-  do_compute(\@F);         # this pushes compute onto @F if present.
+  do_compute(\@F) if @::compute;         # this pushes compute onto @F if present.
 
   my $nmatch = 0;
 
@@ -944,11 +944,9 @@ while (<>) {
      }
   }
 
-  my @outputs = map { $F[$_] } @::output_os;
-
-  local $" = "\t";
-  print "@outputs";
-  $::N_column_output = @outputs;
+  local $, = "\t";
+  print map { $F[$_] } @::output_os;
+  $::N_column_output = @::output_os;
 
   add_column($nmatch) if $B_print_tally;
   print "\n";
