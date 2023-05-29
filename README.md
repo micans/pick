@@ -175,16 +175,19 @@ These are
 - caret `^` for a constant value (number or string)
 - comma `,` for an operator
 
-Thus
+Constant values and column handles are url-decoded, hence the escape mechanism
+for including any of the characters `^:,%` in a constant value or column handle is to url-encode them.
+The following is an example of a computation:
 
 ```
 :foo^144,add
 ```
 
 is an expression that indicates the column named `foo`, the number 144 and the `add` operator.
+The result of it is the sum of the value in the `foo` column and 144.
 Each computation needs a name. It can be thought of as a variable name. If the computation
 is output as a new column the name will be used as the column name. The two forms are below,
-where (1) `newname` will not be output as a new column (but is still available e.g. for comparison)
+where (1) `newname` will not be output as a new column (but is still available e.g. for other computations or comparison)
 and (2) `newname2` will be output.
 
 ```
