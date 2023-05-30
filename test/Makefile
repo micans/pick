@@ -1,4 +1,6 @@
 
+SHELL=/usr/bin/bash
+
 p=../pick
 
 all: runpick rundiff
@@ -37,4 +39,19 @@ runpick: data.txt
 
 %.ref : %.test
 	diff $< $@
+
+rrr.txt: r1 r2 r3 r4 r5
+	{ echo one;   for i in {1..100000}; do echo $$RANDOM; done; } > r1
+	{ echo two;   for i in {1..100000}; do echo $$RANDOM; done; } > r2
+	{ echo three; for i in {1..100000}; do echo $$RANDOM; done; } > r3
+	{ echo four;  for i in {1..100000}; do echo $$RANDOM; done; } > r4
+	{ echo five;  for i in {1..100000}; do echo $$RANDOM; done; } > r5
+	paste r[1-5] > rrr.txt
+
+timerand: rrr.txt
+	bash time.txt
+	bash time2.txt
+
+hissyfit: rrr.txt
+	command -v hissyfit && pick -h ::'.*',addall < rrr.txt | hissyfit || echo "No hissyfit"
 
