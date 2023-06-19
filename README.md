@@ -425,6 +425,7 @@ pick   '::^>:foo^ :zut^%0A:bar' > out.fa
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.
 -  `-o` OR multiple select criteria (default is AND)
 -  `-x` take complement of selected input column(s) (works with `-i`)
+-  `-c` output the count of rows that pass filtering
 -  `-i` in-place: `<HANDLE>::<COMPUTE>` replaces `<HANDLE>` if it exists
 -  `-/<pat>`  skip lines matching `<pat>`; use e.g. `-/^#` for commented lines, `-/^@` for sam files
 -  `-//<pat>` pass through lines matching <pat> (allows perl regular expressions, e.g. `^ $ . [] * ? (|)` work.

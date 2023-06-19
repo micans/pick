@@ -78,6 +78,7 @@ my $B_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
 my $B_regex        = 1;     # Whether to interpret names as a regular expression if one of the characters in $REGEXP_CHARS is found
 my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable with PICK_*_INF environment variables.
+my $B_count        = 0;     # Only output count of kept rows.
 
 $::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myriad.
 $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
@@ -389,6 +390,7 @@ while (@::spec && $::spec[0] =~ /^-/) {
   $B_debug        = 1 if $options =~ s/d//;
   $B_force        = 1 if $options =~ s/f//;
   $B_inplace      = 1 if $options =~ s/i//;
+  ($B_count, $B_print_header) = (1, 0) if $options =~ s/c//;
 
   if ($options =~ s/(z+)//) {
     local $, = ' ';
@@ -523,7 +525,7 @@ $B_print_header = 1 if $B_add_names;
 
 @::nameslist = $nameslist ? split ',', $nameslist : ();
 
-helphelp(1) unless @::spec || $B_printall || $B_excise || $B_force;
+helphelp(1) unless @::spec || $B_printall || $B_excise || $B_force || $B_count;
 
 sub interval_plus {
   my ($x, $y, $val) = @_;
@@ -619,7 +621,7 @@ sub add_column {
 
    ## Returns an arrary of matches; each match is an array [name1, name2].
    ## name1 is the existing name (found in header), name2 is the new name, normally the same.
-   ## New names can be made by the prefix/suffix convention as well as using regex ().
+   ## New names can be made by the prefix/suffix convention as well as using regex parentheses ().
    ##
 sub expand_list_range_and_regex {
    my ($spec, $has_compute) = @_;
@@ -944,6 +946,8 @@ while (<>) {
      }
   }
 
+  next if $B_count;        # $Nkeep is the only thing that interests us.
+
   local $, = "\t";
   print map { $F[$_] } @::output_os;
   $::N_column_output = @::output_os;
@@ -951,6 +955,8 @@ while (<>) {
   add_column($nmatch) if $B_print_tally;
   print "\n";
 }
+
+print "$Nkeep\n" if $B_count;
 
 print STDERR "-- $Nignr ignored lines in input\n" if $M_ignore && $B_verbose;
 my $would = $B_print_tally ? ' would' : '';
@@ -976,5 +982,6 @@ __DATA__
    o  numerical comparisons check field is numeric; however duplicates perl's work/warnings
    ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
    ?  would --onames be helpful? (note -K)
+   ?  implement in C using pcre2. string/number the main point of pain.
    #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
                                                                                                                            R.I.P. recol
