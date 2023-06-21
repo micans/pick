@@ -49,10 +49,10 @@ rrr.txt: r1 r2 r3 r4 r5
 	paste r[1-5] > rrr.txt
 
 timerand: rrr.txt
-	bash time.txt
+	bash time.txt >out_.txt 2>&1
 
 timerand2: rrr.txt
-	bash time2.txt
+	bash time2.txt >out2_.txt 2>&1
 
 hissyfit: rrr.txt
 	command -v hissyfit && pick -h ::'.*',addall < rrr.txt | hissyfit || echo "No hissyfit"

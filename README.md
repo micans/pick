@@ -40,6 +40,7 @@ Compensating for the arcane syntax, `pick`'s inner computation loop is simple an
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Miscellaneous](#miscellaneous)  
+[Useful regular expression features](#useful-regular-expression-features)
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
 [Implementation notes](#implementation-notes)
@@ -424,6 +425,19 @@ As above, add column `zut` as further annotation. Optionally use `%20` for the s
 ```
 pick   '::^>:foo^ :zut^%0A:bar' > out.fa
 ```
+
+## Useful regular expression features
+
+-  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
+
+   `:HANDLE^'patx\Kpaty',delg` will retain pattern `patx` and only delete pattern `paty`.
+
+-  Use `patx(?=paty)` to anchor `patx` to `paty` without including `paty` in the matched part.
+
+   `:HANDLE^'patx(?=paty)',get` will just fetch `patx`.
+
+-  Use `(?i)pat` to make a pattern case insensitive.
+
 
 ## Pick options
 

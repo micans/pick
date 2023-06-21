@@ -1,4 +1,3 @@
-{
 data=rrr.txt
 echo -n 'perl one comparison'
 time perl -ane 'BEGIN { <>; } print "\n" if $F[0] > $F[1];' < $data > /dev/null
@@ -22,4 +21,3 @@ echo -n 'pick one compute, (five add operators)'
 time ../pick onep:=one^1,add^1,add^1,add^1,add^1,add < $data > /dev/null
 echo -n 'pick five compute (multiplication)'
 time ../pick onep:=one^13,mul twop:=two^17,mul thrp:=three^19,mul fourp:=four^23,mul fivep:=five^29,mul < $data > /dev/null
-} >out.txt 2>&1
