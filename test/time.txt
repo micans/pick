@@ -5,21 +5,21 @@ time perl -ane 'BEGIN { <>; } print "\n" if $F[0] > $F[1];' < $data > /dev/null
 echo -n 'perl two comparison'
 time perl -ane 'BEGIN { <>; } print "\n" if $F[0] > $F[1] && $F[2] > $F[3];' < $data > /dev/null
 echo -n 'pick one comparison'
-time pick @one/gt/:two < $data > /dev/null
+time ../pick @one/gt/:two < $data > /dev/null
 echo -n 'pick two comparison'
-time pick @one/gt/:two @three/gt/:four < $data > /dev/null
+time ../pick @one/gt/:two @three/gt/:four < $data > /dev/null
 echo -n 'pick one compute (addition)'
-time pick onep:=one^1,add < $data > /dev/null
+time ../pick onep:=one^1,add < $data > /dev/null
 echo -n 'pick two compute (addition)'
-time pick onep:=one^1,add twop:=two^1,add < $data > /dev/null
+time ../pick onep:=one^1,add twop:=two^1,add < $data > /dev/null
 echo -n 'pick three compute (addition)'
-time pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add < $data > /dev/null
+time ../pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add < $data > /dev/null
 echo -n 'pick four compute (addition)'
-time pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add fourp:=four^1,add < $data > /dev/null
+time ../pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add fourp:=four^1,add < $data > /dev/null
 echo -n 'pick five compute (addition)'
-time pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add fourp:=four^1,add fivep:=five^1,add < $data > /dev/null
+time ../pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add fourp:=four^1,add fivep:=five^1,add < $data > /dev/null
 echo -n 'pick one compute, (five add operators)'
-time pick onep:=one^1,add^1,add^1,add^1,add^1,add < $data > /dev/null
+time ../pick onep:=one^1,add^1,add^1,add^1,add^1,add < $data > /dev/null
 echo -n 'pick five compute (multiplication)'
-time pick onep:=one^13,mul twop:=two^17,mul thrp:=three^19,mul fourp:=four^23,mul fivep:=five^29,mul < $data > /dev/null
+time ../pick onep:=one^13,mul twop:=two^17,mul thrp:=three^19,mul fourp:=four^23,mul fivep:=five^29,mul < $data > /dev/null
 } >out.txt 2>&1

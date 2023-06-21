@@ -50,6 +50,8 @@ rrr.txt: r1 r2 r3 r4 r5
 
 timerand: rrr.txt
 	bash time.txt
+
+timerand2: rrr.txt
 	bash time2.txt
 
 hissyfit: rrr.txt

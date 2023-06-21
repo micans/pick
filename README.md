@@ -2,16 +2,19 @@
 # Unix file/stream column and row manipulation using column names
 
 `pick` is a **command-line** query/programming tool to manipulate streamed tabular data,
-by transforming, recombining and selecting columns as well as filtering rows.
-Its functionality is a mix of aspects of unix `cut`, `R` and `awk`.
-In some simple to middling cases it can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
+by transforming, recombining and selecting columns as well as filtering rows, allowing either
+column names or indexes to be used as identifiers.
+
+Pick's functionality is a mix of aspects of unix `cut`, `R` and `awk`.
+In simple to middling cases it can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
+I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows.
 
 `pick` is **robust** and **intuitive** by using column names if present and positional
 indexes otherwise. It is **lightweight** as it handles data per-line without the need to
 load the table into memory. Finally, it is **expressive** 
 in that short command lines are sufficient to get at the data.
-With `pick` you can
+You can
 
 - Use column names or column indexes to
 - Select columns
@@ -39,6 +42,7 @@ Compensating for the arcane syntax, `pick`'s inner computation loop is simple an
 [Miscellaneous](#miscellaneous)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
+[Implementation notes](#implementation-notes)
 
 
 
@@ -143,11 +147,12 @@ The full list of comparison operators:
     /all/ /any/ /none/              bit selection
 ```
 
-`=` is for string identity, `/=` is for string _not equal to_, `~` tests against
+`=` is for string identity, `/=` is for string _not equal to_. These are shorthands
+for `~eq~` and `~ne~`, respectively. `~` tests against
 a perl regular expression, accepting matches, `/~` tests against a perl regular
 expression, discarding matches.
 By default comparison is to a constant value; in order to compare to a column
-its name or index is used, preceded by a colon.
+its name or index is used, preceded by a colon:
 
 ```
 pick foo bar @tim/gt/:bob < data.txt
@@ -161,7 +166,7 @@ pick -k 3 5 @8/gt/:6 < data.txt
 _Derived values_, also known as _computations_ can be
 - output as a new column
 - compared against with selection criteria
-- be used to break up computations into smaller parts
+- used to break up computations into smaller parts
 
 
 A computation is expressed in a stack language that has three types. These
@@ -271,6 +276,7 @@ introduced below, followed by more examples and explanation.
 ```
    pick nummax::'num\d{2}$',maxall < data.txt
    pick 'num\d{2}$' nummax::'num\d{2}$',maxall < data.txt
+   echo {1..20} | tr ' ' $'\t' | pick -k ::'.*',mulall         # compute 20 factorial
 ```
 
 -  Selecting multiple columns and executing the same operation on each column using
@@ -425,7 +431,7 @@ pick   '::^>:foo^ :zut^%0A:bar' > out.fa
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.
 -  `-o` OR multiple select criteria (default is AND)
 -  `-x` take complement of selected input column(s) (works with `-i`)
--  `-c` output the count of rows that pass filtering
+-  `-c` only output the count of rows that pass filtering
 -  `-i` in-place: `<HANDLE>::<COMPUTE>` replaces `<HANDLE>` if it exists
 -  `-/<pat>`  skip lines matching `<pat>`; use e.g. `-/^#` for commented lines, `-/^@` for sam files
 -  `-//<pat>` pass through lines matching <pat> (allows perl regular expressions, e.g. `^ $ . [] * ? (|)` work.
@@ -480,4 +486,16 @@ Take 3: `ed edg frac pct substr`
 
 Select comparison operators: `~ /~ = /= /eq/ /ne/ /lt/ /le/ /ge/ /gt/ /ep/ /om/ ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~ /all/ /any/ /none/`
 
+
+## Implementation notes
+
+Pick is currently implemented in Perl, a language not as popular as it once was. Nonetheless for data munging and
+manipulation Perl is a formidable competitor. In particular pick benefits from the
+power of perl regular expressions; these can be used as pick selection and modification operators on the command line.
+
+Pick additionally benefits from Perl's mechanisms for number/string and string/number conversion.
+
+It is tempting to implement pick in C to get a speed boost.  However,
+reinventing an integer/float/string equivalence system (with its many niggling
+corner cases) from scratch does not seem right.
 

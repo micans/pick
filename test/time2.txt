@@ -1,17 +1,21 @@
 {
 data=rrr.txt
+echo -n 'perl none'
+time perl -ane 'BEGIN { <>; } $x++;' < $data > /dev/null
 echo -n 'perl all'
 time perl -ane 'BEGIN { $"="\t"; } print "@F\n";' < $data > /dev/null
+echo -n 'pick none'
+time ../pick -c < $data > /dev/null
 echo -n 'pick all'
-time pick -A < $data > /dev/null
+time ../pick -A < $data > /dev/null
 echo -n 'pick all plus compute'
-time pick -A foo::one:two,add < $data > /dev/null
+time ../pick -A foo::one:two,add < $data > /dev/null
 echo -n 'pick all plus long compute'
-time pick -A foo::one:two:three:four:five,add,add,add,add < $data > /dev/null
+time ../pick -A foo::one:two:three:four:five,add,add,add,add < $data > /dev/null
 echo -n 'pick all plus long compute shortcut'
-time pick -A foo::one:two:three:four:five,addall < $data > /dev/null
+time ../pick -A foo::one:two:three:four:five,addall < $data > /dev/null
 echo -n 'perl one'
 time perl -ane 'BEGIN { $"="\t"; } print "$F[0]\n";' < $data > /dev/null
 echo -n 'pick one'
-time pick one < $data > /dev/null
+time ../pick one < $data > /dev/null
 } >out2.txt 2>&1
