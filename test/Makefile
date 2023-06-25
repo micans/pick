@@ -1,5 +1,5 @@
 
-SHELL=/usr/bin/bash
+SHELL=/bin/bash
 
 p=../pick
 
@@ -40,7 +40,7 @@ runpick: data.txt
 %.ref : %.test
 	diff $< $@
 
-rrr.txt: r1 r2 r3 r4 r5
+rrr.txt:
 	{ echo one;   for i in {1..100000}; do echo $$RANDOM; done; } > r1
 	{ echo two;   for i in {1..100000}; do echo $$RANDOM; done; } > r2
 	{ echo three; for i in {1..100000}; do echo $$RANDOM; done; } > r3

@@ -4,11 +4,17 @@ export TIMEFORMAT=%lU
 echo -ne "perl none\t"
 time perl -ane 'BEGIN { <>; } $x++;' < $data > /dev/null
 
+echo -ne "perl one\t"
+time perl -ane 'BEGIN { $"="\t"; } print "$F[0]\n";' < $data > /dev/null
+
 echo -ne "perl all\t"
 time perl -ane 'BEGIN { $"="\t"; } print "@F\n";' < $data > /dev/null
 
 echo -ne "pick none\t"
 time ../pick -c < $data > /dev/null
+
+echo -ne "pick one\t"
+time ../pick one < $data > /dev/null
 
 echo -ne "pick all\t"
 time ../pick -A < $data > /dev/null
@@ -21,9 +27,3 @@ time ../pick -A foo::one:two:three:four:five,add,add,add,add < $data > /dev/null
 
 echo -ne "pick all plus long compute shortcut\t"
 time ../pick -A foo::one:two:three:four:five,addall < $data > /dev/null
-
-echo -ne "perl one\t"
-time perl -ane 'BEGIN { $"="\t"; } print "$F[0]\n";' < $data > /dev/null
-
-echo -ne "pick one\t"
-time ../pick one < $data > /dev/null
