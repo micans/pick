@@ -44,10 +44,8 @@ Compensating for the arcane syntax, `pick`'s inner computation loop is simple an
 [Useful regular expression features](#useful-regular-expression-features)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
-[Implementation notes](#implementation-notes)
-[Implementation speed](#implementation-speed)
-
-
+[Implementation notes](#implementation-notes)  
+[Implementation speed](#implementation-speed)  
 
 ## Pick one or more columns
 
