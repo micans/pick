@@ -2,34 +2,34 @@ data=rrr.txt
 export TIMEFORMAT="%lU"
 
 echo -ne "perl one comparison\t"
-time perl -ane 'BEGIN { <>; } print "\n" if $F[0] > $F[1];' < $data > /dev/null
+time perl -ane 'BEGIN { <>; } END { print "$x\n" } $x++ if $F[0] > $F[1];' < $data > /dev/null
 
-echo -ne "perl two comparison\t"
-time perl -ane 'BEGIN { <>; } print "\n" if $F[0] > $F[1] && $F[2] > $F[3];' < $data > /dev/null
+echo -ne "perl two comparisons\t"
+time perl -ane 'BEGIN { <>; } END { print "$x\n" } $x++ if $F[0] > $F[1] && $F[2] > $F[3];' < $data > /dev/null
 
 echo -ne "pick one comparison\t"
 time ../pick @one/gt/:two < $data > /dev/null
 
-echo -ne "pick two comparison\t"
+echo -ne "pick two comparisons\t"
 time ../pick @one/gt/:two @three/gt/:four < $data > /dev/null
 
 echo -ne "pick one compute (addition)\t"
 time ../pick onep:=one^1,add < $data > /dev/null
 
-echo -ne "pick two compute (addition)\t"
+echo -ne "pick two computes (addition)\t"
 time ../pick onep:=one^1,add twop:=two^1,add < $data > /dev/null
 
-echo -ne "pick three compute (addition)\t"
+echo -ne "pick three computes (addition)\t"
 time ../pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add < $data > /dev/null
 
-echo -ne "pick four compute (addition)\t"
+echo -ne "pick four computes (addition)\t"
 time ../pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add fourp:=four^1,add < $data > /dev/null
 
-echo -ne "pick five compute (addition)\t"
+echo -ne "pick five computes (addition)\t"
 time ../pick onep:=one^1,add twop:=two^1,add thrp:=three^1,add fourp:=four^1,add fivep:=five^1,add < $data > /dev/null
+
+echo -ne "pick five computes (multiplication)\t"
+time ../pick onep:=one^13,mul twop:=two^17,mul thrp:=three^19,mul fourp:=four^23,mul fivep:=five^29,mul < $data > /dev/null
 
 echo -ne "pick one compute, (five add operators)\t"
 time ../pick onep:=one^1,add^1,add^1,add^1,add^1,add < $data > /dev/null
-
-echo -ne "pick five compute (multiplication)\t"
-time ../pick onep:=one^13,mul twop:=two^17,mul thrp:=three^19,mul fourp:=four^23,mul fivep:=five^29,mul < $data > /dev/null

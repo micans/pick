@@ -48,12 +48,12 @@ rrr.txt:
 	{ echo five;  for i in {1..100000}; do echo $$RANDOM; done; } > r5
 	paste r[1-5] > rrr.txt
 
-timerand: rrr.txt
-	bash time.txt 2>&1  | pick -k 2 1 | ./bar.pl | tee out.txt
+time: rrr.txt
+	bash time.txt 2>&1  | $(p) -k 2 1 | ./bar.pl | tee out.txt
 
-timerand2: rrr.txt
-	bash time2.txt 2>&1 | pick -k 2 1 | ./bar.pl | tee out2.txt
+time2: rrr.txt
+	bash time2.txt 2>&1 | $(p) -k 2 1 | ./bar.pl | tee out2.txt
 
 hissyfit: rrr.txt
-	command -v hissyfit && pick -h ::'.*',addall < rrr.txt | hissyfit || echo "No hissyfit"
+	command -v hissyfit && $(p) -h ::'.*',addall < rrr.txt | hissyfit || echo "No hissyfit"
 

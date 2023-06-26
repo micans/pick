@@ -45,6 +45,7 @@ Compensating for the arcane syntax, `pick`'s inner computation loop is simple an
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
 [Implementation notes](#implementation-notes)
+[Implementation speed](#implementation-speed)
 
 
 
@@ -510,7 +511,51 @@ power of perl regular expressions; these can be used as pick selection and modif
 
 Pick additionally benefits from Perl's mechanisms for number/string and string/number conversion.
 
+This implementation compiles all references to column names into array
+offsets.  It has no hash lookups during the core computation and output loop. Each computation
+is stored as a stack with code references where needed.  I see no drastic
+improvements available in pure perl, but I'd love to be wrong about this.
+
 It is tempting to implement pick in C to get a speed boost.  However,
 reinventing an integer/float/string equivalence system (with its many niggling
 corner cases) from scratch does not seem right.
+Below gives a rough indication of pick speed relative to baseline perl speed;
+the latter is measured as a skeleton loop over lines of input with each line split into fields.
+The timings can be recreated by running `make time` and `make time2` in the test directory.
+
+
+### Timings of comparisons and compute, no output
+```
+----                                                              perl one comparison
+----                                                              perl two comparisons
+
+-----------                                                       pick one comparisons
+--------------                                                    pick two comparisons
+
+--------------------                                              pick one compute (addition)
+-----------------------------                                     pick two computes (addition)
+--------------------------------------                            pick three computes (addition)
+--------------------------------------------------                pick four computes (addition)
+---------------------------------------------------------         pick five computes (addition)
+--------------------------------------------------------------    pick five computes (multiplication)
+
+----------------------------------------                          pick one compute (five add operators)
+```
+
+### Timings of output and compute
+```
+---                                                               perl print none
+----                                                              perl print one
+----                                                              perl print all
+------                                                            perl print all, add column (addition)
+
+-------                                                           pick print none
+-----------                                                       pick print one
+-------------                                                     pick print all
+-------------------------------                                   pick print all, add column (addition)
+
+----------------------------                                      pick print all plus compute
+-------------------------------------------                       pick print all plus long compute
+-------------------------------------                             pick print all plus long compute shortcut
+```
 
