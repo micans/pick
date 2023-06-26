@@ -45,7 +45,6 @@ Compensating for the arcane syntax, `pick`'s inner computation loop is simple an
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
 [Implementation notes](#implementation-notes)  
-[Implementation speed](#implementation-speed)  
 
 ## Pick one or more columns
 
