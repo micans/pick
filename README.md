@@ -36,6 +36,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
+[Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
 [Syntax for computing derived values](#syntax-for-computing-derived-values)  
 [Examples of computing derived values](#examples-of-computing-derived-values)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
@@ -159,6 +160,48 @@ pick foo bar @tim/gt/:bob < data.txt
 
 pick -k 3 5 @8/gt/:6 < data.txt
 ```
+
+## Selecting based on numerical proximity
+
+### Using epsilon and selecting within additive range.
+
+Select all rows where `tim` is approximately 1.0. The default epsilon (maximum allowed
+deviation) for this is 0.0001 but can be changed (see below).
+
+```
+pick -A @tim/ep/1.0 < data.txt
+```
+
+As above, but make epsilon more stringent (one in a million).
+
+```
+pick -A @tim/ep/1.0/0.000001 < data.txt
+```
+
+In this case, select rows where colums `tim` and `pat` are no further than one apart.
+
+```
+pick -A @tim/ep/:pat/1 < data.txt
+```
+
+
+### Using order of magnitude and selecting within multiplicative range.
+
+The default order of magnitude is 2 but can be changed. Below selects rows
+where column `tim` is no larger than twice column `pat` and column `pat` is
+no larger than twice column `tim`, ignoring signs.
+
+```
+pick -A @tim/om/:pat < data.txt
+```
+
+Add `@tim/gt/0` to additionally require the sign to be positive for example.
+Change the order of magnitude by adding it as a parameter, in this case 1.01.
+
+```
+pick -A @tim/om/:pat/1.01 < data.txt
+```
+
 
 
 ## Syntax for computing derived values
