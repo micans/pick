@@ -31,7 +31,7 @@ pick command lines look pleasant enough for common use cases.
 Computation syntax is minimalist and terse, employing a stack language with just three types.
 In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
 On first sight it might look arcane or terrifying, requiring a long second look.
-Compensating for the arcane syntax, `pick`'s inner computation loop is simple and dependable.
+Compensating for the terse stack language, `pick`'s inner computation loop is simple and dependable.
 
 
 [Pick one or more columns](#pick-one-or-more-columns)  
@@ -511,11 +511,12 @@ Pick additionally benefits from Perl's mechanisms for number/string and string/n
 This implementation compiles all references to column names into array
 offsets.  It has no hash lookups during the core computation and output loop. Each computation
 is stored as a stack with code references where needed.  I see no drastic
-improvements available in pure perl, but I'd love to be wrong about this.
+improvements available in pure perl, but I'd love to be wrong about this
+(unwrapping the code references may lead to some speed-up but code modularity would suffer).
 
 It is tempting to implement pick in C to get a speed boost.  However,
 reinventing an integer/float/string equivalence system (with its many niggling
-corner cases) from scratch does not seem right.
+corner cases) from scratch does not seem right (where's the C library for that?).
 Below gives a rough indication of pick speed relative to baseline perl speed;
 the latter is measured as a skeleton loop over lines of input with each line split into fields.
 The timings can be recreated by running `make time` and `make time2` in the test directory.
@@ -526,7 +527,7 @@ The timings can be recreated by running `make time` and `make time2` in the test
 ----                                                              perl one comparison
 ----                                                              perl two comparisons
 
------------                                                       pick one comparisons
+-----------                                                       pick one comparison
 --------------                                                    pick two comparisons
 
 --------------------                                              pick one compute (addition)
@@ -555,4 +556,3 @@ The timings can be recreated by running `make time` and `make time2` in the test
 -------------------------------------------                       pick print all plus long compute
 -------------------------------------                             pick print all plus long compute shortcut
 ```
-

@@ -7,6 +7,10 @@ all: runpick rundiff
 
 rundiff: $(wildcard *.ref)
 
+   ## The column names are short, the rows do not reference meaningful entities,
+   ## the operations are just to cover pick functionality.
+   ## Hence below invocations are not quite self-explanatory.
+
 runpick: data.txt
 	$(p) -f       <  $<   > o.noselection.test
 	$(p) sq fib   <  $<   > o.sq-fib.test
