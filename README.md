@@ -9,10 +9,11 @@ Pick's functionality is a mix of aspects of unix `cut`, `R` and `awk`.
 In simple to middling cases it can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
 I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows
-and make them more robust and understandable by promoting the use of column names as handles (as opposed to column indexes as required by `cut`).
+and make them more robust and understandable by promoting the use of column names as handles
+(as opposed to column indexes as used with `cut` and `awk`).
 
-`pick` is **robust** and **intuitive** by using column names if present and positional indexes otherwise.
-It is **lightweight** as it handles data per-line without the need to load the table into memory.
+`pick` is **robust** and **intuitive** by supporting column names as handles.
+It is **lightweight** as it processes data per-line without the need to load the table into memory.
 It is **expressive** in that short command lines are sufficient to get at the data.
 You can
 
@@ -163,7 +164,7 @@ pick -k 3 5 @8/gt/:6 < data.txt
 
 ## Selecting based on numerical proximity
 
-### Using epsilon and selecting within additive range.
+### Using epsilon and selecting within additive range
 
 Select all rows where `tim` is approximately 1.0. The default epsilon (maximum allowed
 deviation) for this is 0.0001 but can be changed (see below).
@@ -185,7 +186,7 @@ pick -A @tim/ep/:pat/1 < data.txt
 ```
 
 
-### Using order of magnitude and selecting within multiplicative range.
+### Using order of magnitude and selecting within multiplicative range
 
 The default order of magnitude is 2 but can be changed. Below selects rows
 where column `tim` is no larger than twice column `pat` and column `pat` is
@@ -456,16 +457,16 @@ pick  -k '::^>:1^%0A:2' > out.fa
 ```
 
 
-Using columns `foo` and `bar` instead:
+Using columns `foo` and `bar` instead. In this case `-h` is needed to avoid printing a header.
 
 ```
-pick   '::^>:foo^%0A:bar' > out.fa
+pick -h '::^>:foo^%0A:bar' > out.fa
 ```
 
 As above, add column `zut` as further annotation. Optionally use `%20` for the space character.
 
 ```
-pick   '::^>:foo^ :zut^%0A:bar' > out.fa
+pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
 ```
 
 ## Useful regular expression features
