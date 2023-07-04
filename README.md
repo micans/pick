@@ -471,7 +471,7 @@ The operators are
 `<cigarstring> <cigaritems> cgsum`  
 Count the total number of bases covered by all alignment types in `<cigaritems>`.
 
-`<cigarstring> <cigaritems> `cgmax`  
+`<cigarstring> <cigaritems> cgmax`  
 Returns the size of the longest stretch of bases across all alignment types in `<cigaritems>`.
 
 `<cigarstring> <cigaritems> cgcount`  
