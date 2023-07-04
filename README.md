@@ -43,11 +43,11 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Ragged input](#ragged-input)  
 [SAM and CIGAR support](#sam-and-cigar-support)  
-[Miscellaneous](#miscellaneous)  
 [Option processing](#option-processing)  
 [Useful regular expression features](#useful-regular-expression-features)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
+[Miscellaneous](#miscellaneous)  
 [Implementation notes](#implementation-notes)  
 
 
@@ -499,29 +499,6 @@ The start of the alignment in query (1-based).
 The number of bases in reference covered by this alignment; the sum of all events in `MDN=X`.
 
 
-## Miscellaneous
-
-Create fasta files with pick. In the example the identifier is in the first column with the sequence
-in the second column.  Quotes needed as `>` is a shell meta character.
-`%0A` is the url-encoding of a newline.
-
-```
-pick  -k '::^>:1^%0A:2' > out.fa
-```
-
-
-Using columns `foo` and `bar` instead. In this case `-h` is needed to avoid printing a header.
-
-```
-pick -h '::^>:foo^%0A:bar' > out.fa
-```
-
-As above, add column `zut` as further annotation. Optionally use `%20` for the space character.
-
-```
-pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
-```
-
 ## Useful regular expression features
 
 -  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
@@ -601,6 +578,30 @@ Take 2: `add and cat cgcount cgmax cgsum dd del delg div get idiv map max min mo
 Take 3: `ed edg frac pct substr`
 
 Select comparison operators: `~ /~ = /= /eq/ /ne/ /lt/ /le/ /ge/ /gt/ /ep/ /om/ ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~ /all/ /any/ /none/`
+
+
+## Miscellaneous
+
+Create fasta files with pick. In the example the identifier is in the first column with the sequence
+in the second column.  Quotes needed as `>` is a shell meta character.
+`%0A` is the url-encoding of a newline.
+
+```
+pick  -k '::^>:1^%0A:2' > out.fa
+```
+
+
+Using columns `foo` and `bar` instead. In this case `-h` is needed to avoid printing a header.
+
+```
+pick -h '::^>:foo^%0A:bar' > out.fa
+```
+
+As above, add column `zut` as further annotation. Optionally use `%20` for the space character.
+
+```
+pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
+```
 
 
 ## Implementation notes
