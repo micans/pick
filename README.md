@@ -461,7 +461,13 @@ will be added (and added e.g. if `-A` is used).
 
 ## SAM and CIGAR support
 
-Pick has a few operators that support parsing of SAM files. For now this pertains specifically to the CIGAR
+
+Use `-O11` or `-O12` (if you need access to column 11) when filtering SAM files through pick to allow
+cases where the producer of the SAM file has included additional columns. You can use the `get` operator (`<value> <regex> get`)
+to retrieve information from the concatenated fields in picks last input column.
+
+
+Pick has a few operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
 string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
 alignment types supported by CIGAR strings
 (respectively *alignment match*, *insertion in reference*, *deletion from reference*, *skip from reference*,
@@ -531,7 +537,7 @@ pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
 ## Option processing
 
 Single-letter options can be combined. The offset for `-O` (ragged input) and optional offset for `-A`
-(insertion of new columns) are accommodated, so `-kA2O12` will be understood by pick.
+(insertion of new columns) are accommodated, so `-kA2O11` will be understood by pick.
 The option for ignoring lines with a certain pattern `/<pat>` and the option for passing through
 lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#`.
 
@@ -549,7 +555,7 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 -  `-A` print all input columns (selecting by colspec applies, -`T` accepted)
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
--  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O12`), merge all columns at/after position `<N>`
+-  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O11`), merge all columns at/after position `<N>`
 -  `-T` do not select, print tally column of count of matched row select criteria (name `T`)
 -  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
 
