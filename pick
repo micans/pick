@@ -321,24 +321,30 @@ my $nameslist = "";
 sub read_dict {
    my ($name, $fname) = @_;
    open(D, "<$fname") || die "cannot open $fname for dictionary reading";
+   my $n_novalue = 0;
    while(<D>) {
       chomp; my @F = split "\t";
-      die "Dictionary $name load error on line $. of $fname" unless @F >= 2;
-      $::dict{$name}{$F[0]} = $F[1];
+      my $value = 1;
+      if (@F >= 2) { $value = $F[1]; } else { $n_novalue++; }
+      $::dict{$name}{$F[0]} = $value;
    } close(D);
    my $n = keys %{$::dict{$name}};
-print STDERR "-- have $n keys in dictionary $name after reading $fname\n" if $B_verbose;
+print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $B_verbose;
+print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_verbose && $n_novalue;
 }
 
 sub parse_dict {
    my ($name, $string) = @_;
    for my $pair (split ",", $string) {
       my ($k, $v) = map { urldecode($_) } split ':', $pair;
-      die "no key:value found in [$pair]" unless defined($v);
+      if (!defined($v)) {
+         print STDERR "-- Setting value for $k to 1\n" if $B_verbose;
+         $v = 1;
+      }
       $::dict{$name}{$k} = $v;
    }
    my $n = keys %{$::dict{$name}};
-print STDERR "-- have $n keys in dictionary $name after parsing string\n" if $B_verbose;
+print STDERR "-- dictionary $name has $n keys after parsing string\n" if $B_verbose;
 }
 
 while (@::spec && $::spec[0] =~ /^-/) {
@@ -359,6 +365,13 @@ while (@::spec && $::spec[0] =~ /^-/) {
     $nameslist=$2;
     $B_add_names = $1 ? 1 : 0;
     next;
+  }
+  elsif ($options =~ /^--sam$/)  {
+    print <<EOH;
+  1     2     3     4     5     6     7     8     9    10    11
+QNAME FLAG  RNAME  POS  MAPQ  CIGAR  RNEXT PNEXT TLEN SEQ   QUAL
+EOH
+    exit 0;
   }
   ($PAT_IGNORE, $M_ignore) = ($1, 2) if $options =~ s/\/\/(.*)$//;
   ($PAT_IGNORE, $M_ignore) = ($1, 1) if $options =~ s/\/([^\/].*)$//;

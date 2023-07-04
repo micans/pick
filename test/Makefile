@@ -26,6 +26,7 @@ runpick: data.txt
 	$(p) -A1ki foo:=1 1::2 2::foo x::^x                           <  $<  > o.switch.test
 	$(p) -h y::name,uc x::foo11^_,delg,uc @y/=:x                  <  $<  > o.ucdelg.test
 	$(p) --cdict-123/NOTFOUND=1:one,2:two,3:three x::num4^123,map <  $<  > o.123dict.test
+	$(p) -A --cdict-123/0=2,3 x:=num4^123,map @x=0                <  $<  > o.123dict2.test
 	$(p) x::ms^7,mul y::x,ceil @ud/gt/0 @x/ep/:y                  <  $<  > o.eptest1.test
 	$(p) x::ms^700,mul y::x,ceil @ud/gt/0 @x/ep/:y                <  $<  > o.eptest2.test
 	$(p) x::ms^700,mul y::x,ceil @ud/gt/0 @x/ep/:y/0.01           <  $<  > o.eptest3.test

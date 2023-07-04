@@ -22,7 +22,7 @@ You can
 - Change columns (using computation and string operations)
 - Combine columns into new columns (using computation and string operations)
 - Filter rows on boolean clauses computed on columns
-- Select multiple colummns using ranges or regular expressions
+- Select multiple columns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression
 
 There is no downside, except, as ever, it comes with its own syntax for
@@ -34,7 +34,6 @@ In order to work as a command line tool, the `pick` computation language **does 
 On first sight it might look arcane or terrifying, requiring a long second look.
 Compensating for the terse stack language, `pick`'s inner computation loop is simple and dependable.
 
-
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
 [Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
@@ -42,11 +41,15 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Examples of computing derived values](#examples-of-computing-derived-values)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
+[Ragged input](#ragged-input)  
+[SAM and CIGAR support](#sam-and-cigar-support)  
 [Miscellaneous](#miscellaneous)  
+[Option processing](#option-processing)  
 [Useful regular expression features](#useful-regular-expression-features)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
 [Implementation notes](#implementation-notes)  
+
 
 ## Pick one or more columns
 
@@ -149,10 +152,11 @@ The full list of comparison operators:
     /all/ /any/ /none/              bit selection
 ```
 
-`=` is for string identity, `/=` is for string _not equal to_. These are shorthands
+`=` is for string identity, `/=` is for string _not equal to_. These are shorthand
 for `~eq~` and `~ne~`, respectively. `~` tests against
 a perl regular expression, accepting matches, `/~` tests against a perl regular
-expression, discarding matches.
+expression, discarding matches. `/ep/` (epsilon) and `/om/` (order of magnitude)
+are described [here](#selecting-based-on-numerical-proximity).
 By default comparison is to a constant value; in order to compare to a column
 its name or index is used, preceded by a colon:
 
@@ -179,7 +183,7 @@ As above, but make epsilon more stringent (one in a million).
 pick -A @tim/ep/1.0/0.000001 < data.txt
 ```
 
-In this case, select rows where colums `tim` and `pat` are no further than one apart.
+In this case, select rows where columns `tim` and `pat` are no further than one apart.
 
 ```
 pick -A @tim/ep/:pat/1 < data.txt
@@ -249,8 +253,8 @@ and (2) `newname2` will be output.
 ## Examples of computing derived values
 
 In the example below the `<compute>` part (with name `doodle`) is `yam:bob,sub^1,add`. It does not start with
-either a colon, caret or comma. By default the first part is always assumed to be a column handle
-unless a constant value is found - there is no useful scenario to start with an operator.
+either a colon, caret or comma.
+**By default the first part is always assumed to be a column handle unless a constant value is found** - there is no useful scenario to start with an operator.
 
 This particular compute puts two column values on the stack (for columns `yam` and `bob`), then subtracts
 `bob` from `yam`, and adds 1 to the result. If the two columns denote inclusive bounds for an interval
@@ -388,17 +392,18 @@ be url-encoded.
 
 ## Map column values using a dictionary
 
-Dictionaries can be specified in two ways:
+Dictionaries can be specified in different ways:
 
 ```
---fdict-NAME=/path/to/dictfile      where dictfile is two-column tab-separated.
+--fdict-NAME=/path/to/dictfile      (key,value) = (col1, col2) (rows with two fields)
+                                               or (col1, 1)    (rows with one field)
 
 --cdict-NAME=foo:bar,zut:tim        comma-separated key:value pairs
+--cdict-NAME=foo,zut                comma-separated keys, all set to value 1
 ```
 
-
 `NAME` is the name of the dictionary. Multiple dictionaries can be imported.
-A dictonary is specified by its name for use with the map operator as seen below.
+A dictionary is specified by its name for use with the map operator as seen below.
 Multiple `fdict` and `cdict` specifications can be used for the same `NAME`.
 
 ```
@@ -445,6 +450,48 @@ echo -e "a\t3\nb\t4\nc\t8" | pick -Ak --cdict-foo/=a:1,b:1 x:=1^foo,map @x=
 c  8
 ```
 
+## Ragged input
+
+Ragged input (rows with varying number of columns, such as possible with SAM format) can be processed by using the option `-O<NUM>`
+and requires additionally the `-k` parameter. With this type of input column names are not supported.
+At most `<NUM>` columns are consumed in each row. Excess fields in the row will be concatenated
+onto the last consumed column. If the input row has fewer than `<NUM>` fields additional empty fields
+will be added (and added e.g. if `-A` is used).
+
+
+## SAM and CIGAR support
+
+Pick has a few operators that support parsing of SAM files. For now this pertains specifically to the CIGAR
+string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
+alignment types supported by CIGAR strings
+(respectively *alignment match*, *insertion in reference*, *deletion from reference*, *skip from reference*,
+*soft-clip*, *hard-clip*, *padding*, *sequence match*, *sequence mismatch*).
+The operators are
+
+`<cigarstring> <cigaritems> cgsum`  
+Count the total number of bases covered by all alignment types in `<cigaritems>`.
+
+`<cigarstring> <cigaritems> `cgmax`  
+Returns the size of the longest stretch of bases across all alignment types in `<cigaritems>`.
+
+`<cigarstring> <cigaritems> cgcount`  
+Returns the number of events across all alignment types in `<cigaritems>`.
+
+`<cigarstring> cgqrycov`  
+The number of bases in query covered by this alignment; the sum of all events in `MI=X`.
+
+`<cigarstring> cgqryend`  
+The end of the alignment in query (1-based).
+
+`<cigarstring> cgqrylen`  
+The length of query, the sum of all events in `MIS=X`.
+
+`<cigarstring> cgqrystart`  
+The start of the alignment in query (1-based).
+
+`<cigarstring> cgrefcov`  
+The number of bases in reference covered by this alignment; the sum of all events in `MDN=X`.
+
 
 ## Miscellaneous
 
@@ -481,6 +528,12 @@ pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
 
 -  Use `(?i)pat` to make a pattern case insensitive.
 
+## Option processing
+
+Single-letter options can be combined. The offset for `-O` (ragged input) and optional offset for `-A`
+(insertion of new columns) are accommodated, so `-kA2O12` will be understood by pick.
+The option for ignoring lines with a certain pattern `/<pat>` and the option for passing through
+lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#`.
 
 ## Pick options
 
@@ -515,7 +568,7 @@ pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
 Pick supports a wide range of functionality. Standard arithmetic, bit
 operations and a number of math functions are provided (see below).  It is also possible
 to match and extract substrings using Perl regexes (as a derived value or new
-column) with `get`, change an existinig column using a regex with `ed` and
+column) with `get`, change an existing column using a regex with `ed` and
 `edg`, compute md5 sums, URL-encode and decode, convert to and from binary,
 octal and hex, reverse complement DNA/RNA, and extract statistics from cigar
 strings. Display options include formatting of fractions and percentages
