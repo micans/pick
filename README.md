@@ -37,18 +37,18 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
 [Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
-[Syntax for computing derived values](#syntax-for-computing-derived-values)  
-[Examples of computing derived values](#examples-of-computing-derived-values)  
+[Syntax for computing new columns](#syntax-for-computing-new-columns)  
+[Examples of computing new columns](#examples-of-computing-new-columns)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Ragged input](#ragged-input)  
 [SAM and CIGAR support](#sam-and-cigar-support)  
-[Option processing](#option-processing)  
 [Useful regular expression features](#useful-regular-expression-features)  
+[Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
 [Miscellaneous](#miscellaneous)  
-[Implementation notes](#implementation-notes)  
+[Implementation notes](#implementation-notes)
 
 
 ## Pick one or more columns
@@ -101,7 +101,7 @@ that the value to compare to should be taken from column `zut`):
 ```
 pick foo bar @tim/gt/:zut < data.txt
 ```
-It is possible for `zut` to be [a newly computed value derived from other (existing or computed) columns](#examples-of-computing-derived-values).
+It is possible for `zut` to be [a newly computed value derived from other (existing or computed) columns](#examples-of-computing-new-columns).
 
 
 where `tim` is the string `flub123`:
@@ -209,7 +209,7 @@ pick -A @tim/om/:pat/1.01 < data.txt
 
 
 
-## Syntax for computing derived values
+## Syntax for computing new columns
 
 _Derived values_, also known as _computations_ can be
 - output as a new column
@@ -250,7 +250,7 @@ and (2) `newname2` will be output.
 ```
 
 
-## Examples of computing derived values
+## Examples of computing new columns
 
 In the example below the `<compute>` part (with name `doodle`) is `yam:bob,sub^1,add`. It does not start with
 either a colon, caret or comma.
@@ -456,13 +456,13 @@ Ragged input (rows with varying number of columns, such as possible with SAM for
 and requires additionally the `-k` parameter. With this type of input column names are not supported.
 At most `<NUM>` columns are consumed in each row. Excess fields in the row will be concatenated
 onto the last consumed column. If the input row has fewer than `<NUM>` fields additional empty fields
-will be added (and added e.g. if `-A` is used).
+will be added (and output e.g. if `-A` is used).
 
 
 ## SAM and CIGAR support
 
 
-Use `-O11` or `-O12` (if you need access to column 11) when filtering SAM files through pick to allow
+Use `-kO11` or `-kO12` (if you need access to column 11) when filtering SAM files through pick to allow
 cases where the producer of the SAM file has included additional columns. You can use the `get` operator (`<value> <regex> get`)
 to retrieve information from the concatenated fields in picks last input column.
 
@@ -578,6 +578,26 @@ Take 2: `add and cat cgcount cgmax cgsum dd del delg div get idiv map max min mo
 Take 3: `ed edg frac pct substr`
 
 Select comparison operators: `~ /~ = /= /eq/ /ne/ /lt/ /le/ /ge/ /gt/ /ep/ /om/ ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~ /all/ /any/ /none/`
+
+Most operators are self-explanatory. The cigar-string related operators are [explained here](#sam-and-cigar-support).
+Below is a table further describing selected operators.
+
+```
+   stack   op            result
+   ------+------------+-------------------------------------------------------------------
+   x e   | get        |  x =~ s/e/MATCH/   | MATCH is $1 corresponding to outer () if exists,
+   x e z | ed         |  x =~ s/e/z/       | matched part otherwise.
+   x e z | edg        |  x =~ s/e/z/g      |
+   x e   | del        |  x =~ s/e//        | e accepts most perl regular expression syntax
+   x e   | delg       |  x =~ s/e/g        |
+   x d   | map        |  map x using dictionary named d, specified as --fdict-d=<FNAME>
+   x y   | uie        |  (use if empty) x or y if x is the empty string
+   x n   | zp         |  left-padding with zeroes to length n
+   x o n | substr     |  substr(x, o=offset, n=count)
+   x y n | pct        |  x as percentage of y with n decimals | '-' if y is zero
+   x y n | frac       |  x as fraction of y with n decimals   |
+   x n   | dd         |  x rounded to n decimals
+```
 
 
 ## Miscellaneous
