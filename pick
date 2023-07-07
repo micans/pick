@@ -56,7 +56,8 @@ helphelp(0) unless @::spec;
 %::handle_map = ();         # map column names to offsets
 %::plain_handle = ();       # handles without any compute following.
 
-my $PAT_IGNORE     = '';    # ::/my style is somewhat intractable. :: tend to be thing accessed in subroutines.
+my $PAT_PURGE      = '';    # ::/my style is somewhat intractable. :: tend to be thing accessed in subroutines.
+my $PAT_PASS       = '';    # PURGE is removed before processing, PASS is passed through before processing.
 my $INSERT_OFFSET  = undef; # with -A, where to put extra columns (by default at the end).
 my $OFFSET_OMEGA   = -1;    # with -O<N>, accept overflow ragged columns from position <N> onwards.
 
@@ -72,7 +73,7 @@ my $B_ko           = 0;     # With -k, make output columns unique and ordered as
 my $B_sprouthead   = 0;     # Create header e.g. from derived names
 my $B_weirdmode    = 0;     # Header exists, but users wants to use numbers (turns of selections for header)
 my $B_force        = 0;     # Force output if identical output names exist
-my $M_ignore       = 0;     # M_ode: 0 oblivious, 1 skip, 2 pass
+my $M_ignore       = 0;     # M_ode: 0 oblivious, 1 pass, 2 purge
 my $B_debug        = 0;     # Mostly documents the stages of compute and selection definitions
 my $B_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
@@ -373,8 +374,8 @@ QNAME FLAG  RNAME  POS  MAPQ  CIGAR  RNEXT PNEXT TLEN SEQ   QUAL
 EOH
     exit 0;
   }
-  ($PAT_IGNORE, $M_ignore) = ($1, 2) if $options =~ s/\/\/(.*)$//;
-  ($PAT_IGNORE, $M_ignore) = ($1, 1) if $options =~ s/\/([^\/].*)$//;
+  if ($options =~ s/\/\/(.*)$//)    { $M_ignore |= 1; $PAT_PASS  = $1; }   # urldecode $PAT_PASS?
+  if ($options =~ s/\/([^\/].*)$//) { $M_ignore |= 2; $PAT_PURGE = $1; }   # urldecode $PAT_PURGE?
 
   if ($options =~ s/O(\d+)//) {
      $OFFSET_OMEGA = $1 + 0;
@@ -900,10 +901,14 @@ while (<>) {
 
   %::LINECACHE = ();
 
-  if ($M_ignore && /$PAT_IGNORE/) {
-    print "$_" if $M_ignore == 2;
-    $Nignr++;
-    next;
+  if ($M_ignore) {
+    my $hit1 = ($M_ignore & 1) && /$PAT_PASS/  ? 1 : 0;
+    my $hit2 = ($M_ignore & 2) && /$PAT_PURGE/ ? 1 : 0;
+    if ($hit1 || $hit2) {
+       print "$_" if $hit1;
+       $Nignr++;
+       next;
+    }
   }
 
   chomp;
@@ -995,6 +1000,5 @@ __DATA__
    o  numerical comparisons check field is numeric; however duplicates perl's work/warnings
    ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
    ?  would --onames be helpful? (note -K)
-   ?  implement in C using pcre2. string/number the main point of pain.
-   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
-                                                                                                                           R.I.P. recol
+   ?  implement in C using pcre2. string/float/int the main point of pain.
+   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.              R.I.P. recol

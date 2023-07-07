@@ -2,7 +2,7 @@
 # Unix file/stream column and row manipulation using column names
 
 `pick` is a **command-line** query/programming tool for manipulating streamed tabular data,
-by transforming, recombining and selecting columns as well as filtering rows, allowing either
+by selecting, transforming and recombining columns as well as filtering rows, allowing either
 column names or indexes to be used as identifiers.
 
 Pick's functionality is a mix of aspects of unix `cut`, `R` and `awk`.
@@ -430,25 +430,26 @@ Beta  4
 FOONOTFOUND 8
 ```
 
-
 You could grep that value, or use pick itself to select or filter such columns, e.g. below
-- the `-i` (in-place) option is dropped
-- the mapped values in column 1 are put in variable `x`
-- `x` is not output (`:=` instead of `::`)
-- unmappable values are set to `FOONOTFOUND`
-- Those rows are selected where `x` has the `FOONOTFOUND` value
+shows an idiomatic way to find rows where a column value is not part of a limited set
+of prescribed values.
+
+- the `-i` (in-place) option is dropped.
+- dictionary values are not specified and thus set to 1 by pick.
+- the dictionary is given the name `foo`, refered to later by the `map` operator.
+- the mapped values in column 1 are put in variable `check`.
+- `check` is set to zero if the field in `col1` is not found in the dictionary.
+- `check` is not output (`:=` instead of `::`).
+- Those rows are selected where `check` has value 0 (not found).
 
 ```
-echo -e "a\t3\nb\t4\nc\t8" | pick -Ak --cdict-foo/FOONOTFOUND=a:1,b:1 x:=1^foo,map @x=FOONOTFOUND
-c  8
+echo -e "col1\tcol2\na\t3\nb\t4\nc\t8" | pick -A --cdict-foo/0=a,b check:=col1^foo,map @check=0
+col1 col2
+c    8
 ```
 
-The empty string can be used as the special unmappable value:
+Use `--fdict-dictNAME/STRING=FILENAME` if you want to read the dictionary values from file instead.
 
-```
-echo -e "a\t3\nb\t4\nc\t8" | pick -Ak --cdict-foo/=a:1,b:1 x:=1^foo,map @x=
-c  8
-```
 
 ## Ragged input
 
@@ -515,7 +516,7 @@ The number of bases in reference covered by this alignment; the sum of all event
 
 Single-letter options can be combined. The offset for `-O` (ragged input) and optional offset for `-A`
 (insertion of new columns) are accommodated, so `-kA2O11` will be understood by pick.
-The option for ignoring lines with a certain pattern `/<pat>` and the option for passing through
+The option for purging lines with a certain pattern `/<pat>` and the option for passing through
 lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#`.
 
 ## Pick options
@@ -601,6 +602,9 @@ Below is a table further describing selected operators.
 
 
 ## Miscellaneous
+
+
+### Creating fasta files
 
 Create fasta files with pick. In the example the identifier is in the first column with the sequence
 in the second column.  Quotes needed as `>` is a shell meta character.
