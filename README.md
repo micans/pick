@@ -475,28 +475,28 @@ alignment types supported by CIGAR strings
 *soft-clip*, *hard-clip*, *padding*, *sequence match*, *sequence mismatch*).
 The operators are
 
-`<cigarstring> <cigaritems> cgsum`  
+`<cigarstring>` `<cigaritems>` **cgsum**  
 Count the total number of bases covered by all alignment types in `<cigaritems>`.
 
-`<cigarstring> <cigaritems> cgmax`  
+`<cigarstring>` `<cigaritems>` **cgmax**  
 Returns the size of the longest stretch of bases across all alignment types in `<cigaritems>`.
 
-`<cigarstring> <cigaritems> cgcount`  
+`<cigarstring>` `<cigaritems>` **cgcount**  
 Returns the number of events across all alignment types in `<cigaritems>`.
 
-`<cigarstring> cgqrycov`  
+`<cigarstring>` **cgqrycov**  
 The number of bases in query covered by this alignment; the sum of all events in `MI=X`.
 
-`<cigarstring> cgqryend`  
+`<cigarstring>` **cgqryend**  
 The end of the alignment in query (1-based).
 
-`<cigarstring> cgqrylen`  
+`<cigarstring>` **cgqrylen**  
 The length of query, the sum of all events in `MIS=X`.
 
-`<cigarstring> cgqrystart`  
+`<cigarstring>` **cgqrystart**  
 The start of the alignment in query (1-based).
 
-`<cigarstring> cgrefcov`  
+`<cigarstring>` **cgrefcov**  
 The number of bases in reference covered by this alignment; the sum of all events in `MDN=X`.
 
 
