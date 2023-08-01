@@ -984,21 +984,3 @@ my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc;
 
 
-__DATA__
-                                            s o m e   i d e a s
-
-   -  test uniqueness (and combination with -x), combination with INSERT_OFFSET and pushing of new names, -K/-U
-   ?  unify column/range/regex selection with a+x-y*k
-   -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.
-         currently: echo -e "_a_\t3\n_b_\t4\naba\t5" | pick -AiK --cdict-foo=a:Alpha,b:Beta x::1^_'(.)'_,get^foo,map 1::1^'_\K(.)(?=_)':x,ed
-         where \K is available since Perl 5.10.0, 2007. Requires some perl, doesn't look great, but works.
-      ?  edmap => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/my $x = $::dict{$::STACK[-1]}{$1}; defined($x) ? $x : $1/e  } ],
-         echo -e "_a_\t3\n_b_\t4\n_d_\t8" | pick -AviK --fdict-foo=dict --cdict-foo=a:Alpha,b:Beta,c:Gamma 1::1^'%5E_\K(.)(?=_$)'^foo,edmap
-      -> $1 not the right control? You might want to replace more than just $1, using the map of $1.
-         the two-step solution will allow this.
-   -  get -> option to return field if no match? -> covered by ed; get allows filtering on empty string with uie
-   o  numerical comparisons check field is numeric; however duplicates perl's work/warnings
-   ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
-   ?  would --onames be helpful? (note -K)
-   ?  implement in C using pcre2. string/float/int the main point of pain.
-   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.              R.I.P. recol
