@@ -657,11 +657,14 @@ print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$sp
    for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
 print STDERR "-- (output) considering $item\n" if $B_verbose;
       if ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
+         my $nfound = 0;
          for my $name (@::HEADER[0..($::N-1)]) {
             if ($name =~ qr/$item/) {
                push @matches, [$name, defined($1) ? $1 : $name];
+               $nfound++;
             }
          }
+print STDERR "-- (output) $item was considered as regex and yielded no matches\n" unless $nfound;
       }
       elsif ($item =~ /^(\d+)\-(\d+)?$/ && $B_headless) {
          my ($x, $y) = ($1, $2);

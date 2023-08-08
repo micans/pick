@@ -53,17 +53,19 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 
 ## Pick one or more columns
 
-Pick columns `foo` and `bar` from the file `data.txt`. Order is as specified.
+Pick columns `foo` and `bar` from the file `data.txt`. Order is as specified, the output
+will contain a header with column names `foo` and `bar`.
+
 
 ```
 pick foo bar < data.txt
 ```
 
 Pick columns `bar` and `foo` from `data.txt`, in that order (1). With `-h`
-the column names themselves are dropped.
+the output header is dropped.
 Pick all columns excluding `bar` and `foo` (2).
 With `-A` all columns are selected (3); this
-is useful when the goal is just to filter rows.
+is useful when the goal is just to filter rows (see below).
 
 
 ```
@@ -642,7 +644,7 @@ is stored as a stack with code references where needed.  I see no drastic
 improvements available in pure perl, but I'd love to be wrong about this
 (unwrapping the code references may lead to some speed-up but code modularity would suffer).
 
-It is tempting to implement pick in C to get a speed boost.  However,
+It is tempting to implement pick in C or Rust to get a speed boost.  However,
 reinventing an integer/float/string equivalence system (with its many niggling
 corner cases) from scratch does not seem right (where's the C library for that?).
 Below gives a rough indication of pick speed relative to baseline perl speed;
