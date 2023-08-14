@@ -536,6 +536,7 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-A` print all input columns (selecting by colspec applies, -`T` accepted)
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
 -  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O11`), merge all columns at/after position `<N>`
+-  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
 -  `-T` do not select, print tally column of count of matched row select criteria (name `T`)
 -  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
 
