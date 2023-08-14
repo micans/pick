@@ -80,6 +80,7 @@ my $B_add_names    = 0;     # If other names are given, whether to output them a
 my $B_regex        = 1;     # Whether to interpret names as a regular expression if one of the characters in $REGEXP_CHARS is found
 my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable with PICK_*_INF environment variables.
 my $B_count        = 0;     # Only output count of kept rows.
+my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 
 $::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myriad.
 $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
@@ -382,6 +383,11 @@ EOH
      die "-O<N> N must be positive\n" unless $OFFSET_OMEGA > 0;
   }
 
+  if ($options =~ s/E(\d+)//) {
+     $N_expect = $1 + 0;
+     die "-E<N> N must be nonnegative\n" unless $N_expect >= 0;
+  }
+
   if ($options =~ s/A(-?\d+)?//) {
      $B_printall     = 1;
      if (defined($1)) {
@@ -677,8 +683,8 @@ print STDERR "-- (output) $item was considered as regex and yielded no matches\n
       }
    }
    my $n_matches = @matches; local $" = ' ';
-   $_->[1] = "$prefix$_->[1]$suffix" for @matches;
-print STDERR "-- (output) expanding pattern $spec ($n_matches matches: @matches)\n" if $B_verbose || (!$n_matches && $spec);
+   $_->[1] = "$prefix$_->[1]$suffix" for @matches; my @matchnames = map { $_->[0] } @matches;
+print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $B_verbose || (!$n_matches && $spec);
    # dangersign, below is ugly.
    unshift @matches, $duplicate if $has_compute;
    return (@matches);
@@ -985,5 +991,9 @@ print STDERR "-- $Nkeep/$Ndisc rows$would have been kept/discarded\n" if @::sele
 
 my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc;
+
+if ($N_expect >= 0 && $N_expect != $Nkeep) {
+   print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
+}
 
 
