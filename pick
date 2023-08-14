@@ -994,6 +994,7 @@ print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\
 
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
+   exit 1;
 }
 
 
