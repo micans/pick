@@ -1,12 +1,14 @@
 
 # Unix file/stream column and row manipulation using column names
 
-`pick` is a **command-line** query/programming tool for manipulating streamed tabular data,
-by selecting, transforming and recombining columns as well as filtering rows, allowing either
-column names or indexes to be used as identifiers.
+`pick` is an expressive low-memory **command-line** query/programming tool for manipulating streamed tabular data,
+by selecting, transforming and recombining columns as well as filtering rows.
 
-Pick's functionality is a mix of aspects of unix `cut`, `R` and `awk`.
-In simple to middling cases it can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
+Roughly speaking, pick allows database-style queries (*select*) and filters (*where*)
+on a single text table using its column names (or indexes if no names are present).
+
+The functionality is a mix of aspects of unix `cut`, `R` and `awk`.
+In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
 I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows
 and make them more robust and understandable by promoting the use of column names as handles
