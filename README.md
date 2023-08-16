@@ -7,7 +7,6 @@ by selecting, transforming and recombining columns as well as filtering rows.
 Roughly speaking, pick allows database-style queries (*select*) and filters (*where*)
 on a single text table using its column names (or indexes if no names are present).
 
-The functionality is a mix of aspects of unix `cut`, `R` and `awk`.
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
 I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows
@@ -31,7 +30,7 @@ There is no downside, except, as ever, it comes with its own syntax for
 computation. For plain column selection and row filtering this syntax is not needed though;
 pick command lines look pleasant enough for common use cases.
 
-Computation syntax is minimalist and terse, employing a stack language with just three types.
+Computation syntax is minimalist and terse, employing a stack language with just three types (variables, constants and operators).
 In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
 On first sight it might look arcane or terrifying, requiring a long second look.
 Compensating for the terse stack language, `pick`'s inner computation loop is simple and dependable.
@@ -518,8 +517,8 @@ The number of bases in reference covered by this alignment; the sum of all event
 
 ## Option processing
 
-Single-letter options can be combined. The offset for `-O` (ragged input) and optional offset for `-A`
-(insertion of new columns) are accommodated, so `-kA2O11` will be understood by pick.
+Single-letter options can be combined or specified separately. The offset for `-O` (ragged input), optional offset for `-A`
+(insertion of new columns) and `-E` expected result count are accommodated, so e.g. `-kA2O11` will be understood by pick.
 The option for purging lines with a certain pattern `/<pat>` and the option for passing through
 lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#`.
 
@@ -607,6 +606,13 @@ Below is a table further describing selected operators.
 
 
 ## Miscellaneous
+
+
+### Retrieving unique values and asserting the number of rows found
+
+If the input is queried for a value that should be present and unique, you can do pick let the checking
+by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
+different from `<NUM>`.
 
 
 ### Creating fasta files
