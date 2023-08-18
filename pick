@@ -86,6 +86,7 @@ $::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myri
 $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
+my $DUMMY_NAME     = 'AAAAA';
 
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
@@ -709,6 +710,7 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
       my ($handle, $type, $compute) = (urldecode($1), $2, $3);
+      $handle = $DUMMY_NAME++ if $handle eq '';
       my ($duplicate, @matches) = expand_list_range_and_regex($handle, 1);
       $compute = ":$compute" unless $compute =~ /^[,:^]/;
       for my $m (@matches) {
@@ -812,7 +814,7 @@ print STDERR "-- Identical output column names exist ($job)\n";
     for my $comp (@expanded_compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
-         die "Handle $what in compute $name does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$what});
+         die "Handle [$what] in compute $name does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$what});
          $comp->[1] = $::handle_map{$what};     # fixme overwrite inelegant
                               # inplace NOTE. when using foo::foo^1,add, this maps the lookup for the second foo to the offset
                               # for the current foo, and the second foo no longer exists. The first foo does not have an
@@ -835,7 +837,7 @@ print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
 
   for (my $i=0; $i<@::output_nm; $i++) {
     my $name = $::output_nm[$i];
-    die "Handle $name in output does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
+    die "Handle [$name] in output does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
   }
   @::output_os = map { $::handle_map{$_} } @::output_nm;
 
@@ -849,7 +851,7 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
 
     my ($op, $indirection, $val, $name, $arg) = @$sel;
 
-    die "Handle $name in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
+    die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
 
     my $opdef = $sel_opdefinitions{$op};
     die "The impossible happened ($op)\n" unless defined($opdef);
@@ -857,7 +859,7 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
 
     $sel->[3] = $::handle_map{$name};    # fixme overwrite inelegant
     if ($indirection) {
-       die "Handle $val in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val});
+       die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val});
        $sel->[2] = $::handle_map{$val};  # fixme overwrite inelegant
     }
     { my ($code, $indirection, $val, $name, $arg) = @$sel;

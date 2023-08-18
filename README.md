@@ -285,15 +285,16 @@ pick ::foo:bar < data.txt
 
 In several places pick is happy to accept empty strings. One example is the compute name.
 Each compute needs an associated name that is unique (the part before ::).
-In the examples above and below the unique name is the empty string, offering the tiny
-convenience that you don't need to expend energy on thinking up a variable name
-if you just want to quickly compute a single value from each row.
+If no compute name is specified pick will construct a unique name automatically, which
+is useful if output column names are not required.
 In this example `pick` outputs the length of each field in the `foo` column.
 
 ```
 pick -h ::foo,len < data.txt | hissyfit
 ```
 
+The automatic compute names are visible if neither `-h` (no output header) nor `-k` (additionally no input header) is specified.
+Leaving out compute names is only sensible or useful in the presence of one of these two options.
 
 The following example swaps two columns. This is mostly to illustrate how
 columns and compute names interact.  Compute names are like normal
