@@ -710,6 +710,7 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
       my ($handle, $type, $compute) = (urldecode($1), $2, $3);
+      die "Compute cannot be empty\n" unless length($compute);
       $handle = $DUMMY_NAME++ if $handle eq '';
       my ($duplicate, @matches) = expand_list_range_and_regex($handle, 1);
       $compute = ":$compute" unless $compute =~ /^[,:^]/;
