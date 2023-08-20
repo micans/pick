@@ -8,7 +8,7 @@ while IFS=# read command description; do
   echo "> " $command
   eval "$command" || true
   echo
-done << "EOI"
+done << "EOI" 2>& 1 | expand > multi-select.txt
 echo -e "a\\tb\\tc\\n3\\t4\\t5" | ./pick '.*'#Select all columns for output (normally achieved with -A)
 echo -e "a\\tb\\tc\\n3\\t4\\t5" | ./pick '.*'::#Select all columns, apply the same computation (cannot be empty however)
 echo -e "a\\tb\\tc\\n3\\t4\\t5" | ./pick '.*'::^foo#The -i in-place options is required to allow potential overwriting of existing columns
