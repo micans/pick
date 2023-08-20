@@ -1,5 +1,5 @@
 
-# Unix file/stream column and row manipulation using column names
+# Unix table column and row manipulation using column names
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
 
