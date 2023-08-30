@@ -280,7 +280,7 @@ pick -Ai foo::foo^1,add < data.txt
 Once all operators are exhausted pick will concatenate everything that is still on the stack. Thus below
 simply concatenates columns `foo` and `bar`.
 ```
-pick ::foo:bar < data.txt
+pick -h ::foo:bar < data.txt
 ```
 
 In several places pick is happy to accept empty strings. One example is the compute name.
@@ -334,7 +334,8 @@ introduced below, followed by more examples and explanation.
 -  Selecting multiple columns and executing the same operation on each column using
    a lambda expression.  The parameter in pick lambda expressions is written
    `:__`. Each instance of it will be replaced by the column name, multiplexed
-   over all selected columns.
+   over all selected columns. Below is a list of examples;
+   [another set can be found here](examples/multi-select.md).
 
 
    Multiple column selection and modification using a regular expression:
@@ -510,9 +511,28 @@ The number of bases in reference covered by this alignment; the sum of all event
 
    `:HANDLE^'patx\Kpaty',delg` will retain pattern `patx` and only delete pattern `paty`.
 
+   Example:
+```
+> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'quick\Kbrown',delg
+thequickfox theslowbrownbear
+```
+
 -  Use `patx(?=paty)` to anchor `patx` to `paty` without including `paty` in the matched part.
 
    `:HANDLE^'patx(?=paty)',get` will just fetch `patx`.
+
+   Example:
+
+```
+> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)',delg
+thequickbrownfox theslowbear
+```
+
+   Such patterns can be combined - here either of the two is considered match:
+```
+> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)|quick\Kbrown',delg
+thequickfox theslowbear
+```
 
 -  Use `(?i)pat` to make a pattern case insensitive.
 
