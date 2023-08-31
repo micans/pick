@@ -9,7 +9,7 @@ EOT
 
 while IFS=# read command description; do
 cat <<EOT
-## $description
+### $description
 \`\`\`
 > $command
 
@@ -32,5 +32,6 @@ echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick -A '.*'/x::__,sq#Create a new column name
 echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick  '.*'//x::__,sq#Using the double slash has the same effect, but columns are grouped pairwise
 echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick  '.*'//_pct::__:c^1,pct#This can be useful when expressing as a percentage, here relative to column c
 echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick -A '.*'/x::__,sq '.*'/y::__,sq,sq#Multiple computations are possible
-echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick -i '.*'::'.*',addall#A (not particularly useful) curiosity - the first column is 3+4+5=12, then the second column is 12+4+5=21, the third 12+21+5
+echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick -i '.*'::'.*',addall#A (not very useful) curiosity - the first column is a = (a=3)+(b=4)+(c=5)=12, then the second is b = (a=12)+(b=4)+(c=5)=21, the third is c = (a=12)+(b=21)+(c=5)
+echo -e "a\\tb\\tc\\n3\\t4\\t5" | pick -Ai '.*'/x::'.*',addall#(continued) this behaviour disappears if the values are stored in a new name
 EOI
