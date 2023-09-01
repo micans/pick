@@ -373,6 +373,21 @@ introduced below, followed by more examples and explanation.
    pick '^num(\d{2})$'//_pct::__:num01^1,pct < data.txt
 ```
 
+
+   It is possible to transform columns while keeping their old values around for
+   other use (e.g. filtering or computation). In this example the column values
+   are squared. The old columns are renamed by adding the suffix `o` but are
+   withheld from output due to the use of `:=` rather than `::`.
+```
+   > echo -e "a\tb\tc\n3\t4\t5" | pick -i '.*'/o:=__ '.*'::__,sq oldsum::ao:bo:co,addall
+   a  b  c  oldsum
+   9  16 25 12
+```
+   Of note is that currently regular expression selection only works on the input columns
+   and does not take into account newly computed columns. Hence it is **not possible**
+   to specify the computation `oldsum::ao:bo:co,addall` as the regex `'oldsum:.o$'`.
+
+
 ### Lambda expressions with index selection rather than column names
 
    Lambda expressions work with `-k` as well:
