@@ -363,16 +363,19 @@ introduced below, followed by more examples and explanation.
    With a regular expression, if parentheses are used then the outer group can
    be used to capture a single element to be used in renaming:
 ```
-   pick newname_/'^num(\d{2})$'/::__^1,add < data.txt
+   > echo -e "col01\tcol02\tcol03\n3\t4\t5" | pick x_/'^col(\d{2})$'/::__^1,add
+   x_01	x_02	x_03
+   4	5	6
 ```
 
    It can be useful to have two version for each in a set of columns, for example
    to present a column both as a percentage and as a count. If double slashes are
    used `pick` will include the original as well as the derived column:
 ```
-   pick '^num(\d{2})$'//_pct::__:num01^1,pct < data.txt
+   > echo -e "a\tb\tc\n3\t4\t5" | pick  '.*'//_pct::__:c^1,pct
+   a       a_pct   b       b_pct   c       c_pct
+   3       60.0    4       80.0    5       100.0
 ```
-
 
    It is possible to transform columns while keeping their old values around for
    other use (e.g. filtering or computation). In this example the column values
@@ -386,6 +389,16 @@ introduced below, followed by more examples and explanation.
    Of note is that currently regular expression selection only works on the input columns
    and does not take into account newly computed columns. Hence it is **not possible**
    to specify the computation `oldsum::ao:bo:co,addall` with a regex as `'oldsum:.o$,addall'`.
+
+   The order in which the above was specified is important. If the two computations are
+   switched (with the column copy/rename coming last) then the copy
+   will pick up the in-place-modified columns:
+
+```
+> echo -e "a\tb\tc\n3\t4\t5" | pick -i '.*'::__,sq '.*'/o:=__ oldsum::ao:bo:co,addall
+a	b	c	oldsum
+9	16	25	50
+```
 
 
 ### Lambda expressions with index selection rather than column names
