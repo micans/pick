@@ -102,91 +102,93 @@ for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
                             # Only X is specified; X = 0 indicate exceptional cases.
                             # Potentially neatify this by adding Y (number of pushed items).
 my %cp_opdefinitions =
-   ( add       => [ 2, sub { $::STACK[-2] += $::STACK[-1] } ],
-     addall    => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = ($x) } ],
-     mulall    => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) } ],
-     maxall    => [ 0, sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) } ],
-     minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) } ],
-     joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) } ],
-     mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] } ],
-     div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : $PNAN{PICK_DIV_INF} } ],
-     idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : $PNAN{PICK_DIV_INF} } ],
-     cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] } ],
-     sub       => [ 2, sub { $::STACK[-2] -= $::STACK[-1] } ],
+   ( add       => [ 2, sub { $::STACK[-2] += $::STACK[-1] }, "x y\tx+y\tAdd x and y, sum, addition\tarithmetic" ],
+     addall    => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = ($x) }, "Stack\tsum(Stack)\tSum of all entries in stack\tarithmetic/devour" ],
+     mulall    => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) }, "Stack\tproduct(Stack)\tProduct of all entries in stack, multiplication\tarithmetic/devour" ],
+     maxall    => [ 0, sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) }, "Stack\tmax(Stack)\tMax over all entries in stack\tarithmetic/devour" ],
+     minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "Stack\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
+     joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "Stack s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
+     mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
+     div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : $PNAN{PICK_DIV_INF} }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : $PNAN{PICK_DIV_INF} }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring" ],
+     sub       => [ 2, sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
 
-     pop       => [ 0, sub { stacky('pop', 1); pop @::STACK } ],
-     dup       => [ 0, sub { stacky('dup', 1); push @::STACK, $::STACK[-1]  } ],
-     xch       => [ 0, sub { stacky('xch', 2); ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) } ],
-     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless } ],
-     lineno    => [ 0, sub { push @::STACK, $.      } ],
+     pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "Stack x\tStack\tRemove top entry x from stack\tstack" ],
+     dup       => [ 0, sub { stacky('dup', 1); push @::STACK, $::STACK[-1] }, "x\tx x\tDuplicate top entry x\tstack" ],
+     xch       => [ 0, sub { stacky('xch', 2); ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) }, "x y\ty x\tExchange x and y\tstack" ],
+     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "Stack\tStack x\tPush current table row number x onto stack\tinput" ],
+     lineno    => [ 0, sub { push @::STACK, $.      }, "Stack\tStack x\tPush file line number x onto stack\tinput" ],
 
-     mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] } ],
-     pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] } ],
-     and       => [ 2, sub { $::STACK[-2] &= $::STACK[-1] } ],
-     or        => [ 2, sub { $::STACK[-2] |= $::STACK[-1] } ],
-     xor       => [ 2, sub { $::STACK[-2] ^= $::STACK[-1] } ],
-     max       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] } ],
-     min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] } ],
-     dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) } ],
-     zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] } ],
+     mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
+     pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
+     and       => [ 2, sub { $::STACK[-2] &= $::STACK[-1] }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
+     or        => [ 2, sub { $::STACK[-2] |= $::STACK[-1] }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
+     xor       => [ 2, sub { $::STACK[-2] ^= $::STACK[-1] }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
+     max       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] }, "x y\tmax(x,y)\tMaximum of x and y\tarithmetic" ],
+     min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
+     dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx\tx printed with N decimal digits\tprecision/format" ],
+     zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx\tx left zero-padded to width of N\toutput" ],
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
-                                         ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; } ],
-     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2]) } ],
+                                         ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x r\tr-match-of-x\tIf x matches regex r take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
+     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring" ],
 
-     cgsum     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'sum') } ],
-     cgmax     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') } ],
-     cgcount   => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') } ],
-     cgrefcov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MDN=X', 'sum') } ],
-     cgqrycov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MI=X', 'sum') } ],
-     cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MIS=X', 'sum') } ],
-     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MIS=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)S$/; $::STACK[-1] = $e } ],
-     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)S/; $::STACK[-1] = $s } ],
+     cgsum     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'sum') }, "c s\tSum of s in c\tSum of lengths of s items in cigar string c\tstring/sam" ],
+     cgmax     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
+     cgcount   => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
+     cgrefcov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MDN=X', 'sum') }, "c\trefcov\tCount of reference bases covered by cigar string c (MDN=X events)\tstring/sam" ],
+     cgqrycov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MI=X', 'sum') }, "c\tqrycov\tCount of query bases covered by cigar string c (MI=X events)\tstring/sam"  ],
+     cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MIS=X', 'sum') }, "c\tqrylen\tLength of query (MIS=X events) in cigar string c\tstring/sam" ],
+     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MIS=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)S$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
+     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)S/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
-     ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  } ],
-     edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g } ],
-     del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// } ],
-     delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g } ],
+     ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
+     edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
+     del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
+     delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
      map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1];
                               my $dict = $::dict{$d};
                               my $m = defined($dict) ? $dict->{$x} : undef;
                               if (defined($m)) { $::STACK[-2] = $m; }
                               elsif (defined($::dictnotfound{$d})) { $::STACK[-2] = $::dictnotfound{$d} }
-                           }
+                           },
+                           "x dname\tmap-of-x\tUse map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=)\tstring/dictionary"
                   ],
-     substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) } ],
-     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : $PNAN{PICK_DIV_INF} } ],
-     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x / $y) :  $PNAN{PICK_DIV_INF}} ],
+     substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
+     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : $PNAN{PICK_DIV_INF} }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x / $y) :  $PNAN{PICK_DIV_INF}}, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
 
-     tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) } ],
-     tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) } ],
-     tooct     => [ 1, sub { $::STACK[-1] = sprintf("%o", $::STACK[-1]) } ],
-     binto     => [ 1, sub { $::STACK[-1] = oct("0b$::STACK[-1]") } ],
-     hexto     => [ 1, sub { $::STACK[-1] = hex($::STACK[-1]) } ],
-     octto     => [ 1, sub { $::STACK[-1] = oct($::STACK[-1]) } ],
-     urldc     => [ 1, sub { $::STACK[-1] = urldecode($::STACK[-1]) } ],
-     urlec     => [ 1, sub { $::STACK[-1] = urlencode($::STACK[-1]) } ],
-     uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }         ],
-     lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }         ],
-     rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }    ],
-     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ } ],
-     md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }    ],
-     len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }     ],
-     rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) } ],
-     abs       => [ 1, sub { $::STACK[-1] = abs($::STACK[-1]) }        ],
-     sqrt      => [ 1, sub { $::STACK[-1] = sqrt($::STACK[-1]) }       ],
-     sq        => [ 1, sub { $::STACK[-1] = $::STACK[-1]**2 }          ],
-     exp       => [ 1, sub { $::STACK[-1] = exp($::STACK[-1]) }        ],
-     cos       => [ 1, sub { $::STACK[-1] = cos($::STACK[-1]) }        ],
-     sin       => [ 1, sub { $::STACK[-1] = sin($::STACK[-1]) }        ],
-     tan       => [ 1, sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : $PNAN{PICK_TAN_INF} } ],
-     log       => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : $PNAN{PICK_LOG_INF} }        ],
-     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(10) : $PNAN{PICK_LOG10_INF} }],
-     exp10     => [ 1, sub { $::STACK[-1] = 10**$::STACK[-1] }         ],
-     sign      => [ 1, sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 } ],
-     ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }       ],
-     floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }      ],
-     int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }        ],
+     tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
+     tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
+     tooct     => [ 1, sub { $::STACK[-1] = sprintf("%o", $::STACK[-1]) }, "x\tx'\tOctal representation of x\tformat"  ],
+     binto     => [ 1, sub { $::STACK[-1] = oct("0b$::STACK[-1]") }, "x\tx'\tRead binary representation x\tinput/format" ],
+     hexto     => [ 1, sub { $::STACK[-1] = hex($::STACK[-1]) }, "x\tx'\tRead hex representation x\tinput/format" ],
+     octto     => [ 1, sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
+     urldc     => [ 1, sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
+     urlec     => [ 1, sub { $::STACK[-1] = urlencode($::STACK[-1]) }, "x\turlec(x)\tUrl encoding of x\tstring/format/input/output" ],
+     uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
+     lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tuc(x)\tLower case of x\tstring" ],
+     rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
+     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tstring/crypto"  ],
+     md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
+     len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
+     rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
+     abs       => [ 1, sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
+     sqrt      => [ 1, sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
+     sn        => [ 1, sub { $::STACK[-1] = sprintf("%e", $::STACK[-1]) }, "x\tx'\tFloating point number x in scientific notation\tmath/format/precision" ],
+     sq        => [ 1, sub { $::STACK[-1] = $::STACK[-1]**2 }, "x\tx^2\tSquare of x\tmath" ],
+     exp       => [ 1, sub { $::STACK[-1] = exp($::STACK[-1]) }, "x\te**x\tExponential function applied to x\tmath" ],
+     cos       => [ 1, sub { $::STACK[-1] = cos($::STACK[-1]) }, "x\tcos(x)\tCosine of x\tmath" ],
+     sin       => [ 1, sub { $::STACK[-1] = sin($::STACK[-1]) }, "x\tsin(x)\tSine of x\tmath" ],
+     tan       => [ 1, sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : $PNAN{PICK_TAN_INF} }, "x\ttan(x)\tTangens of x\tmath" ],
+     log       => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : $PNAN{PICK_LOG_INF}}, "x\tlog(x)\tNatural logarithm of x\tmath" ],
+     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(10) : $PNAN{PICK_LOG10_INF} }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
+     exp10     => [ 1, sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
+     sign      => [ 1, sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
+     ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
+     floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
+     int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
    );
 
             # sub { } :
@@ -241,6 +243,7 @@ my %sel_opdefinitions = (
 );
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
+my $opsections  = 'arithmetic bitop devour dictionary format input math output precision regex sam stack string';
 
 my $help_options=q{Options:
   -h do not print header
@@ -276,7 +279,9 @@ my $help_options=q{Options:
 
   -z  ARG+ print url-encoding of ARG+  (no argument prints a few especially useful cases)
   -zz ARG+ print url-decoding of ARG+
-  -l Concise help output
+  -l or -l <string> list operators (matching section string if specified)
+     sections: } . $opsections . q{
+
   -H Longer pick description
 
   --inames=CSV       comma-separated values to use as column names instead of actual column names.
@@ -311,11 +316,6 @@ my $spec_forms = q{
   URL-encoding is generally necessary for characters in [%:^/,~]. Use pick -z <string>
   to find the url-encoding of <string> .};
 
-my @normalops = grep { $_ !~ /all$/ } keys %cp_opdefinitions;
-my @ops1 = sort grep { $cp_opdefinitions{$_}[0] == 1 } @normalops;
-my @ops2 = sort grep { $cp_opdefinitions{$_}[0] == 2 } @normalops;
-my @ops3 = sort grep { $cp_opdefinitions{$_}[0] == 3 } @normalops;
-# selectops
 my @opsf = sort { $sel_opdefinitions{$a}[0] <=> $sel_opdefinitions{$b}[0] } keys %sel_opdefinitions;
 my $nameslist = "";
 
@@ -354,6 +354,98 @@ print STDERR "-- dictionary $name has $n keys after parsing string\n" if $B_verb
 while (@::spec && $::spec[0] =~ /^-/) {
 
   my $options = shift @::spec;
+
+  if ($options =~ /^\-(z+)$/) {
+    local $, = ' ';
+    print map { length($1) % 2 == 1 ? urlencode($_) : urldecode($_) } @::spec;
+    if (@::spec) { print "\n"; }
+    else { print STDERR <<EOH;
+-- I url-encode (-z) or decode (-zz) any arguments. Useful cases:
+  ^   %5E     ;   %3B     (  %28     <TAB>      %09
+  :   %3A     !   %21     )  %29     <NEWLINE>  %0A
+  ,   %2C     /   %2F     <  %3C     <CR>       %0D
+  %   %25     \\   %5C     >  %3E     <SPACE>    %20     =   %3D
+For shell meta-characters it is easiest to just quote the argument to pick.
+EOH
+    }
+    exit 0;
+  }
+  elsif ($options eq '-l') {
+    my $filter = @::spec ? $::spec[0] : '.';
+    print "\nSelect comparison operators:\n  @opsf\n\n";
+    printf "%-12s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
+    print  '-' x 80 . "\n";
+    for my $op (sort keys %cp_opdefinitions) {
+      my $opdef = $cp_opdefinitions{$op};
+      my @help = split "\t", $opdef->[2];
+      next unless $help[3] =~ /$filter/;
+      printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
+    }
+    if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
+    else { print "\nAll operators in section(s) matching <$filter>\n" }
+    exit 0;
+  }
+  elsif ($options eq '-H') {
+print <<EOH;
+Usage: pick [options] <colspec>+ < FILE
+Simple example: pick TAG ID < table.txt
+
+<colspec>$spec_forms
+  See further below for <op> list.
+
+$help_options
+
+<colspec>
+HANDLE identifies either a column by name, or a derived value as in form (4).
+Form (1) -- just a handle -- selects it for output.
+Form (2) creates a select criterion comparing a handle to a constant value. 
+Form (3) creates a select criterion comparing a handle to another handle.
+Form (4) creates a derived value in handle, <COMPUTE> specification below.
+Form (5) as form 4, and selects the handle for output.
+
+@<COLNAME><op><VAL>
+@<COLNAME><op>:<COLNAME>  select rows based on <VAL> or value in column <COLNAME>.
+
+<op> is one of the following:
+  =     String identity accept
+  /=    String identity reject
+  ~     Substring/regular expression match accept
+  /~    Substring/regular expression match reject
+  /ep/<what>
+  /ep/<what>/epsilon  Column value lies in [ <what> - epsilon, <what> + epsilon ] (default $::EPSILON)
+  /om/<what>
+  /om/<what>/oom      |Column value| lies in [ |<what>| / oom, |<what>| * oom ] (default $::OOM)
+  /eq|ne|lt|le|ge|gt/ numerical comparison (equal, not equal, less than, less than or equal etc)
+  ~eq|ne|lt|le|ge|gt~  string   comparison (equal, not equal, less than, less than or equal etc)
+
+<COMPUTE> is a concatenation of parts of the form (1) ^<string> (2) :<handle>
+  (3) ,<op> . <string> and <handle> will be url-decoded. In particular, if you
+  need one of [%^:,/~] in <string> it is best to url-encode it with 25, 5E, 3A,
+  2C, 2F, 7E respectively; use pick -z <string> to find its URL-encoded form.
+  <handle> refers to a column name or an earlier computed derived column, or
+  column index with -k (headerless input).
+
+  If the very first part starts with anything other than [,:^] it is inferred
+  to be a handle (leading : not needed).  <COMPUTE> is a stack, so
+  zut::foo:bar,add^str,cat creates a new column called zut by adding columns
+  foo and bar and then concatenating 'str'. The default operation is
+  concatenation; if no operators are left the remainder of the stack is
+  concatenated. Thus the above is equivalent to zut::foo:bar,add^str. To just
+  prefix a column: zut::^foo:zut To concatenate two columns: zut::foo:bar .
+  Use -l to see the description of operators.
+
+Environment variables with default settings:
+$envsettings
+
+Useful perl regular expression features:
+   Use \\K (keep) to anchor a pattern but retain it with ed, edg, del, delg
+   :HANDLE^'patx\\Kpaty',delg will retain patx and only delete paty.
+   Use patx(?=paty) to anchor patx to paty without including paty in the matched part.
+   :HANDLE^'patx(?=paty)',get will just fetch patx.
+   Use (?i)pat to make a pattern case insensitive.
+EOH
+  exit 0;
+  }
 
   if ($options =~ /^--fdict-(\w+)(\/(.*?))?=(.+)$/) {
     read_dict($1, $4);
@@ -414,126 +506,6 @@ EOH
   $B_inplace      = 1 if $options =~ s/i//;
   ($B_count, $B_print_header) = (1, 0) if $options =~ s/c//;
 
-  if ($options =~ s/(z+)//) {
-    local $, = ' ';
-    print map { length($1) % 2 == 1 ? urlencode($_) : urldecode($_) } @::spec;
-    if (@::spec) { print "\n"; }
-    else { print STDERR <<EOH;
--- I url-encode (-z) or decode (-zz) any arguments. Useful cases:
-  ^   %5E     ;   %3B     (  %28     <TAB>      %09
-  :   %3A     !   %21     )  %29     <NEWLINE>  %0A
-  ,   %2C     /   %2F     <  %3C     <CR>       %0D
-  %   %25     \\   %5C     >  %3E     <SPACE>    %20     =   %3D
-For shell meta-characters it is easiest to just quote the argument to pick.
-EOH
-    }
-    exit 0;
-  }
-  elsif ($options =~ s/l//) {
-    print $help_options, "\n";
-    print "\nSelect/compute forms:$spec_forms\n";
-    print "\nOperators for compute:\n";
-    print "  Stack control:  dup pop xch\n";
-    print "  Input counters: lineno rowno\n";
-    print "  Stack devourers: addall minall maxall joinall\n";
-    print "  Take 1: @ops1\n";
-    print "  Take 2: @ops2\n";
-    print "  Take 3: @ops3\n";
-    print "\nSelect comparison operators:\n";
-    print "  @opsf\n";
-    print "\nSee -H for longer descriptions and some operator explanations.\n";
-    exit 0;
-  }
-  elsif ($options =~ /H/) {
-print <<EOH;
-Usage: pick [options] <colspec>+ < FILE
-Simple example: pick TAG ID < table.txt
-
-<colspec>$spec_forms
-  See further below for <op> list.
-
-$help_options
-
-<colspec>
-HANDLE identifies either a column by name, or a derived value as in form (4).
-Form (1) -- just a handle -- selects it for output.
-Form (2) creates a select criterion comparing a handle to a constant value. 
-Form (3) creates a select criterion comparing a handle to another handle.
-Form (4) creates a derived value in handle, <COMPUTE> specification below.
-Form (5) as form 4, and selects the handle for output.
-
-@<COLNAME><op><VAL>
-@<COLNAME><op>:<COLNAME>  select rows based on <VAL> or value in column <COLNAME>.
-
-<op> is one of the following:
-  =     String identity accept
-  /=    String identity reject
-  ~     Substring/regular expression match accept
-  /~    Substring/regular expression match reject
-  /ep/<what>
-  /ep/<what>/epsilon  Column value lies in [ <what> - epsilon, <what> + epsilon ] (default $::EPSILON)
-  /om/<what>
-  /om/<what>/oom      |Column value| lies in [ |<what>| / oom, |<what>| * oom ] (default $::OOM)
-  /eq|ne|lt|le|ge|gt/ numerical comparison (equal, not equal, less than, less than or equal etc)
-  ~eq|ne|lt|le|ge|gt~  string   comparison (equal, not equal, less than, less than or equal etc)
-
-<COMPUTE> is a concatenation of parts of the form (1) ^<string> (2) :<handle>
-  (3) ,<op> . <string> and <handle> will be url-decoded. In particular, if you
-  need one of [%^:,/~] in <string> it is best to url-encode it with 25, 5E, 3A,
-  2C, 2F, 7E respectively; use pick -z <string> to find its URL-encoded form.
-  <handle> refers to a column name or an earlier computed derived column, or
-  column index with -k (headerless input).
-
-  If the very first part starts with anything other than [,:^] it is inferred
-  to be a handle (leading : not needed).  <COMPUTE> is a stack, so
-  zut::foo:bar,add^str,cat creates a new column called zut by adding columns
-  foo and bar and then concatenating 'str'. The default operation is
-  concatenation; if no operators are left the remainder of the stack is
-  concatenated. Thus the above is equivalent to zut::foo:bar,add^str. To just
-  prefix a column: zut::^foo:zut To concatenate two columns: zut::foo:bar .
-  Below: examples/explanations for some operators that may not be self-explanatory.
-
-Explaining the self-unexplained
-   stack   op            result
-   ------+------------+-------------------------------------------------------------------
-   x e   | get        |  x =~ s/e/MATCH/   | MATCH is \$1 corresponding to outer () if exists,
-   x e z | ed         |  x =~ s/e/z/       | matched part otherwise.
-   x e z | edg        |  x =~ s/e/z/g      |
-   x e   | del        |  x =~ s/e//        | e accepts most perl regular expression syntax
-   x e   | delg       |  x =~ s/e/g        |
-   x d   | map        |  map x using dictionary named d, specified as --fdict-d=<FNAME>  
-   x y   | uie        |  (use if empty) x or y if x is the empty string
-   x n   | zp         |  left-padding with zeroes to length n
-   x o n | substr     |  substr(x, o=offset, n=count)
-   x y n | pct        |  x as percentage of y with n decimals | '-' if y is zero
-   x y n | frac       |  x as fraction of y with n decimals   |
-   x n   | dd         |  x rounded to n decimals
-   c s   | cgsum      |  sum of lengths of s items in cigar string c  | s subset of MINDSHP=X
-   c s   | cgmax      |  max of lengths of s items in cigar string c  |
-   c s   | cgcount    |  count of s items in cigar string c           |
-   c     | cgqrylen   |  equivalent to "c MIS=X cgsum" (query length)
-   ..    | addall     |  sum of elements in the stack (similarly minall maxall)
-   .. s  | joinall    |  all elements in the stack joined using string s
-
-Environment variables with default settings:
-$envsettings
-
-List of <op>
-  Stack control  | dup pop xch
-  Input counters | lineno rowno
-  Take 1 | @ops1
-  Take 2 | @ops2
-  Take 3 | @ops3
-
-Useful perl regular expression features:
-   Use \\K (keep) to anchor a pattern but retain it with ed, edg, del, delg
-   :HANDLE^'patx\\Kpaty',delg will retain patx and only delete paty.
-   Use patx(?=paty) to anchor patx to paty without including paty in the matched part.
-   :HANDLE^'patx(?=paty)',get will just fetch patx.
-   Use (?i)pat to make a pattern case insensitive.
-EOH
-  exit 0;
-  }
   if ($options ne '-') {
     print STDERR "Option string not fully parsed: $options remains\n";
     exit 1;
