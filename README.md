@@ -385,7 +385,7 @@ introduced below, followed by more examples and explanation.
 ```
    Of note is that currently regular expression selection only works on the input columns
    and does not take into account newly computed columns. Hence it is **not possible**
-   to specify the computation `oldsum::ao:bo:co,addall` as the regex `'oldsum:.o$'`.
+   to specify the computation `oldsum::ao:bo:co,addall` with a regex as `'oldsum:.o$,addall'`.
 
 
 ### Lambda expressions with index selection rather than column names
