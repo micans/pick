@@ -619,24 +619,36 @@ and zero padding of integers.
 For an idea of the possibilities you could look at the [Makefile in the test directory](test/Makefile),
 although it is more geared towards tests of selection of and operations on multiple columns.
 
-The documentation is output when given `-H` - `-h` is the option to prevent
-output of column names, or `-l` for a table of operators.
+The documentation is output when given `-H` (`-h` is the option to prevent
+output of column names) or `-l` for a table of operators, also supplied below.
 
-Operators for compute:
 
-Stack control:  `dup pop xch`
+Arithmetic: add addall div idiv max maxall min minall mod mul mulall pow sub
 
-Input counters: `lineno rowno`
+Bit operators: and or xor
 
-Stack devourers: `addall mulall minall maxall joinall`
+Stack devourers: addall joinall maxall minall mulall
 
-Take 1: `abs binto ceil cgqrycov cgqryend cgqrylen cgqrystart cgrefcov cos exp exp10 floor hexto int lc len log log10 md5 octto rc rev rot13 sign sin sq sqrt tan tobin tohex tooct uc urldc urlec`
+Dictionary: map
 
-Take 2: `add and cat cgcount cgmax cgsum dd del delg div get idiv map max min mod mul or pow sub uie xor zp`
+Formating: binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec
 
-Take 3: `ed edg frac pct substr`
+Input: binto hexto lineno md5 octto rowno urldc urlec
 
-Select comparison operators: `~ /~ = /= /eq/ /ne/ /lt/ /le/ /ge/ /gt/ /ep/ /om/ ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~ /all/ /any/ /none/`
+Math: abs ceil cos dd exp exp10 floor int log log10 sign sin sn sq sqrt tan
+
+Output: md5 urldc urlec zp
+
+Precision: dd frac pct pml sn
+
+Regular expressions: del delg ed edg get
+
+Sam file support: cgcount cgmax cgqrycov cgqryend cgqrylen cgqrystart cgrefcov cgsum
+
+Stack control: dup pop xch
+
+String manipulation: cat del delg ed edg get joinall lc len map md5 rc rev substr uc uie urldc urlec
+
 
 Below is the table pick supplies when given `-l`.
 
