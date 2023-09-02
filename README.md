@@ -573,6 +573,11 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 ## Pick options
 
+-  `-l` print a table of all pick operators.
+-  `-l <str>` as above, limited to operators in sections matching `<str>`.  
+   Available sections are `arithmetic bitop devour dictionary format input math output precision regex sam stack string`.
+-  `-H` summary of pick syntax.
+  
 -  `-h` do not print header
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.
 -  `-o` OR multiple select criteria (default is AND)
@@ -582,17 +587,17 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-/<pat>`  skip lines matching `<pat>`; use e.g. `-/^#` for commented lines, `-/^@` for sam files
 -  `-//<pat>` pass through lines matching <pat> (allows perl regular expressions, e.g. `^ $ . [] * ? (|)` work.
 -  `-v` verbose
-
+  
 -  `-A` print all input columns (selecting by colspec applies, -`T` accepted)
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
 -  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O11`), merge all columns at/after position `<N>`
 -  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
 -  `-T` do not select, print tally column of count of matched row select criteria (name `T`)
 -  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
-
+  
 -  `-K` headerless input as `-k` but use derived names to output column names
 -  `-U` with `-k` and `-K` keep output columns unique and in original order
-
+  
 -  `-R` add `_` column variable if no row name field exists in the header. Note: an empty field is recognised and mapped to `_` automatically.
 -  `-f` force processing (allows both identical input and output column names)
 -  `-F` fixed names; do not interpret names as regular expressions. Default behaviour is to assume a regular expression if a name contains one of `[ { ( \ * ? ^ $` .
@@ -615,7 +620,7 @@ For an idea of the possibilities you could look at the [Makefile in the test dir
 although it is more geared towards tests of selection of and operations on multiple columns.
 
 The documentation is output when given `-H` - `-h` is the option to prevent
-output of column names, or `-l` for a more concise summary of options and syntax.
+output of column names, or `-l` for a table of operators.
 
 Operators for compute:
 
@@ -633,24 +638,83 @@ Take 3: `ed edg frac pct substr`
 
 Select comparison operators: `~ /~ = /= /eq/ /ne/ /lt/ /le/ /ge/ /gt/ /ep/ /om/ ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~ /all/ /any/ /none/`
 
-Most operators are self-explanatory. The cigar-string related operators are [explained here](#sam-and-cigar-support).
-Below is a table further describing selected operators.
+Below is the table pick supplies when given `-l`.
 
 ```
-   stack   op            result
-   ------+------------+-------------------------------------------------------------------
-   x e   | get        |  x =~ s/e/MATCH/   | MATCH is $1 corresponding to outer () if exists,
-   x e z | ed         |  x =~ s/e/z/       | matched part otherwise.
-   x e z | edg        |  x =~ s/e/z/g      |
-   x e   | del        |  x =~ s/e//        | e accepts most perl regular expression syntax
-   x e   | delg       |  x =~ s/e/g        |
-   x d   | map        |  map x using dictionary named d, specified as --fdict-d=<FNAME>
-   x y   | uie        |  (use if empty) x or y if x is the empty string
-   x n   | zp         |  left-padding with zeroes to length n
-   x o n | substr     |  substr(x, o=offset, n=count)
-   x y n | pct        |  x as percentage of y with n decimals | '-' if y is zero
-   x y n | frac       |  x as fraction of y with n decimals   |
-   x n   | dd         |  x rounded to n decimals
+Operator    Consumed    Produced            Description
+--------------------------------------------------------------------------------
+abs         x           abs(x)              Absolute value of x [math]
+add         x y         x+y                 Add x and y, sum, addition [arithmetic]
+addall      Stack       sum(Stack)          Sum of all entries in stack [arithmetic/devour]
+and         x y         x and y             Bitwise and between x and y [bitop]
+binto       x           x'                  Read binary representation x [input/format]
+cat         x y         xy                  Concatenation of x and y [string]
+ceil        x           ceil(x)             The ceil of x [math]
+cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
+cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
+cgqrycov    c           qrycov              Count of query bases covered by cigar string c (MI=X events) [string/sam]
+cgqryend    c           qryend              Last base considered aligned in query for cigar string c [string/sam]
+cgqrylen    c           qrylen              Length of query (MIS=X events) in cigar string c [string/sam]
+cgqrystart  c           qrystart            First base considered aligned in query for cigar string c [string/sam]
+cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
+cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
+cos         x           cos(x)              Cosine of x [math]
+dd          x N         x                   Floating point x printed with N decimal digits [math/format/precision]
+del         x p         x =~ s/p//          Delete pattern p in x [string/regex]
+delg        x p         x =~ s/p//          Globally delete pattern p in x [string/regex]
+div         x y         x/y                 Division, fraction, (cf -P and PICK_DIV_INF) [arithmetic]
+dup         x           x x                 Duplicate top entry x [stack]
+ed          x p s       x =~ s/p/s/         Substitute pattern p by s in x [string/regex]
+edg         x p s       x =~ s/p/s/g        Globally substitute pattern p by s in x [string/regex]
+exp         x           e**x                Exponential function applied to x [math]
+exp10       x           10^x                10 to the power of x [math]
+floor       x           floor(x)            The floor of x [math]
+frac        x y N       x/y                 Division, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+get         x r         r-match-of-x        If x matches regex r take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
+hexto       x           x'                  Read hex representation x [input/format]
+idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
+int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
+joinall     Stack s     Stack-joined-by-s   Stringified stack with s as separator [string/devour]
+lc          x           uc(x)               Lower case of x [string]
+len         x           len(x)              Length of string x [string]
+lineno      Stack       Stack x             Push file line number x onto stack [input]
+log         x           log(x)              Natural logarithm of x [math]
+log10       x           log10(x)            Logarithm of x in base 10 [math]
+map         x dname     map-of-x            Use map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=) [string/dictionary]
+max         x y         max(x,y)            Maximum of x and y [arithmetic]
+maxall      Stack       max(Stack)          Max over all entries in stack [arithmetic/devour]
+md5         x           md5(x)              MD5 sum of x [string/format/input/output]
+min         x y         min(x,y)            Minimum of x and y [arithmetic]
+minall      Stack       min(Stack)          Min over all entries in stack [arithmetic/devour]
+mod         x y         x mod y             x modulo y, remainder [arithmetic]
+mul         x y         x*y                 Multiply x and y, multiplication, product [arithmetic]
+mulall      Stack       product(Stack)      Product of all entries in stack, multiplication [arithmetic/devour]
+octto       x           x'                  Read octal representation x [input/format]
+or          x y         x or y              Bitwise or between x and y [bitop]
+pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+pop         Stack x     Stack               Remove top entry x from stack [stack]
+pow         x y         x**y                x raised to power y [arithmetic]
+rc          x           rc(x)               Reverse complement [string]
+rev         x           rev(x)              String reverse of x [string]
+rowno       Stack       Stack x             Push current table row number x onto stack [input]
+sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
+sin         x           sin(x)              Sine of x [math]
+sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
+sq          x           x^2                 Square of x [math]
+sqrt        x           sqrt(x)             Square root of x [math]
+sub         x y         x-y                 Subtract y from x, subtraction [arithmetic]
+substr      x i k       x[i:i+k-1]          Substring of x starting at i (zero-based) of length k [string]
+tan         x           tan(x)              Tangens of x [math]
+tobin       x           x'                  Binary representation of x [format]
+tohex       x           x'                  Hex representation of x [format]
+tooct       x           x'                  Octal representation of x [format]
+uc          x           uc(x)               Upper case of x [string]
+uie         x y         x-or-y              Use x if not empty, otherwise use y [string]
+urldc       x           urldc(x)            Url decoding of x [string/format/input/output]
+urlec       x           urlec(x)            Url encoding of x [string/format/input/output]
+xch         x y         y x                 Exchange x and y [stack]
+xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
+zp          x N         x                   x left zero-padded to width of N [output]
 ```
 
 

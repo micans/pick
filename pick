@@ -172,7 +172,7 @@ my %cp_opdefinitions =
      uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
      lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tuc(x)\tLower case of x\tstring" ],
      rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
-     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tstring/crypto"  ],
+     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tcrypto"  ],
      md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
      len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
      rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
