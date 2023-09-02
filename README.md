@@ -623,31 +623,31 @@ The documentation is output when given `-H` (`-h` is the option to prevent
 output of column names) or `-l` for a table of operators, also supplied below.
 
 
-Arithmetic: add addall div idiv max maxall min minall mod mul mulall pow sub
+Arithmetic: `add addall div idiv max maxall min minall mod mul mulall pow sub`
 
-Bit operators: and or xor
+Bit operators: `and or xor`
 
-Stack devourers: addall joinall maxall minall mulall
+Stack devourers: `addall joinall maxall minall mulall`
 
-Dictionary: map
+Dictionary: `map`
 
-Formating: binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec
+Formating: `binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec`
 
-Input: binto hexto lineno md5 octto rowno urldc urlec
+Input: `binto hexto lineno md5 octto rowno urldc urlec`
 
-Math: abs ceil cos dd exp exp10 floor int log log10 sign sin sn sq sqrt tan
+Math: `abs ceil cos dd exp exp10 floor int log log10 sign sin sn sq sqrt tan`
 
-Output: md5 urldc urlec zp
+Output: `md5 urldc urlec zp`
 
-Precision: dd frac pct pml sn
+Precision: `dd frac pct pml sn`
 
-Regular expressions: del delg ed edg get
+Regular expressions: `del delg ed edg get`
 
-Sam file support: cgcount cgmax cgqrycov cgqryend cgqrylen cgqrystart cgrefcov cgsum
+Sam file support: `cgcount cgmax cgqrycov cgqryend cgqrylen cgqrystart cgrefcov cgsum`
 
-Stack control: dup pop xch
+Stack control: `dup pop xch`
 
-String manipulation: cat del delg ed edg get joinall lc len map md5 rc rev substr uc uie urldc urlec
+String manipulation: `cat del delg ed edg get joinall lc len map md5 rc rev substr uc uie urldc urlec`
 
 
 Below is the table pick supplies when given `-l`.
