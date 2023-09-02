@@ -10,8 +10,22 @@ $time =~ /0*(\d+)m0*(\d+)\.0*(\d+)/ || die "Cannot match $time";
 
 my ($min, $sec, $mls) = ($1, $2, $3);
 
-my $bar = '-' x ((1000 * $sec + $mls) / 20);
+my $duration = 1000 * $sec + $mls;
 
-printf "%-100s %s\n", $bar, $descr;
+my @bricks = split '-', '▏-▎-▍-▌-▋-▊-▉-█';
+
+sub makebar {
+   my $N = shift;
+   my $remainder = $N % 8;
+   my $n8 = ($N - $remainder) / 8;
+   my $bar = $bricks[-1] x $n8;
+   $bar .= $bricks[$remainder-1] if $remainder;
+   return ($bar, $n8 + ($remainder ? 1 : 0));
+}
+
+my $N = int($duration/3);
+my ($bar, $barlen) = makebar($N);
+
+printf "%s%s %10d %s\n", $bar, ' ' x (70 - $barlen),  $duration,  $descr;
 
 

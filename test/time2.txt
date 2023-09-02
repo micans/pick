@@ -22,6 +22,12 @@ time ../pick one < $data > /dev/null
 echo -ne "pick print all\t"
 time ../pick -A < $data > /dev/null
 
+echo -ne "pick print all, twice\t"
+time ../pick -A < $data | pick -A > /dev/null
+
+echo -ne "pick print all, thrice\t"
+time ../pick -A < $data | pick -A | pick -A > /dev/null
+
 echo -ne "pick print all, add column (addition)\t"
 time ../pick -A < $data ::one:two,add > /dev/null
 
