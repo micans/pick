@@ -127,7 +127,8 @@ my %cp_opdefinitions =
      xor       => [ 2, sub { $::STACK[-2] ^= $::STACK[-1] }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
      max       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] }, "x y\tmax(x,y)\tMaximum of x and y\tarithmetic" ],
      min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
-     dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx\tx printed with N decimal digits\tprecision/format" ],
+     dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
+     sn        => [ 2, sub { $::STACK[-2] = sprintf("%.*e", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x in scientific notation with N decimal digits\tmath/format/precision" ],
      zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx\tx left zero-padded to width of N\toutput" ],
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
@@ -157,6 +158,7 @@ my %cp_opdefinitions =
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
      pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : $PNAN{PICK_DIV_INF} }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 1000 / $y) : $PNAN{PICK_DIV_INF} }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
      frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x / $y) :  $PNAN{PICK_DIV_INF}}, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
 
      tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
@@ -176,7 +178,6 @@ my %cp_opdefinitions =
      rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
      abs       => [ 1, sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
      sqrt      => [ 1, sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
-     sn        => [ 1, sub { $::STACK[-1] = sprintf("%e", $::STACK[-1]) }, "x\tx'\tFloating point number x in scientific notation\tmath/format/precision" ],
      sq        => [ 1, sub { $::STACK[-1] = $::STACK[-1]**2 }, "x\tx^2\tSquare of x\tmath" ],
      exp       => [ 1, sub { $::STACK[-1] = exp($::STACK[-1]) }, "x\te**x\tExponential function applied to x\tmath" ],
      cos       => [ 1, sub { $::STACK[-1] = cos($::STACK[-1]) }, "x\tcos(x)\tCosine of x\tmath" ],
