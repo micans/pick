@@ -783,43 +783,43 @@ reinventing an integer/float/string equivalence system (with its many niggling
 corner cases) from scratch does not seem right (where's the C library for that?).
 Below gives a rough indication of pick speed relative to baseline perl speed;
 the latter is measured as a skeleton loop over lines of input with each line split into fields.
-The timings can be recreated by running `make time` and `make time2` in the test directory.
+The timings can be perfomed by running `make time` and `make time2` in the test directory.
 
 
 ### Timings of comparisons and compute, no output
 ```
-███▋                                                                           87 perl one comparison
-███▊                                                                           92 perl two comparisons
+███▋                                                        87 perl one comparison
+███▊                                                        92 perl two comparisons
 
-█████████▌                                                                    230 pick one comparison
-████████████▉                                                                 309 pick two comparisons
+█████████▌                                                 230 pick one comparison
+████████████▉                                              309 pick two comparisons
 
-████████████████▌                                                             398 pick one compute (addition)
-███████████████████████████                                                   649 pick two computes (addition)
-██████████████████████████████████▎                                           824 pick three computes (addition)
-███████████████████████████████████████████▏                                 1036 pick four computes (addition)
-█████████████████████████████████████████████████████▍                       1283 pick five computes (addition)
-████████████████████████████████████████████████████▏                        1251 pick five computes (multiplication)
-███████████████████████████████████▌                                          853 pick one compute, (five add operators)
+████████████████▌                                          398 pick one compute (addition)
+███████████████████████████                                649 pick two computes (addition)
+██████████████████████████████████▎                        824 pick three computes (addition)
+███████████████████████████████████████████▏              1036 pick four computes (addition)
+█████████████████████████████████████████████████████▍    1283 pick five computes (addition)
+████████████████████████████████████████████████████▏     1251 pick five computes (multiplication)
+███████████████████████████████████▌                       853 pick one compute, (five add operators)
 
 ```
 
 ### Timings of output and compute
 ```
-███▋                                                                           87 perl print none
-███▌                                                                           85 perl print one
-█████                                                                         121 perl print all
-█████▌                                                                        134 perl print all, add column (addition)
+███▋                                                        87 perl print none
+███▌                                                        85 perl print one
+█████                                                      121 perl print all
+█████▌                                                     134 perl print all, add column (addition)
 
-██████                                                                        146 pick print none
-████████▊                                                                     210 pick print one
-████████████                                                                  288 pick print all
-█████████████████████████▋                                                    617 pick print all, twice
-███████████████████████████████████████▉                                      958 pick print all, thrice
+██████                                                     146 pick print none
+████████▊                                                  210 pick print one
+████████████                                               288 pick print all
+█████████████████████████▋                                 617 pick print all, twice
+███████████████████████████████████████▉                   958 pick print all, thrice
 
-████████████████████████▌                                                     589 pick print all, add column (addition)
-█████████████████████████▌                                                    613 pick print all plus compute
-████████████████████████████████████                                          864 pick print all plus long compute
-███████████████████████████████▊                                              764 pick print all plus long compute shortcut
+████████████████████████▌                                  589 pick print all, add column (addition)
+█████████████████████████▌                                 613 pick print all plus compute
+████████████████████████████████████                       864 pick print all plus long compute
+███████████████████████████████▊                           764 pick print all plus long compute shortcut
 
 ```
