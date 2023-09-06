@@ -497,9 +497,25 @@ will be added (and output e.g. if `-A` is used).
 ## SAM and CIGAR support
 
 
-Use `-kO11` or `-kO12` (if you need access to column 11) when filtering SAM files through pick to allow
-cases where the producer of the SAM file has included additional columns. You can use the `get` operator (`<value> <regex> get`)
+Use `--sam` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
+(overflow columns collated in column 11) and make the sequence lengths available.
+You can use the `get` operator (`<value> <regex> get`)
 to retrieve information from the concatenated fields in picks last input column.
+
+Additionally, pick will scan the input for SAM header lines and put reference sequence lengths
+as values for sequence names in the dictionary called `seqlen`. This dictionary can be accessed with `map`
+and is thus available for computation, for example to investigate the amount of reference sequence
+not covered by the alignment. The following are of interest when dealing with the alignment
+in reference coordinates:
+
+- The reference start in SAM column 4, e.g. computation `rstart::4`.
+- The number of reference bases covered by the alignment, e.g. computation `rcov::6,cgrefcov`.
+- The lenght of the reference sequence, e.g. `rlen::3^seqlen,map`.
+
+The number of bases not covered beyond the alignment can thus (make sure to use `samtools view -h` to include
+header information) be obtained as
+
+`pick --sam rstart:=4 rcov:=6,cgrefcov rlen:=3^seqlen,map nbeyond::rlen:rstart:rcov,add,sub^1add`
 
 
 Pick has a few operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
