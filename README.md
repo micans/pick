@@ -388,7 +388,8 @@ introduced below, followed by more examples and explanation.
 ```
    Of note is that currently regular expression selection only works on the input columns
    and does not take into account newly computed columns. Hence it is **not possible**
-   to specify the computation `oldsum::ao:bo:co,addall` with a regex as `'oldsum:.o$,addall'`.
+   to specify the computation `oldsum::ao:bo:co,addall` with a regex as `'oldsum:.o$,addall'`
+   (although this can be achieved easily by piping pick output to a second pick invocation).
 
    The order in which the above was specified is important. If the two computations are
    switched (with the column copy/rename coming last) then the copy

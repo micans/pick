@@ -73,7 +73,7 @@ my $B_ko           = 0;     # With -k, make output columns unique and ordered as
 my $B_sprouthead   = 0;     # Create header e.g. from derived names
 my $B_weirdmode    = 0;     # Header exists, but users wants to use numbers (turns of selections for header)
 my $B_force        = 0;     # Force output if identical output names exist
-my $M_ignore       = 0;     # M_ode: 0 oblivious, 1 pass, 2 purge
+my $M_ignore       = 0;     # M_ode: 0 oblivious, 1 pass, 2 purge, 4 read sam sequence lengths SN:(\S+)\s+LN:(\d+)
 my $B_debug        = 0;     # Mostly documents the stages of compute and selection definitions
 my $B_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
@@ -463,13 +463,22 @@ EOH
     $B_add_names = $1 ? 1 : 0;
     next;
   }
-  elsif ($options =~ /^--sam$/)  {
+  elsif ($options eq '--remind-me')  {
+    if (!@::spec) {
+      print "Available reminders: sam\n"; exit 0;
+    }
+    if ($::spec[0] eq 'sam') {
     print <<EOH;
   1     2     3     4     5     6     7     8     9    10    11
 QNAME FLAG  RNAME  POS  MAPQ  CIGAR  RNEXT PNEXT TLEN SEQ   QUAL
 EOH
     exit 0;
+    }
   }
+  elsif ($options eq '--sam') {
+     $M_ignore |= 6; $PAT_PURGE = '^@';
+  }
+
   if ($options =~ s/\/\/(.*)$//)    { $M_ignore |= 1; $PAT_PASS  = $1; }   # urldecode $PAT_PASS?
   if ($options =~ s/\/([^\/].*)$//) { $M_ignore |= 2; $PAT_PURGE = $1; }   # urldecode $PAT_PURGE?
 
@@ -882,7 +891,6 @@ my $Nignr = 0;
 my $Ndisc = 0;
 my $Nkeep = 0;
 
-
 while (<>) {
 
   %::LINECACHE = ();
@@ -893,6 +901,9 @@ while (<>) {
     if ($hit1 || $hit2) {
        print "$_" if $hit1;
        $Nignr++;
+       if (($M_ignore & 6) && /SN:(\S+)\s+LN:(\d+)/) {
+         $::dict{seqlen}{$1} = $2;
+       }
        next;
     }
   }
