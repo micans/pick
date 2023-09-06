@@ -107,18 +107,18 @@ my %cp_opdefinitions =
      mulall    => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) }, "Stack\tproduct(Stack)\tProduct of all entries in stack, multiplication\tarithmetic/devour" ],
      maxall    => [ 0, sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) }, "Stack\tmax(Stack)\tMax over all entries in stack\tarithmetic/devour" ],
      minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "Stack\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
-     joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "Stack s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
+     joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "<> s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : $PNAN{PICK_DIV_INF} }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
      idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : $PNAN{PICK_DIV_INF} }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
      cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring" ],
      sub       => [ 2, sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
 
-     pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "Stack x\tStack\tRemove top entry x from stack\tstack" ],
+     pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "<> x\t<>\tRemove top entry x from stack\tstack" ],
      dup       => [ 0, sub { stacky('dup', 1); push @::STACK, $::STACK[-1] }, "x\tx x\tDuplicate top entry x\tstack" ],
      xch       => [ 0, sub { stacky('xch', 2); ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) }, "x y\ty x\tExchange x and y\tstack" ],
-     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "Stack\tStack x\tPush current table row number x onto stack\tinput" ],
-     lineno    => [ 0, sub { push @::STACK, $.      }, "Stack\tStack x\tPush file line number x onto stack\tinput" ],
+     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "<>\t<> x\tPush current table row number x onto stack\tinput" ],
+     lineno    => [ 0, sub { push @::STACK, $.      }, "<>\t<> x\tPush file line number x onto stack\tinput" ],
 
      mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
      pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
@@ -190,8 +190,20 @@ my %cp_opdefinitions =
      ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
      floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
      int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
+
    );
 
+my %cp_samdefs = (
+     test      => [ 0, sub { push @::STACK, $::Flink->[0] }, "<>\t<> F[0]\ttest\ttest" ],
+     refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "<>\t<> refcov\tLength of reference covered by alignment\tsam" ],
+     refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "<>\t<> refstart\tField 4 from sam format\tsam" ],
+     refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "<>\t<> refend\tLast base in reference covered by alignment\tsam" ],
+     reflen    => [ 0, sub { my $x = $::dict{seqlen}{$::Flink->[2]}; $x = $::dictnotfound{seqlen} unless defined($x); push @::STACK, $x }, "<>\t<> reflen\tLength of reference sequence\tsam" ],
+     qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "<>\t<> qrycov\tLength of query covered by alignment\tsam" ],
+     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)S/; push @::STACK, $s }, "<>\t<> qrystart\tStart of alignment in query\tsam" ],
+     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MIS=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)S$/; push @::STACK, $e }, "<>\t<> qryend\tLast base in query covered by alignment\tsam" ],
+     qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MIS=X', 'sum') }, "<>\t<> qrylen\tLength of query sequence\tsam" ]
+   );
             # sub { } :
             # $_[0] is $F[$i]
             # $_[1] is VAL or :VAL
@@ -479,6 +491,7 @@ EOH
      $M_ignore |= 6; $PAT_PURGE = '^@';
      $B_headless = 1;
      $OFFSET_OMEGA = 11;
+     for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      next;
   }
 
@@ -906,6 +919,7 @@ while (<>) {
        $Nignr++;
        if (($M_ignore & 6) && /SN:(\S+)\s+LN:(\d+)/) {
          $::dict{seqlen}{$1} = $2;
+         $::dictnotfound{seqlen} = 0;
        }
        next;
     }
@@ -913,6 +927,7 @@ while (<>) {
 
   chomp;
   my @F = length($_) ? split "\t", $_, $OFFSET_OMEGA : ("");
+  $::Flink = \@F;
 
   if ($OFFSET_OMEGA > 0 && @F < $OFFSET_OMEGA) {
     push @F, ( ("") x ($OFFSET_OMEGA - @F)) ;

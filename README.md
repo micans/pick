@@ -517,6 +517,7 @@ header information) be obtained as
 
 `pick --sam rstart:=4 rcov:=6,cgrefcov rlen:=3^seqlen,map nbeyond::rlen:rstart:rcov,add,sub^1add`
 
+Should a sequence name not be found in the `seqlen` dictionary the value `0` is returned for the sequence length.
 
 Pick has a few operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
 string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
