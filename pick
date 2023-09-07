@@ -169,6 +169,8 @@ my %cp_opdefinitions =
      octto     => [ 1, sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
      urldc     => [ 1, sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
      urlec     => [ 1, sub { $::STACK[-1] = urlencode($::STACK[-1]) }, "x\turlec(x)\tUrl encoding of x\tstring/format/input/output" ],
+     incr      => [ 1, sub { $::STACK[-1]++ }, "x\tx++\tx incremented by one\tarithmetic" ],
+     decr      => [ 1, sub { $::STACK[-1]-- }, "x\tx--\tx decremented by one\tarithmetic" ],
      uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
      lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tuc(x)\tLower case of x\tstring" ],
      rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
