@@ -198,7 +198,7 @@ my %cp_samdefs = (
      refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "<>\t<> refcov\tLength of reference covered by alignment\tsam" ],
      refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "<>\t<> refstart\tField 4 from sam format\tsam" ],
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "<>\t<> refend\tLast base in reference covered by alignment\tsam" ],
-     reflen    => [ 0, sub { my $x = $::dict{seqlen}{$::Flink->[2]}; $x = $::dictnotfound{seqlen} unless defined($x); push @::STACK, $x }, "<>\t<> reflen\tLength of reference sequence\tsam" ],
+     reflen    => [ 0, sub { my $x = $::dict{seqlen}{$::Flink->[2]}; if (!defined($x)) { $x=$::dictnotfound{seqlen}; print STDERR "No length for $::Flink->[2]\n"; } push @::STACK, $x }, "<>\t<> reflen\tLength of reference sequence\tsam" ],
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "<>\t<> qrycov\tLength of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)S/; push @::STACK, $s }, "<>\t<> qrystart\tStart of alignment in query\tsam" ],
      qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MIS=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)S$/; push @::STACK, $e }, "<>\t<> qryend\tLast base in query covered by alignment\tsam" ],
