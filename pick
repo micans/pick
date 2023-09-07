@@ -117,8 +117,8 @@ my %cp_opdefinitions =
      pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "<> x\t<>\tRemove top entry x from stack\tstack" ],
      dup       => [ 0, sub { stacky('dup', 1); push @::STACK, $::STACK[-1] }, "x\tx x\tDuplicate top entry x\tstack" ],
      xch       => [ 0, sub { stacky('xch', 2); ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) }, "x y\ty x\tExchange x and y\tstack" ],
-     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "<>\t<> x\tPush current table row number x onto stack\tinput" ],
-     lineno    => [ 0, sub { push @::STACK, $.      }, "<>\t<> x\tPush file line number x onto stack\tinput" ],
+     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "<>\tx\tPush current table row number x onto stack\tinput" ],
+     lineno    => [ 0, sub { push @::STACK, $.      }, "<>\tx\tPush file line number x onto stack\tinput" ],
 
      mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
      pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
@@ -192,19 +192,19 @@ my %cp_opdefinitions =
      ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
      floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
      int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
+     F0        => [ 0, sub { push @::STACK, $::Flink->[0] }, "<>\tF[0]\tFirst input column\tdemo" ],
 
    );
 
 my %cp_samdefs = (
-     test      => [ 0, sub { push @::STACK, $::Flink->[0] }, "<>\t<> F[0]\ttest\ttest" ],
-     refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "<>\t<> refcov\tLength of reference covered by alignment\tsam" ],
-     refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "<>\t<> refstart\tField 4 from sam format\tsam" ],
-     refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "<>\t<> refend\tLast base in reference covered by alignment\tsam" ],
-     reflen    => [ 0, sub { my $x = $::dict{seqlen}{$::Flink->[2]}; if (!defined($x)) { $x=$::dictnotfound{seqlen}; print STDERR "No length for $::Flink->[2]\n"; } push @::STACK, $x }, "<>\t<> reflen\tLength of reference sequence\tsam" ],
-     qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "<>\t<> qrycov\tLength of query covered by alignment\tsam" ],
-     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)S/; push @::STACK, $s }, "<>\t<> qrystart\tStart of alignment in query\tsam" ],
-     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MIS=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)S$/; push @::STACK, $e }, "<>\t<> qryend\tLast base in query covered by alignment\tsam" ],
-     qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MIS=X', 'sum') }, "<>\t<> qrylen\tLength of query sequence\tsam" ]
+     refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "<>\trefcov\tAmount of reference covered by alignment\tsam" ],
+     refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "<>\trefstart\tField 4 from sam format\tsam" ],
+     refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "<>\trefend\tLast base in reference covered by alignment\tsam" ],
+     reflen    => [ 0, sub { my $x = $::dict{seqlen}{$::Flink->[2]}; if (!defined($x)) { $x=$::dictnotfound{seqlen}; print STDERR "No length for $::Flink->[2]\n"; } push @::STACK, $x }, "<>\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
+     qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "<>\tqrycov\tAmount of query covered by alignment\tsam" ],
+     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)S/; push @::STACK, $s }, "<>\tqrystart\tStart of alignment in query\tsam" ],
+     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MIS=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)S$/; push @::STACK, $e }, "<>\tqryend\tLast base in query covered by alignment\tsam" ],
+     qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MIS=X', 'sum') }, "<>\tqrylen\tLength of query sequence\tsam" ]
    );
             # sub { } :
             # $_[0] is $F[$i]
@@ -397,7 +397,7 @@ EOH
       printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
     }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
-    else { print "\nAll operators in section(s) matching <$filter>\n" }
+    else { print "\nAll operators in section(s) matching <$filter>\nSections: $opsections\n" }
     exit 0;
   }
   elsif ($options eq '-H') {
@@ -489,8 +489,9 @@ EOH
     exit 0;
     }
   }
-  elsif ($options eq '--sam') {
-     $M_ignore |= 6; $PAT_PURGE = '^@';
+  elsif ($options =~ /^--sam(-all)?$/) {
+     if (defined($1)) { $M_ignore |= 5; $PAT_PASS  = '^@'; }
+     else             { $M_ignore |= 6; $PAT_PURGE = '^@'; }
      $B_headless = 1;
      $OFFSET_OMEGA = 11;
      for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
@@ -919,7 +920,7 @@ while (<>) {
     if ($hit1 || $hit2) {
        print "$_" if $hit1;
        $Nignr++;
-       if (($M_ignore & 6) && /SN:(\S+)\s+LN:(\d+)/) {
+       if (($M_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {
          $::dict{seqlen}{$1} = $2;
          $::dictnotfound{seqlen} = 0;
        }
