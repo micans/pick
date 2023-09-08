@@ -722,10 +722,10 @@ hexto       x           x'                  Read hex representation x [input/for
 idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
 incr        x           x++                 x incremented by one [arithmetic]
 int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
-joinall     <> s        Stack-joined-by-s   Stringified stack with s as separator [string/devour]
+joinall     * s         Stack-joined-by-s   Stringified stack with s as separator [string/devour]
 lc          x           uc(x)               Lower case of x [string]
 len         x           len(x)              Length of string x [string]
-lineno      <>          x                   Push file line number x onto stack [input]
+lineno      -           x                   Push file line number x onto stack [input]
 log         x           log(x)              Natural logarithm of x [math]
 log10       x           log10(x)            Logarithm of x in base 10 [math]
 map         x dname     map-of-x            Use map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=) [string/dictionary]
@@ -741,11 +741,11 @@ octto       x           x'                  Read octal representation x [input/f
 or          x y         x or y              Bitwise or between x and y [bitop]
 pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 pml         x y N       pct(x/y)            Promille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
-pop         <> x        <>                  Remove top entry x from stack [stack]
+pop         x           -                   Remove top entry x from stack [stack]
 pow         x y         x**y                x raised to power y [arithmetic]
 rc          x           rc(x)               Reverse complement [string]
 rev         x           rev(x)              String reverse of x [string]
-rowno       <>          x                   Push current table row number x onto stack [input]
+rowno       -           x                   Push current table row number x onto stack [input]
 sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
 sin         x           sin(x)              Sine of x [math]
 sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
@@ -763,7 +763,7 @@ urldc       x           urldc(x)            Url decoding of x [string/format/inp
 urlec       x           urlec(x)            Url encoding of x [string/format/input/output]
 xch         x y         y x                 Exchange x and y [stack]
 xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
-zp          x N         x                   x left zero-padded to width of N [output]
+zp          x N         x'                  x left zero-padded to width of N [output]
 ```
 
 
@@ -772,14 +772,14 @@ These are additionally available if `--sam` is supplied:
 ```
 Operator    Consumed    Produced            Description
 --------------------------------------------------------------------------------
-qrycov      <>          qrycov              Amount of query covered by alignment [sam]
-qryend      <>          qryend              Last base in query covered by alignment [sam]
-qrylen      <>          qrylen              Length of query sequence [sam]
-qrystart    <>          qrystart            Start of alignment in query [sam]
-refcov      <>          refcov              Amount of reference covered by alignment [sam]
-refend      <>          refend              Last base in reference covered by alignment [sam]
-reflen      <>          reflen              Length of reference sequence (requires samtools view -h) [sam]
-refstart    <>          refstart            Field 4 from sam format [sam]
+qrycov      -           qrycov              Amount of query covered by alignment [sam]
+qryend      -           qryend              Last base in query covered by alignment [sam]
+qrylen      -           qrylen              Length of query sequence [sam]
+qrystart    -           qrystart            Start of alignment in query [sam]
+refcov      -           refcov              Amount of reference covered by alignment [sam]
+refend      -           refend              Last base in reference covered by alignment [sam]
+reflen      -           reflen              Length of reference sequence (requires samtools view -h) [sam]
+refstart    -           refstart            Field 4 from sam format [sam]
 ```
 
 
