@@ -498,28 +498,39 @@ will be added (and output e.g. if `-A` is used).
 
 
 Use `--sam` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
-(overflow columns collated in column 11) and make the sequence lengths available.
-You can use the `get` operator (`<value> <regex> get`)
-to retrieve information from the concatenated fields in picks last input column.
+(overflow columns collated in column 11) and make the sequence lengths available in the `seqlen`
+dictionary (if the sam header is found).
 
-Additionally, pick will scan the input for SAM header lines and put reference sequence lengths
-as values for sequence names in the dictionary called `seqlen`. This dictionary can be accessed with `map`
-and is thus available for computation, for example to investigate the amount of reference sequence
-not covered by the alignment. The following are of interest when dealing with the alignment
-in reference coordinates:
+Most importantly, pick makes several new operators available that compute certain alignment-related
+offsets and widths available. The following table lists these shorthand operators, along with
+a more verbose and obtuse pick equivalent using older operators before `--sam` was available.
+Shown below are simple computes with just a single operator used. Obviously these operators
+can be combined in more elaborate ways; an example is given after.
 
-- The reference start in SAM column 4, e.g. computation `rstart::4`.
-- The number of reference bases covered by the alignment, e.g. computation `rcov::6,cgrefcov`.
-- The lenght of the reference sequence, e.g. `rlen::3^seqlen,map`.
+```
+using --sam         without using --sam
+---------------------------------------
+qs::,qrystart       qs::6,cgqrystart
+qe::,qryend         qe::6,cgqryend
+qc::,qrycov         qc::6,cgqrycov
+ql::,qrylen         qc::6,cgqrylen
 
-The number of bases not covered beyond the alignment can thus (make sure to use `samtools view -h` to include
-header information) be obtained as
+rs::,refstart       rs::4
+re::,refend         re::4:6,cgrefcov,add
+re::,refcov         rc::6,cgrefcov
+rl::,reflen         rl::3^seqlen,map
+```
 
-`pick --sam rstart:=4 rcov:=6,cgrefcov rlen:=3^seqlen,map nbeyond::rlen:rstart:rcov,add,sub^1add`
+The number of reference bases not covered beyond the alignment can be expressed
+as `reflen - (refstart + refcov) + 1` and can thus be computed as follows.
 
+`pick --sam nbeyond::,reflen,refstart,refcov,add,sub^1add`
+
+Make sure to use `samtools view -h` to include header information so that `reflen` is available.
 Should a sequence name not be found in the `seqlen` dictionary the value `0` is returned for the sequence length.
+In this case pick currently issues an error only if `reflen` is used (and not if `3^seqlen,map` is used).
 
-Pick has a few operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
+Pick has a few other/older operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
 string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
 alignment types supported by CIGAR strings
 (respectively *alignment match*, *insertion in reference*, *deletion from reference*, *skip from reference*,
@@ -549,6 +560,9 @@ The start of the alignment in query (1-based).
 
 `<cigarstring>` **cgrefcov**  
 The number of bases in reference covered by this alignment; the sum of all events in `MDN=X`.
+
+You can use the `get` operator (`<value> <regex> get`)
+to retrieve information from the concatenated fields in picks last input column.
 
 
 ## Useful regular expression features
