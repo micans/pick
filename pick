@@ -489,7 +489,7 @@ EOH
     exit 0;
     }
   }
-  elsif ($options =~ /^--sam(-all)?$/) {
+  elsif ($options =~ /^--sam(-h)?$/) {
      if (defined($1)) { $M_ignore |= 5; $PAT_PASS  = '^@'; }
      else             { $M_ignore |= 6; $PAT_PURGE = '^@'; }
      $B_headless = 1;

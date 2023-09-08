@@ -497,18 +497,19 @@ will be added (and output e.g. if `-A` is used).
 ## SAM and CIGAR support
 
 
-Use `--sam` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
+Use `--sam` or `--sam-h` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
 (overflow columns collated in column 11) and make the sequence lengths available in the `seqlen`
-dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-all`.
+dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-h`.
 
-When using either of `--sam` or `--sam-all` pick makes several new operators available that compute certain alignment-related
+When using either of these options pick makes several new operators available that compute certain alignment-related
 offsets and widths. The following table lists these shorthand operators, along with
-a more verbose and obtuse/obsolete pick equivalent using older operators before these options were introduced.
-Shown below are simple computes with just a single operator used. Obviously these operators
+a more verbose and obtuse/obsolete pick equivalent using older operators (still available).
+Shown below are simple computes with just a single operator used. Obviously these
 can be combined in more elaborate ways; an example is given after.
 
 ```
-using --sam         without using --sam
+using --sam         without using --sam or --sam-h
+   or --sam-h
 ---------------------------------------
 qs::,qrystart       qs::6,cgqrystart
 qe::,qryend         qe::6,cgqryend
@@ -521,14 +522,14 @@ re::,refcov         rc::6,cgrefcov
 rl::,reflen         rl::3^seqlen,map
 ```
 
-The number of reference bases not covered beyond the alignment can be expressed
+The number of reference bases not covered beyond the 3' end of the alignment can be expressed
 as `reflen - (refstart + refcov) + 1` and can thus be computed as follows.
 
 `pick --sam nbeyond::,reflen,refstart,refcov,add,sub^1add`
 
 Make sure to use `samtools view -h` to include header information so that `reflen` is available.
 Should a sequence name not be found in the `seqlen` dictionary the value `0` is returned for the sequence length.
-In this case pick currently issues an error only if `reflen` is used (and not if `3^seqlen,map` is used).
+In this case pick currently issues an error only if `reflen` is used (not in case `3^seqlen,map` is used).
 
 Pick has a few other/older operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
 string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
@@ -676,7 +677,7 @@ Precision: `dd frac pct pml sn`
 Regular expressions: `del delg ed edg get`
 
 Sam file support: `qrystart qryend  qrycov  qrylen refstart refend refcov reflen cgsum cgmax cgcount`  
-Use `--sam` (sam input) or `--sam-all` (additionally copy/output sam header) to activate these operators
+Use `--sam` (sam input) or `--sam-h` (additionally copy/output sam header) to activate these operators
 and set various pick options.
 
 Stack control: `dup pop xch`
