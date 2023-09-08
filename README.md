@@ -505,31 +505,42 @@ When using either of these options pick makes several new operators available th
 offsets and widths. The following table lists these shorthand operators, along with
 a more verbose and obtuse/obsolete pick equivalent using older operators (still available).
 Shown below are simple computes with just a single operator used. Obviously these
-can be combined in more elaborate ways; an example is given after.
+can be combined in more elaborate ways.
+
+With these operators pick can be used to efficiently filter alignments, for example
+removing those that do not start near expected primer sites (see below). Other applications
+include the computation and extraction of quantities for quality control.
 
 ```
 using --sam         without using --sam or --sam-h
    or --sam-h
 ---------------------------------------
-qs::,qrystart       qs::6,cgqrystart
-qe::,qryend         qe::6,cgqryend
-qc::,qrycov         qc::6,cgqrycov
-ql::,qrylen         qc::6,cgqrylen
+qs::,qrystart       qs::6,cgqrystart         query start, 1-based
+qe::,qryend         qe::6,cgqryend           query end 1-based, inclusive
+qc::,qrycov         qc::6,cgqrycov           amount of bases covered by alignment in query
+ql::,qrylen         qc::6,cgqrylen           query length
 
-rs::,refstart       rs::4
-re::,refend         re::4:6,cgrefcov,add
-re::,refcov         rc::6,cgrefcov
-rl::,reflen         rl::3^seqlen,map
+rs::,refstart       rs::4                    reference start, 1-based
+re::,refend         re::4:6,cgrefcov,add     reference start, 1-based, inclusive
+re::,refcov         rc::6,cgrefcov           amount of bases covered by alignment in reference
+rl::,reflen         rl::3^seqlen,map         reference length
 ```
 
 The number of reference bases not covered beyond the 3' end of the alignment can be expressed
 as `reflen - (refstart + refcov) + 1` and can thus be computed as follows.
 
-`pick --sam nbeyond::,reflen,refstart,refcov,add,sub^1add`
+`samtools view -h <bamfile> | pick --sam nbeyond::,reflen,refstart,refcov,add,sub^1add`
 
 Make sure to use `samtools view -h` to include header information so that `reflen` is available.
 Should a sequence name not be found in the `seqlen` dictionary the value `0` is returned for the sequence length.
 In this case pick currently issues an error only if `reflen` is used (not in case `3^seqlen,map` is used).
+To require alignment to be proximal within 20 bases to primer sites, use e.g.
+
+```
+mark5p=123     # your value here
+mark3p=1234    # your value here
+samtools view -h <bamfile> | pick --sam-h -A s:=,refstart^20,sub e:=,refend^20,add @s/le/$mark5p @e/ge/$mark3p
+```
 
 Pick has a few other/older operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
 string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
