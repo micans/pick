@@ -624,7 +624,11 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-l <str>` as above, limited to operators in sections matching `<str>`.  
    Available sections are `arithmetic bitop devour dictionary format input math output precision regex sam stack string`.
 -  `-H` summary of pick syntax.
-  
+
+-  `--sam` / `--sam-h` Expect sam input, pass through sam header (`--sam-h`).  
+   These options effectively set `-k -O11`, `-/^@` (`--sam`) or `-//^@` (`--sam-h`) and
+   additionally store sequence lengths in the `seqlen` dictionary if the input contains a sam header.
+
 -  `-h` do not print header
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.
 -  `-o` OR multiple select criteria (default is AND)
