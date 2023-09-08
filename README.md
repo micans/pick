@@ -499,11 +499,11 @@ will be added (and output e.g. if `-A` is used).
 
 Use `--sam` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
 (overflow columns collated in column 11) and make the sequence lengths available in the `seqlen`
-dictionary (if the sam header is found).
+dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-all`.
 
-Most importantly, pick makes several new operators available that compute certain alignment-related
-offsets and widths available. The following table lists these shorthand operators, along with
-a more verbose and obtuse pick equivalent using older operators before `--sam` was available.
+When using either of `--sam` or `--sam-all` pick makes several new operators available that compute certain alignment-related
+offsets and widths. The following table lists these shorthand operators, along with
+a more verbose and obtuse/obsolete pick equivalent using older operators before these options were introduced.
 Shown below are simple computes with just a single operator used. Obviously these operators
 can be combined in more elaborate ways; an example is given after.
 
@@ -546,19 +546,19 @@ Returns the size of the longest stretch of bases across all alignment types in `
 `<cigarstring>` `<cigaritems>` **cgcount**  
 Returns the number of events across all alignment types in `<cigaritems>`.
 
-`<cigarstring>` **cgqrycov**  
+`<cigarstring>` cgqrycov - still supported but **qrycov** operator prefered.  
 The number of bases in query covered by this alignment; the sum of all events in `MI=X`.
 
-`<cigarstring>` **cgqryend**  
+`<cigarstring>` **cgqryend** - still supported but **qryend** operator prefered.  
 The end of the alignment in query (1-based).
 
-`<cigarstring>` **cgqrylen**  
+`<cigarstring>` cgqrylen - still supported but **qrylen** operator prefered.  
 The length of query, the sum of all events in `MIS=X`.
 
-`<cigarstring>` **cgqrystart**  
+`<cigarstring>` **cgqrystart** - still supported byut **qrystart** operator prefered.  
 The start of the alignment in query (1-based).
 
-`<cigarstring>` **cgrefcov**  
+`<cigarstring>` cgrefcov - still supported but **refcov** operator prefered.  
 The number of bases in reference covered by this alignment; the sum of all events in `MDN=X`.
 
 You can use the `get` operator (`<value> <regex> get`)
@@ -703,7 +703,8 @@ cgqrystart  c           qrystart            First base considered aligned in que
 cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
 cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
 cos         x           cos(x)              Cosine of x [math]
-dd          x N         x                   Floating point x printed with N decimal digits [math/format/precision]
+dd          x N         x'                  Floating point x printed with N decimal digits [math/format/precision]
+decr        x           x--                 x decremented by one [arithmetic]
 del         x p         x =~ s/p//          Delete pattern p in x [string/regex]
 delg        x p         x =~ s/p//          Globally delete pattern p in x [string/regex]
 div         x y         x/y                 Division, fraction, (cf -P and PICK_DIV_INF) [arithmetic]
@@ -717,11 +718,12 @@ frac        x y N       x/y                 Division, fraction x/y with N decima
 get         x r         r-match-of-x        If x matches regex r take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
 hexto       x           x'                  Read hex representation x [input/format]
 idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
+incr        x           x++                 x incremented by one [arithmetic]
 int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
-joinall     Stack s     Stack-joined-by-s   Stringified stack with s as separator [string/devour]
+joinall     <> s        Stack-joined-by-s   Stringified stack with s as separator [string/devour]
 lc          x           uc(x)               Lower case of x [string]
 len         x           len(x)              Length of string x [string]
-lineno      Stack       Stack x             Push file line number x onto stack [input]
+lineno      <>          x                   Push file line number x onto stack [input]
 log         x           log(x)              Natural logarithm of x [math]
 log10       x           log10(x)            Logarithm of x in base 10 [math]
 map         x dname     map-of-x            Use map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=) [string/dictionary]
@@ -736,11 +738,12 @@ mulall      Stack       product(Stack)      Product of all entries in stack, mul
 octto       x           x'                  Read octal representation x [input/format]
 or          x y         x or y              Bitwise or between x and y [bitop]
 pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
-pop         Stack x     Stack               Remove top entry x from stack [stack]
+pml         x y N       pct(x/y)            Promille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+pop         <> x        <>                  Remove top entry x from stack [stack]
 pow         x y         x**y                x raised to power y [arithmetic]
 rc          x           rc(x)               Reverse complement [string]
 rev         x           rev(x)              String reverse of x [string]
-rowno       Stack       Stack x             Push current table row number x onto stack [input]
+rowno       <>          x                   Push current table row number x onto stack [input]
 sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
 sin         x           sin(x)              Sine of x [math]
 sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
@@ -759,6 +762,22 @@ urlec       x           urlec(x)            Url encoding of x [string/format/inp
 xch         x y         y x                 Exchange x and y [stack]
 xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
 zp          x N         x                   x left zero-padded to width of N [output]
+```
+
+
+These are additionally available if `--sam` is supplied:
+
+```
+Operator    Consumed    Produced            Description
+--------------------------------------------------------------------------------
+qrycov      <>          qrycov              Amount of query covered by alignment [sam]
+qryend      <>          qryend              Last base in query covered by alignment [sam]
+qrylen      <>          qrylen              Length of query sequence [sam]
+qrystart    <>          qrystart            Start of alignment in query [sam]
+refcov      <>          refcov              Amount of reference covered by alignment [sam]
+refend      <>          refend              Last base in reference covered by alignment [sam]
+reflen      <>          reflen              Length of reference sequence (requires samtools view -h) [sam]
+refstart    <>          refstart            Field 4 from sam format [sam]
 ```
 
 
