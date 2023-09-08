@@ -257,7 +257,7 @@ and (2) `newname2` will be output.
 
 In the example below the `<compute>` part (with name `doodle`) is `yam:bob,sub^1,add`. It does not start with
 either a colon, caret or comma.
-**By default the first part is always assumed to be a column handle unless a constant value is found** - there is no useful scenario to start with an operator.
+**By default the first part is always assumed to be a column handle unless a constant value or operator is found**.
 
 This particular compute puts two column values on the stack (for columns `yam` and `bob`), then subtracts
 `bob` from `yam`, and adds 1 to the result. If the two columns denote inclusive bounds for an interval
@@ -549,13 +549,13 @@ Returns the number of events across all alignment types in `<cigaritems>`.
 `<cigarstring>` cgqrycov - still supported but **qrycov** operator prefered.  
 The number of bases in query covered by this alignment; the sum of all events in `MI=X`.
 
-`<cigarstring>` **cgqryend** - still supported but **qryend** operator prefered.  
+`<cigarstring>` cgqryend - still supported but **qryend** operator prefered.  
 The end of the alignment in query (1-based).
 
 `<cigarstring>` cgqrylen - still supported but **qrylen** operator prefered.  
 The length of query, the sum of all events in `MIS=X`.
 
-`<cigarstring>` **cgqrystart** - still supported byut **qrystart** operator prefered.  
+`<cigarstring>` cgqrystart - still supported byut **qrystart** operator prefered.  
 The start of the alignment in query (1-based).
 
 `<cigarstring>` cgrefcov - still supported but **refcov** operator prefered.  
@@ -655,7 +655,7 @@ The documentation is output when given `-H` (`-h` is the option to prevent
 output of column names) or `-l` for a table of operators, also supplied below.
 
 
-Arithmetic: `add addall div idiv max maxall min minall mod mul mulall pow sub`
+Arithmetic: `add addall decr div idiv incr max maxall min minall mod mul mulall pow sub`
 
 Bit operators: `and or xor`
 
@@ -675,7 +675,9 @@ Precision: `dd frac pct pml sn`
 
 Regular expressions: `del delg ed edg get`
 
-Sam file support: `cgcount cgmax cgqrycov cgqryend cgqrylen cgqrystart cgrefcov cgsum`
+Sam file support: `qrystart qryend  qrycov  qrylen refstart refend refcov reflen cgsum cgmax cgcount`  
+Use `--sam` (sam input) or `--sam-all` (additionally copy/output sam header) to activate these operators
+and set various pick options.
 
 Stack control: `dup pop xch`
 
