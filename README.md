@@ -99,6 +99,8 @@ multiple `@` selections are possible; default is `AND` of multiple clauses, use 
 pick foo bar @tim/gt/0 < data.txt
 ```
 
+<details><summary>Further selection examples</summary>
+
 where `tim` is larger than the column value in `zut` (the leading colon in `:zut` indicates
 that the value to compare to should be taken from column `zut`):
 ```
@@ -143,6 +145,7 @@ where `tim` _does not_ match the string `flub` followed by one or more digits:
 pick foo bar @tim/~flub'\d+' < data.txt
 ```
 
+</details>
 
 The full list of comparison operators:
 
