@@ -140,9 +140,9 @@ my %cp_opdefinitions =
      cgcount   => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
      cgrefcov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MDN=X', 'sum') }, "c\trefcov\tCount of reference bases covered by cigar string c (MDN=X events)\tstring/sam" ],
      cgqrycov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MI=X', 'sum') }, "c\tqrycov\tCount of query bases covered by cigar string c (MI=X events)\tstring/sam"  ],
-     cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MIS=X', 'sum') }, "c\tqrylen\tLength of query (MIS=X events) in cigar string c\tstring/sam" ],
-     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MIS=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)S$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
-     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)S/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
+     cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MISH=X', 'sum') }, "c\tqrylen\tLength of query (MIS=X events) in cigar string c\tstring/sam" ],
+     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[SH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
+     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
@@ -196,15 +196,30 @@ my %cp_opdefinitions =
 
    );
 
+sub sam_reflen {
+  my $x = $::dict{seqlen}{$::Flink->[2]};
+  if (!defined($x)) {
+    $x=$::dictnotfound{seqlen};
+    print STDERR "No length for $::Flink->[2]\n";
+  }
+  return $x;
+}
+
 my %cp_samdefs = (
      refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "-\trefcov\tAmount of reference covered by alignment\tsam" ],
      refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "-\trefstart\tField 4 from sam format\tsam" ],
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "-\trefend\tLast base in reference covered by alignment\tsam" ],
-     reflen    => [ 0, sub { my $x = $::dict{seqlen}{$::Flink->[2]}; if (!defined($x)) { $x=$::dictnotfound{seqlen}; print STDERR "No length for $::Flink->[2]\n"; } push @::STACK, $x }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
+     reflen    => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tAmount of query covered by alignment\tsam" ],
-     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)S/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
-     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MIS=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)S$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
-     qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MIS=X', 'sum') }, "-\tqrylen\tLength of query sequence\tsam" ]
+     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
+     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MISH=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
+     qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MISH=X', 'sum') }, "-\tqrylen\tLength of query sequence\tsam" ],
+
+     refclipl  => [ 0, sub { push @::STACK, $::Flink->[3] -1 }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
+     refclipr  => [ 0, sub { push @::STACK, &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum')}, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
+
+     qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
+     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
    );
             # sub { } :
             # $_[0] is $F[$i]
