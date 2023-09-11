@@ -210,6 +210,7 @@ my %cp_samdefs = (
      refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "-\trefstart\tField 4 from sam format\tsam" ],
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "-\trefend\tLast base in reference covered by alignment\tsam" ],
      reflen    => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
+
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tAmount of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
      qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MISH=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
@@ -220,7 +221,10 @@ my %cp_samdefs = (
 
      qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
      qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
+
+            # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
+
             # sub { } :
             # $_[0] is $F[$i]
             # $_[1] is VAL or :VAL
@@ -509,6 +513,7 @@ EOH
      else             { $M_ignore |= 6; $PAT_PURGE = '^@'; }
      $B_headless = 1;
      $OFFSET_OMEGA = 11;
+     $::dictnotfound{seqlen} = 0;
      for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      next;
   }
@@ -937,7 +942,6 @@ while (<>) {
        $Nignr++;
        if (($M_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {
          $::dict{seqlen}{$1} = $2;
-         $::dictnotfound{seqlen} = 0;
        }
        next;
     }

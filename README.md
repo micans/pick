@@ -795,10 +795,17 @@ qrycov      -           qrycov              Amount of query covered by alignment
 qryend      -           qryend              Last base in query covered by alignment [sam]
 qrylen      -           qrylen              Length of query sequence [sam]
 qrystart    -           qrystart            Start of alignment in query [sam]
+
 refcov      -           refcov              Amount of reference covered by alignment [sam]
 refend      -           refend              Last base in reference covered by alignment [sam]
 reflen      -           reflen              Length of reference sequence (requires samtools view -h) [sam]
 refstart    -           refstart            Field 4 from sam format [sam]
+
+qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
+qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]
+
+refclipl    -           refclipl            Number of 5p trailing reference bases [sam]
+refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
 ```
 
 
