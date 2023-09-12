@@ -508,7 +508,7 @@ When using either of these options pick makes several new operators available th
 offsets and widths. The following table lists these shorthand operators, along with
 a more verbose and obtuse/obsolete pick equivalent using older operators (still available).
 Shown below are simple computes with just a single operator used. Obviously these
-can be combined in more elaborate ways.
+can be combined in various ways.
 
 With these operators pick can be used to efficiently filter alignments, for example
 removing those that do not start near expected primer sites (see below). Other applications
@@ -524,15 +524,15 @@ qc::,qrycov         qc::6,cgqrycov           amount of bases covered by alignmen
 ql::,qrylen         qc::6,cgqrylen           query length
 
 rs::,refstart       rs::4                    reference start, 1-based
-re::,refend         re::4:6,cgrefcov,add     reference start, 1-based, inclusive
+re::,refend         re::4:6,cgrefcov,add     reference end, 1-based, inclusive
 re::,refcov         rc::6,cgrefcov           amount of bases covered by alignment in reference
 rl::,reflen         rl::3^seqlen,map         reference length
+
+qcl::,qryclipl      (omitted)                Number of 5p trailing query bases [sam]
+qcr::,qryclipr      (omitted)                Number of 3p trailing query bases [sam]
+rcl::,refclipl      (omitted)                Number of 5p trailing reference bases [sam]
+rcr::,refclipr      (omitted)                Number of 3p trailing reference bases [sam]
 ```
-
-The number of reference bases not covered beyond the 3' end of the alignment can be expressed
-as `reflen - (refstart + refcov) + 1` and can thus be computed as follows.
-
-`samtools view -h <bamfile> | pick --sam nbeyond::,reflen,refstart,refcov,add,sub^1add`
 
 Make sure to use `samtools view -h` to include header information so that `reflen` is available.
 Should a sequence name not be found in the `seqlen` dictionary the value `0` is returned for the sequence length.
