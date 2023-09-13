@@ -62,11 +62,10 @@ will contain a header with column names `foo` and `bar`.
 pick foo bar < data.txt
 ```
 
-Pick columns `bar` and `foo` from `data.txt`, in that order (1). With `-h`
-the output header is dropped.
-Pick all columns excluding `bar` and `foo` (2).
-With `-A` all columns are selected (3); this
-is useful when the goal is just to filter rows (see below).
+Below
+(1) pick columns `bar` and `foo` from `data.txt`, in that order.
+(2) Pick all columns excluding `bar` and `foo`; with `-h` the output header is dropped.
+(3) With `-A` all columns are selected; this is useful when the goal is just to filter rows (see below).
 
 
 ```
@@ -77,9 +76,10 @@ is useful when the goal is just to filter rows (see below).
 (3)   pick -A < data.txt
 ```
 
-Pick columns using indexes and an index range (1). The output order is as specified.
+If no header is present indexes and index ranges can be used.
 `-k` implies the first row has no special meaning (as column names) and handles are 1-based indexes.
-Pick columns using a regular expression for column names (2). This can be helpful for large tables. Quotes
+(1) The output order is as specified.
+(2) Pick columns using a regular expression for column names. This can be helpful for large tables. Quotes
 are needed to prevent shell interpretation of characters that are special to the shell.
 
 ```
