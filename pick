@@ -63,7 +63,6 @@ my $OFFSET_OMEGA   = -1;    # with -O<N>, accept overflow ragged columns from po
 
 my $B_print_header = 1;     # B_oolean. Also accessed in subroutines.
 my $B_select_and   = 1;     # Require all selections to match (use -o for any)
-my $B_print_tally  = 0;     # Print trailing T column with count of selections matched
 my $B_printall     = 0;     # Select all columns
 my $B_inplace      = 0;     # Allow derived column to redefine existing column name
 my $B_excise       = 0;     # print all except the plain column handles listed, cannot combine with $B_printall
@@ -81,6 +80,8 @@ my $B_regex        = 1;     # Whether to interpret names as a regular expression
 my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable with PICK_*_INF environment variables.
 my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
+
+my $fh_other       = undef;
 
 $::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myriad.
 $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
@@ -333,6 +334,8 @@ my $help_options=q{Options:
                      on commas and colons all keys and values are url-decoded. Example usage:
        echo -e "a\t3\nb\t4" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
 
+  --other=fname      write discarded rows to fname
+
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
   use -Ai <name>::<COMPUTE> to change column <name> to <COMPUTE>,
@@ -483,40 +486,44 @@ EOH
   exit 0;
   }
 
-  if ($options =~ /^--fdict-(\w+)(\/(.*?))?=(.+)$/) {
-    read_dict($1, $4);
-    $::dictnotfound{$1} = $3 if length($2);
-    next;
-  }
-  elsif ($options =~ /^--cdict-(\w+)(\/(.*?))?=(.+)$/) {
-    parse_dict($1, $4);
-    $::dictnotfound{$1} = $3 if length($2);
-    next;
-  }
-  elsif ($options =~ /^--(add-)?inames=(.+)$/) {
-    $nameslist=$2;
-    $B_add_names = $1 ? 1 : 0;
-    next;
-  }
-  elsif ($options eq '--remind-me' || $options eq '--rmm')  {
-    if (!@::spec) {
-      print "Available reminders: sam\n"; exit 0;
-    }
-    if ($::spec[0] eq 'sam') {
-    print <<EOH;
-  1     2     3     4     5     6     7     8     9    10    11
-QNAME FLAG  RNAME  POS  MAPQ  CIGAR  RNEXT PNEXT TLEN SEQ   QUAL
+  elsif ($options =~ s/^--//) {
+     if ($options =~ /^fdict-(\w+)(\/(.*?))?=(.+)$/) {
+       read_dict($1, $4);
+       $::dictnotfound{$1} = $3 if length($2);
+     }
+     elsif ($options =~ /^cdict-(\w+)(\/(.*?))?=(.+)$/) {
+       parse_dict($1, $4);
+       $::dictnotfound{$1} = $3 if length($2);
+     }
+     elsif ($options =~ /^(add-)?inames=(.+)$/) {
+       $nameslist=$2;
+       $B_add_names = $1 ? 1 : 0;
+     }
+     elsif ($options =~ /^other=(\S+)/) {
+       my $fn = $1;
+       open(OTHER, ">$fn") || die "Cannot open $fn";
+       $fh_other = \*OTHER;
+     }
+     elsif ($options eq 'remind-me' || $options eq 'rmm')  {
+       if (!@::spec) {
+         print "Available reminders: sam\n"; exit 0;
+       }
+       if ($::spec[0] eq 'sam') {
+       print <<EOH;
+   1     2     3     4     5     6     7     8     9    10    11
+ QNAME FLAG  RNAME  POS  MAPQ  CIGAR  RNEXT PNEXT TLEN SEQ   QUAL
 EOH
-    exit 0;
-    }
-  }
-  elsif ($options =~ /^--sam(-h)?$/) {
-     if (defined($1)) { $M_ignore |= 5; $PAT_PASS  = '^@'; }
-     else             { $M_ignore |= 6; $PAT_PURGE = '^@'; }
-     $B_headless = 1;
-     $OFFSET_OMEGA = 11;
-     $::dictnotfound{seqlen} = 0;
-     for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
+       exit 0;
+       }
+     }
+     elsif ($options =~ /^sam(-h)?$/) {
+        if (defined($1)) { $M_ignore |= 5; $PAT_PASS  = '^@'; }
+        else             { $M_ignore |= 6; $PAT_PURGE = '^@'; }
+        $B_headless = 1;
+        $OFFSET_OMEGA = 11;
+        $::dictnotfound{seqlen} = 0;
+        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
+     }
      next;
   }
 
@@ -546,7 +553,6 @@ EOH
   $B_select_and   = 0 if $options =~ s/o//;
   $B_verbose      = 1 if $options =~ s/v//;
   $B_ko           = 1 if $options =~ s/U//;
-  $B_print_tally  = 1 if $options =~ s/T//;
   $B_excise       = 1 if $options =~ s/x//;
   $B_add_row_column =1 if $options =~ s/R//;
   $B_headless     = 1 if $options =~ s/k//;
@@ -658,10 +664,6 @@ print STDERR "-- Unmatched part in cigar string $cigar at $p (line $.)\n" unless
    elsif ($mode eq 'sum')   { my $sum = 0; $sum += $cache->{sum}{$_} for @subset; return $sum }
    elsif ($mode eq 'count') { my $count = 0; $count += $cache->{count}{$_} for @subset; return $count }
    else                     { return 'NA' }
-}
-
-sub add_column {
-  print "\t" if $::N_column_output++; print $_[0];
 }
 
    ## Returns an arrary of matches; each match is an array [name1, name2].
@@ -966,10 +968,10 @@ while (<>) {
     wrangle_header();
     if ($B_print_header || $B_sprouthead) {
       local $, = "\t";
-      print map { $::HEADER[$_] } @::output_os;
-      $::N_column_output = @::output_os;
-      add_column("T") if $B_print_tally;
-      print "\n";
+      print map { $::HEADER[$_] } @::output_os; print "\n";
+      if ($fh_other) {
+         print $fh_other map { $::HEADER[$_] } @::output_os; print $fh_other "\n";
+      }
     }
     $::Nrows++;
     next unless $B_headless;
@@ -996,7 +998,11 @@ while (<>) {
      }
      if (@::select && (($nmatch != @::select && $B_select_and) || ($nmatch == 0 && !$B_select_and))) {
        $Ndisc++;
-       next unless $B_print_tally;
+       if ($fh_other) {
+         local $, = "\t";
+         print $fh_other map { $F[$_] } @::output_os if $fh_other; print $fh_other "\n";
+       }
+       next;
      }
      else {
        $Nkeep++;
@@ -1007,17 +1013,14 @@ while (<>) {
 
   local $, = "\t";
   print map { $F[$_] } @::output_os;
-  $::N_column_output = @::output_os;
 
-  add_column($nmatch) if $B_print_tally;
   print "\n";
 }
 
 print "$Nkeep\n" if $B_count;
 
 print STDERR "-- $Nignr ignored lines in input\n" if $M_ignore && $B_verbose;
-my $would = $B_print_tally ? ' would' : '';
-print STDERR "-- $Nkeep/$Ndisc rows$would have been kept/discarded\n" if @::select && $B_verbose;
+print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $B_verbose;
 
 my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc;

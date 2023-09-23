@@ -542,7 +542,7 @@ To require alignment to be proximal within 20 bases to primer sites, use e.g.
 ```
 mark5p=123     # your value here
 mark3p=1234    # your value here
-samtools view -h <bamfile> | pick --sam-h -A s:=,refstart^20,sub e:=,refend^20,add @s/le/$mark5p @e/ge/$mark3p
+samtools view -h <bamfile> | pick --sam-h -A delta5p:=,refstart^$mark5p,sub delta3p:=^$mark3p,refend,sub @delta5p/le/20 @delta3p/le/20
 ```
 
 Pick has a few other/older operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
@@ -643,7 +643,6 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
 -  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O11`), merge all columns at/after position `<N>`
 -  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
--  `-T` do not select, print tally column of count of matched row select criteria (name `T`)
 -  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
   
 -  `-K` headerless input as `-k` but use derived names to output column names
