@@ -78,6 +78,7 @@ my $B_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
 my $B_regex        = 1;     # Whether to interpret names as a regular expression if one of the characters in $REGEXP_CHARS is found
 my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable with PICK_*_INF environment variables.
+my $B_protect_discard = 0;  # Discard rows that needed protection.
 my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 
@@ -89,12 +90,14 @@ $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'AAAAA';
 
+my $Nprotect      = 0;
+
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
 my %PNAN =                  # Protect against division by zero etc. Defaults exist and can be overridden.
-(  PICK_LOG10_INF => 10000
-,  PICK_LOG2_INF  => 10000
-,  PICK_LOG_INF   => 10000
+(  PICK_LOG10_INF => -10000
+,  PICK_LOG2_INF  => -10000
+,  PICK_LOG_INF   => -10000
 ,  PICK_TAN_INF   => 'inf'
 ,  PICK_DIV_INF   => '-'
 )  ;
@@ -111,8 +114,8 @@ my %cp_opdefinitions =
      minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "*\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
-     div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : $PNAN{PICK_DIV_INF} }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
-     idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : $PNAN{PICK_DIV_INF} }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
      cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring" ],
      sub       => [ 2, sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
 
@@ -159,9 +162,9 @@ my %cp_opdefinitions =
                            "x dname\tmap-of-x\tUse map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=)\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
-     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : $PNAN{PICK_DIV_INF} }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
-     pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 1000 / $y) : $PNAN{PICK_DIV_INF} }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
-     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x / $y) :  $PNAN{PICK_DIV_INF}}, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
 
      tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
      tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
@@ -186,10 +189,10 @@ my %cp_opdefinitions =
      exp       => [ 1, sub { $::STACK[-1] = exp($::STACK[-1]) }, "x\te**x\tExponential function applied to x\tmath" ],
      cos       => [ 1, sub { $::STACK[-1] = cos($::STACK[-1]) }, "x\tcos(x)\tCosine of x\tmath" ],
      sin       => [ 1, sub { $::STACK[-1] = sin($::STACK[-1]) }, "x\tsin(x)\tSine of x\tmath" ],
-     tan       => [ 1, sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : $PNAN{PICK_TAN_INF} }, "x\ttan(x)\tTangens of x\tmath" ],
-     log       => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : $PNAN{PICK_LOG_INF}}, "x\tlog(x)\tNatural logarithm of x\tmath" ],
-     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(10) : $PNAN{PICK_LOG10_INF} }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
-     log2      => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(2)  : $PNAN{PICK_LOG2_INF} },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
+     tan       => [ 1, sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : ($Nprotect++, $PNAN{PICK_TAN_INF}) }, "x\ttan(x)\tTangens of x\tmath" ],
+     log       => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : ($Nprotect++, $PNAN{PICK_LOG_INF}) }, "x\tlog(x)\tNatural logarithm of x\tmath" ],
+     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
+     log2      => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
      exp10     => [ 1, sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
      sign      => [ 1, sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
      ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
@@ -499,6 +502,9 @@ EOH
        $nameslist=$2;
        $B_add_names = $1 ? 1 : 0;
      }
+     elsif ($options =~ /^pdi=(\S+)/) {
+       $PNAN{PICK_DIV_INF} = $1;
+     }
      elsif ($options =~ /^other=(\S+)/) {
        my $fn = $1;
        open(OTHER, ">$fn") || die "Cannot open $fn";
@@ -550,6 +556,7 @@ EOH
   $B_print_header = 0 if $options =~ s/h//;
   $B_regex        = 0 if $options =~ s/F//;
   $B_protect      = 1 if $options =~ s/P//;
+  ($B_protect, $B_protect_discard) = (1,1) if $options =~ s/Z//;
   $B_select_and   = 0 if $options =~ s/o//;
   $B_verbose      = 1 if $options =~ s/v//;
   $B_ko           = 1 if $options =~ s/U//;
@@ -937,6 +944,7 @@ my $Nkeep = 0;
 while (<>) {
 
   %::LINECACHE = ();
+  my $Nprotect_previous = $Nprotect;
 
   if ($M_ignore) {
     my $hit1 = ($M_ignore & 1) && /$PAT_PASS/  ? 1 : 0;
@@ -989,6 +997,14 @@ while (<>) {
   if ($B_weirdmode && $::Nrows == 1) {
     $Nkeep++;
   }
+  elsif ($B_protect_discard && $Nprotect_previous != $Nprotect) {
+    $Ndisc++;
+    if ($fh_other) {
+      local $, = "\t";
+      print $fh_other map { $F[$_] } @::output_os; print $fh_other "\n";
+    }
+    next;
+  }
   else {
      for my $sel (@::select) {
        my ($op, $indirection, $val, $colid, $arg) = @$sel;
@@ -1000,7 +1016,7 @@ while (<>) {
        $Ndisc++;
        if ($fh_other) {
          local $, = "\t";
-         print $fh_other map { $F[$_] } @::output_os if $fh_other; print $fh_other "\n";
+         print $fh_other map { $F[$_] } @::output_os; print $fh_other "\n";
        }
        next;
      }
@@ -1021,6 +1037,7 @@ print "$Nkeep\n" if $B_count;
 
 print STDERR "-- $Nignr ignored lines in input\n" if $M_ignore && $B_verbose;
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $B_verbose;
+print STDERR "-- $Nprotect items needed not-a-number protection\n" if $Nprotect;
 
 my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc;
