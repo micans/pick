@@ -644,6 +644,7 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O11`), merge all columns at/after position `<N>`
 -  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
 -  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
+-  `-Z` as `-P`, discard rows that have items that need protecting
   
 -  `-K` headerless input as `-k` but use derived names to output column names
 -  `-U` with `-k` and `-K` keep output columns unique and in original order
@@ -653,6 +654,8 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-F` fixed names; do not interpret names as regular expressions. Default behaviour is to assume a regular expression if a name contains one of `[ { ( \ * ? ^ $` .
 -  `-z  ARG+` print url-encoding of `ARG+` (no argument prints a few especially useful cases)
 -  `-zz ARG+` print url-decoding of `ARG+`
+  
+-  `--inf=<str>` Set divide-by-zero result to `<str>`
 
 
 ## Pick operators
