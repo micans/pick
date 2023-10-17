@@ -6,6 +6,7 @@
 It allows database-style queries (*select*) and filters (*where*)
 on a single text file or stream using its column names (or indexes if no names are present).
 Columns can be selected, transformed and combined and rows can be filtered using conditions.
+Additionally output can be demuxed into different files.
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
@@ -48,6 +49,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
+[Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)
+[Demuxing output](#demuxing-output)
 [Miscellaneous](#miscellaneous)  
 [Implementation notes](#implementation-notes)
 
@@ -810,15 +813,47 @@ refclipl    -           refclipl            Number of 5p trailing reference base
 refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
 ```
 
-
-## Miscellaneous
-
-
-### Retrieving unique values and asserting the number of rows found
+## Retrieving unique values and asserting the number of rows found
 
 If the input is queried for a value that should be present and unique, you can do pick let the checking
 by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
 different from `<NUM>`.
+ 
+
+## Demuxing output
+
+Pick can be used to demux output into different files. Use e.g. this combination, where `NAME` is
+of your choice:
+
+````
+--demux=NAME NAME:=sampleid^.txt
+```
+
+This tells pick to use a row's `NAME` column as the file name to write the row to, where
+`NAME` can be any column (input or computed).
+In this example `NAME` is a computed column that is not output, where the filename is
+formed from the value in the `sampleid` column with a `.txt` suffix added to it.
+
+If `--demux` is used pick will output on `STDERR` a table of output files and tallies of
+how many rows each file contains, as well as how many were deselected.
+The set of all output files will always correspond to the full set of unique values accumulated
+over the `<NAME>` column across all input rows, regardless of whether a row is deselected or not.
+Hence, in the presence of selection, demux files may contain zero data rows.
+Demux output files have or do not have a header line in line with the `-k` and `-h` options,
+just like normal output.
+
+
+A separate and compatible mechanism exists that allows sending of any de-selected row (i.e. one that
+does not satisfy the `@` selection criteria) to a specified file name. This is achieved with
+
+```
+--other=<FILENAME>
+```
+
+These two mechanisms can be used simultaneously.
+
+
+## Miscellaneous
 
 
 ### Creating fasta files

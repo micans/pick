@@ -23,6 +23,7 @@
 use strict;
 use warnings;
 use Digest::MD5 qw(md5_hex);
+use IO::File;
 use POSIX;
 
        ##                                                                               ##
@@ -83,6 +84,8 @@ my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 
 my $fh_other       = undef;
+my $name_demux     = undef;
+my $index_demux    = -1;
 
 $::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myriad.
 $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
@@ -341,6 +344,9 @@ my $help_options=q{Options:
        echo -e "a\t3\nb\t4" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
 
   --other=fname      write discarded rows to fname
+  --demux=colname    use the value in colname as file name to write the row to.
+                     Note: if all its rows are filtered the file will not be created (rather than
+                     a file with zero rows), this could be dangerous if an older version exists.
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
@@ -380,6 +386,37 @@ sub read_dict {
    my $n = keys %{$::dict{$name}};
 print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $B_verbose;
 print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_verbose && $n_novalue;
+}
+
+{  my %fh_demux = ();
+   sub demux_do_row {
+      my ($name, $output, $do_print) = @_;
+      my $val = $fh_demux{$name};
+      if (!defined($val)) {
+         my $fh = new IO::File;
+         $fh->open(">$name") || die "Failed to open $name";
+            # fixme todo; if this fails because of too many open file handles then
+            # close the least used file handles or nor recently used and retry.
+         $val = [$fh, 0, 0];
+         $fh_demux{$name} = $val;
+         if ($B_print_header || $B_sprouthead) {
+            print $fh (join "\t", map { $::HEADER[$_] } @::output_os) . "\n";
+         }
+      }
+      if ($do_print) {
+         print {$val->[0]} $output;
+         $val->[1]++;
+      }
+      else {
+         $val->[2]++;
+      }
+   }
+   sub demux_tally {
+      print STDERR "File\tWritten\tFiltered\n";
+      for (sort { $fh_demux{$a}[1] <=> $fh_demux{$b}[1] } keys %fh_demux) {
+         print STDERR "$_\t$fh_demux{$_}[1]\t$fh_demux{$_}[2]\n";
+      }
+   }
 }
 
 sub parse_dict {
@@ -508,10 +545,13 @@ EOH
      elsif ($options =~ /^inf=(\S+)/) {
        $PNAN{PICK_DIV_INF} = $1;
      }
+     elsif ($options =~ /^demux=(\S+)/) {
+       $name_demux = $1;
+     }
      elsif ($options =~ /^other=(\S+)/) {
        my $fn = $1;
-       open(OTHER, ">$fn") || die "Cannot open $fn";
-       $fh_other = \*OTHER;
+       $fh_other = new IO::File;
+       $fh_other->open(">$fn") || die "Cannot open $fn";
      }
      elsif ($options eq 'remind-me' || $options eq 'rmm')  {
        if (!@::spec) {
@@ -870,6 +910,11 @@ print STDERR "-- Identical output column names exist ($job)\n";
 print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
   }
 
+  if (defined($name_demux)) {
+     $index_demux = $::handle_map{$name_demux};
+     die "Demux column $name_demux not found" unless defined($index_demux);
+  }
+
   #
   ##  In output list replace names by offsets into field array.
   #
@@ -999,7 +1044,8 @@ while (<>) {
   do_compute(\@F) if @::compute;         # this pushes compute onto @F if present.
 
   my $nmatch = 0;
-  local $, = "\t";
+
+  my $output = (join "\t", map { $F[$_] } @::output_os) . "\n";
 
   if ($B_weirdmode && $::Nrows == 1) {
     $Nkeep++;
@@ -1007,7 +1053,8 @@ while (<>) {
   elsif ($B_protect_discard && $Nprotect_previous != $Nprotect) {
     $Ndisc++;
     $Nprotect_discard++;
-    if ($fh_other) { print $fh_other map { $F[$_] } @::output_os; print $fh_other "\n"; }
+    print $fh_other $output if $fh_other;
+    demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
     next;
   }
   else {
@@ -1018,7 +1065,8 @@ while (<>) {
      }
      if (@::select && (($nmatch != @::select && $B_select_and) || ($nmatch == 0 && !$B_select_and))) {
        $Ndisc++;
-       if ($fh_other) { print $fh_other map { $F[$_] } @::output_os; print $fh_other "\n"; }
+       print $fh_other $output if $fh_other;
+       demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
        next;
      }
      else {
@@ -1026,11 +1074,10 @@ while (<>) {
      }
   }
 
-  next if $B_count;        # $Nkeep is the only thing that interests us.
+  next if $B_count;      # $Nkeep is the only thing that interests us.
 
-  print map { $F[$_] } @::output_os;
-
-  print "\n";
+  if ($index_demux >= 0) { demux_do_row($F[$index_demux], $output, 1); }
+  else                   { print $output; }
 }
 
 print "$Nkeep\n" if $B_count;
@@ -1046,4 +1093,7 @@ if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
    exit 1;
 }
+
+demux_tally() if $index_demux >= 0;
+
 
