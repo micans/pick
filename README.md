@@ -825,7 +825,7 @@ different from `<NUM>`.
 Pick can be used to demux output into different files. Use e.g. this combination, where `NAME` is
 of your choice:
 
-````
+```
 --demux=NAME NAME:=sampleid^.txt
 ```
 
