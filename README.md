@@ -49,8 +49,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
-[Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)
-[Demuxing output](#demuxing-output)
+[Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
+[Demuxing output](#demuxing-output)  
 [Miscellaneous](#miscellaneous)  
 [Implementation notes](#implementation-notes)
 
