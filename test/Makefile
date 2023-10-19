@@ -40,8 +40,9 @@ runpick: data.txt
 	$(p) -i numsum1::'num\d+',addall foo_/'num\d+'/_bar::__,sq numsum2::'num\d+',addall 'num\d+'  <  $<  > o.numsum.test
 	$(p) x::name^'%5EG.*',get^-,uie                               <  $<  > o.re-caret.test
 	$(p) x::name^'%5E[%5EG].*',get^-,uie                          <  $<  > o.re-caret2.test
-	$(p)  -A --other=_.txt --demux=out @num4/=2 out:=num4^.txt    <  $< 2> /dev/null; cat {_,1,2,3,4}.txt > o.demux.test
-	$(p) -hA --other=_.txt --demux=out @num4/=2 out:=num4^.txt    <  $< 2> /dev/null; cat {_,1,2,3,4}.txt > o.demux2.test
+	$(p)  -A --other=_.txt --demux=out @num4/=2 out:=num4^.txt    <  $<  ; cat {_,1,2,3,4}.txt > o.demux.test
+	$(p) -hA --other=_.txt --demux=out @num4/=2 out:=num4^.txt    <  $<  ; cat {_,1,2,3,4}.txt > o.demux2.test
+	$(p) -Ai --demux=bucket bucket:=^ms:ms^7,mul,int^5,div,int^1,min^.txt < $<  ; cat ms[01].txt > o.demux3.test
 
 
 %.ref : %.test

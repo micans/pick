@@ -1027,7 +1027,7 @@ while (<>) {
     wrangle_header();
     if ($B_print_header || $B_sprouthead) {
       local $, = "\t";
-      print map { $::HEADER[$_] } @::output_os; print "\n";
+      if ($index_demux < 0) { print map { $::HEADER[$_] } @::output_os; print "\n" }
       if ($fh_other) {
          print $fh_other map { $::HEADER[$_] } @::output_os; print $fh_other "\n";
       }

@@ -23,9 +23,11 @@ You can
 - Select columns
 - Change columns (using computation and string operations)
 - Combine columns into new columns (using computation and string operations)
-- Filter rows on boolean clauses computed on columns
+- Filter (or fork) rows on boolean clauses computed on columns
 - Select multiple columns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression
+- Write/demux rows to different files based on (computed) labels in columns
+
 
 There is no downside, except, as ever, it comes with its own syntax for
 computation. For plain column selection and row filtering this syntax is not needed though;
@@ -46,12 +48,12 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Ragged input](#ragged-input)  
 [SAM and CIGAR support](#sam-and-cigar-support)  
 [Useful regular expression features](#useful-regular-expression-features)  
+[Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
+[Demuxing and forking output](#demuxing-and-forking-output)  
+[Miscellaneous](#miscellaneous)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
-[Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
-[Demuxing output](#demuxing-output)  
-[Miscellaneous](#miscellaneous)  
 [Implementation notes](#implementation-notes)
 
 
@@ -614,12 +616,80 @@ thequickfox theslowbear
 
 -  Use `(?i)pat` to make a pattern case insensitive.
 
+## Retrieving unique values and asserting the number of rows found
+
+If the input is queried for a value that should be present and unique, you can do pick let the checking
+by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
+different from `<NUM>`.
+ 
+
+## Demuxing and forking output
+
+Pick can be used to demux output into different files. Use e.g. this combination, where `NAME` is
+of your choice:
+
+```
+--demux=NAME NAME:=sampleid^.txt
+```
+
+This tells pick to use a row's `NAME` column as the file name to write the row to, where
+`NAME` can be any column (input or computed).
+In this example `NAME` is a computed column that is not output, where the filename is
+formed from the value in the `sampleid` column with a `.txt` suffix added to it.
+
+If `--demux` is used pick will output on `STDERR` a table of output files and tallies of
+how many rows each file contains, as well as how many were deselected.
+The set of all output files will always correspond to the full set of unique values accumulated
+over the `<NAME>` column across all input rows, regardless of whether a row is deselected or not.
+Hence, in the presence of selection, demux files may contain zero data rows.
+Demux output files have or do not have a header line in line with the `-k` and `-h` options,
+just like normal output.
+
+
+A separate and compatible forking mechanism exists that allows sending of any de-selected row (i.e. one that
+does not satisfy the `@` selection criteria) to a specified file name. This is achieved with
+
+```
+--other=<FILENAME>
+```
+
+These two mechanisms can be used simultaneously.
+
+
+## Miscellaneous
+
+
+### Creating fasta files
+
+Create fasta files with pick. In the example the identifier is in the first column with the sequence
+in the second column.  Quotes needed as `>` is a shell meta character.
+`%0A` is the url-encoding of a newline.
+
+```
+pick  -k '::^>:1^%0A:2' > out.fa
+```
+
+
+Using columns `foo` and `bar` instead. In this case `-h` is needed to avoid printing a header.
+
+```
+pick -h '::^>:foo^%0A:bar' > out.fa
+```
+
+As above, add column `zut` as further annotation. Optionally use `%20` for the space character.
+
+```
+pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
+```
+
+
 ## Option processing
 
 Single-letter options can be combined or specified separately. The offset for `-O` (ragged input), optional offset for `-A`
 (insertion of new columns) and `-E` expected result count are accommodated, so e.g. `-kA2O11` will be understood by pick.
 The option for purging lines with a certain pattern `/<pat>` and the option for passing through
 lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#`.
+
 
 ## Pick options
 
@@ -813,78 +883,15 @@ refclipl    -           refclipl            Number of 5p trailing reference base
 refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
 ```
 
-## Retrieving unique values and asserting the number of rows found
-
-If the input is queried for a value that should be present and unique, you can do pick let the checking
-by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
-different from `<NUM>`.
- 
-
-## Demuxing output
-
-Pick can be used to demux output into different files. Use e.g. this combination, where `NAME` is
-of your choice:
-
-```
---demux=NAME NAME:=sampleid^.txt
-```
-
-This tells pick to use a row's `NAME` column as the file name to write the row to, where
-`NAME` can be any column (input or computed).
-In this example `NAME` is a computed column that is not output, where the filename is
-formed from the value in the `sampleid` column with a `.txt` suffix added to it.
-
-If `--demux` is used pick will output on `STDERR` a table of output files and tallies of
-how many rows each file contains, as well as how many were deselected.
-The set of all output files will always correspond to the full set of unique values accumulated
-over the `<NAME>` column across all input rows, regardless of whether a row is deselected or not.
-Hence, in the presence of selection, demux files may contain zero data rows.
-Demux output files have or do not have a header line in line with the `-k` and `-h` options,
-just like normal output.
-
-
-A separate and compatible mechanism exists that allows sending of any de-selected row (i.e. one that
-does not satisfy the `@` selection criteria) to a specified file name. This is achieved with
-
-```
---other=<FILENAME>
-```
-
-These two mechanisms can be used simultaneously.
-
-
-## Miscellaneous
-
-
-### Creating fasta files
-
-Create fasta files with pick. In the example the identifier is in the first column with the sequence
-in the second column.  Quotes needed as `>` is a shell meta character.
-`%0A` is the url-encoding of a newline.
-
-```
-pick  -k '::^>:1^%0A:2' > out.fa
-```
-
-
-Using columns `foo` and `bar` instead. In this case `-h` is needed to avoid printing a header.
-
-```
-pick -h '::^>:foo^%0A:bar' > out.fa
-```
-
-As above, add column `zut` as further annotation. Optionally use `%20` for the space character.
-
-```
-pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
-```
-
 
 ## Implementation notes
 
-Pick is currently implemented in Perl, a language not as popular as it once was. Nonetheless for data munging and
+Pick is currently implemented in Perl, a language not as popular as it once was. Nonetheless for data/record munging and
 manipulation Perl is a formidable competitor. In particular pick benefits from the
-power of perl regular expressions; these can be used as pick selection and modification operators on the command line.
+power of perl regular expressions (regexes); these can be used as pick selection and modification operators on the command line.
+Perl's support for regexes is built deeply into the language. I've been pleasantly surprised by the seamlessness
+and ease of its treatment of command-line strings as regexes.
+Some useful regex features are [described here](#useful-regular-expression-features).
 
 Pick additionally benefits from Perl's mechanisms for number/string and string/number conversion.
 
