@@ -81,9 +81,6 @@ Below
 (3)   pick -A < data.txt
 ```
 
-(1) The output order is as specified.
-(2)
-
 Columns can be picked using a regular expression for column names. This can be helpful for large tables. Quotes
 are needed to prevent shell interpretation of characters that are special to the shell.
 The following examples selects column `zut`, columns with names that start with `foo` followed by a digits
@@ -92,6 +89,13 @@ and columns that start with `bar_`.
 ```
 pick zut '^foo\d+$' '^bar_' < data.txt
 ```
+
+A pattern that contains any of `[({\*?^$`
+is assumed to be a regular expression rather than just a column name.
+
+[Pick allows use of regular expressions selection in various places.](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
+[Several pick column operators also use regular expression](#useful-regular-expression-features)
+
 
 ### Picking columns using indexes and index ranges
 
