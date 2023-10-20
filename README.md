@@ -94,7 +94,7 @@ A pattern that contains any of `[({\*?^$`
 is assumed to be a regular expression rather than just a column name.
 
 [Pick allows use of regular expressions selection in various places.](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
-[Several pick column operators also use regular expression](#useful-regular-expression-features)
+[Several pick column operators also use regular expressions.](#useful-regular-expression-features)
 
 
 ### Picking columns using indexes and index ranges
@@ -124,9 +124,9 @@ o+x-y                columns o+x to o+y
 - Strings starting with `@` indicate a selection on one or two column values.
 - Selections can be operate on computed columns and computed values that are not output (see further below).
 - Selections are performed only after all computations are finished. Hence it is currently not possible to perform a computation
-  that depends on a selection.
+  conditionally on a selection.
 - Selections can occur anywhere, even mixed in with column selections and computations. This will always be the case;
-  new syntax will be required should a pre-compute selections feature be added.
+  new syntax will be required should a pre-compute selection feature be added.
 
 
 Pick columns `foo` and `bar`, only taking rows where `tim` fields are larger than zero.
