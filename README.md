@@ -81,20 +81,49 @@ Below
 (3)   pick -A < data.txt
 ```
 
-If no header is present indexes and index ranges can be used.
-`-k` implies the first row has no special meaning (as column names) and handles are 1-based indexes.
 (1) The output order is as specified.
-(2) Pick columns using a regular expression for column names. This can be helpful for large tables. Quotes
+(2)
+
+Columns can be picked using a regular expression for column names. This can be helpful for large tables. Quotes
 are needed to prevent shell interpretation of characters that are special to the shell.
+The following examples selects column `zut`, columns with names that start with `foo` followed by a digits
+and columns that start with `bar_`.
 
 ```
-(1)   pick -k 5 3 7-9 < data.txt
+pick zut '^foo\d+$' '^bar_' < data.txt
+```
 
-(2)   pick '^foo\d+$' < data.txt
+### Picking columns using indexes and index ranges
+
+If no header is present indexes and index ranges can be used.
+`-k` implies the first row has no special meaning (as column names) and handles are 1-based indexes.
+
+```
+pick -k 5 3 7-9 < data.txt
+```
+
+The following index expressions are supported:
+
+```
+x                    column x
+x-y                  columns from x to y
+x-                   column x and all onward
+'o+x-y*m'            columns o+x to o+my with increments of m (quotes needed for *)
+'x-y*m'              columns mx to my with increments of m (quotes needed for *)
+o+x-y                columns o+x to o+y
 ```
 
 
 ## Pick columns and filter or select rows
+
+
+- Strings starting with `@` indicate a selection on one or two column values.
+- Selections can be operate on computed columns and computed values that are not output (see further below).
+- Selections are performed only after all computations are finished. Hence it is currently not possible to perform a computation
+  that depends on a selection.
+- Selections can occur anywhere, even mixed in with column selections and computations. This will always be the case;
+  new syntax will be required should a pre-compute selections feature be added.
+
 
 Pick columns `foo` and `bar`, only taking rows where `tim` fields are larger than zero.
 multiple `@` selections are possible; default is `AND` of multiple clauses, use `-o` for `OR`.
@@ -104,8 +133,6 @@ multiple `@` selections are possible; default is `AND` of multiple clauses, use 
 pick foo bar @tim/gt/0 < data.txt
 ```
 
-<details><summary>Further selection examples</summary>
-
 where `tim` is larger than the column value in `zut` (the leading colon in `:zut` indicates
 that the value to compare to should be taken from column `zut`):
 ```
@@ -113,6 +140,8 @@ pick foo bar @tim/gt/:zut < data.txt
 ```
 It is possible for `zut` to be [a newly computed value derived from other (existing or computed) columns](#examples-of-computing-new-columns).
 
+
+<details><summary>Further selection examples</summary>
 
 where `tim` is the string `flub123`:
 ```
@@ -304,9 +333,10 @@ pick -h ::foo,len < data.txt | hissyfit
 The automatic compute names are visible if neither `-h` (no output header) nor `-k` (additionally no input header) is specified.
 Leaving out compute names is only sensible or useful in the presence of one of these two options.
 
-The following example swaps two columns. This is mostly to illustrate how
-columns and compute names interact.  Compute names are like normal
-variables, so to swap two values a third name is needed.
+The following example swaps two columns whilst retaining all other columns.
+This is just to illustrate how
+columns and compute names interact; a simpler way to do the same is shown after.
+Compute names are like normal variables, so to swap two values a third name is needed.
 
 ```
 pick -Aki foo:=1 1::2 2::foo < data.txt
@@ -318,6 +348,17 @@ pick -Aki foo:=1 1::2 2::foo < data.txt
 -   Assignments happen proceeding from left to right
 -   := computes a value without outputting it,
 -   :: computes a value and selects it for output.
+
+
+A simpler way of doing the same is this:
+```
+pick -k 2 1 3- < data.txt
+```
+
+If you just want columns `2` and `1` in that order it only needs
+```
+pick -k 2 1 < data.txt
+```
 
 
 ## Selecting and manipulating multiple columns with regular expressions, lists and ranges
