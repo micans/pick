@@ -682,6 +682,8 @@ This tells pick to use a row's `NAME` column as the file name to write the row t
 In this example `NAME` is a computed column that is not output, where the filename is
 formed from the value in the `sampleid` column with a `.txt` suffix added to it.
 
+_Pick will recognise file names ending in_ `.gz` _or_ `.gzip` _and in that case compress the output using gzip._
+
 If `--demux` is used pick will output on `STDERR` a table of output files and tallies of
 how many rows each file contains, as well as how many were deselected.
 The set of all output files will always correspond to the full set of unique values accumulated
@@ -698,7 +700,8 @@ does not satisfy the `@` selection criteria) to a specified file name. This is a
 --other=<FILENAME>
 ```
 
-These two mechanisms can be used simultaneously.
+These two mechanisms can be used simultaneously. Similar to demuxing, a file name ending in `.gz` or `.gzip`
+causes the file to be compressed using `gzip`.
 
 
 ## Miscellaneous
