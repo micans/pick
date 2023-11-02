@@ -733,7 +733,9 @@ pick  -A --fdict-DELMAP/___=delete-file.txt DELCOL:=myid^DELMAP,map @DELCOL=___ 
 ```
 
 In any case, `DEL` or `DELMAP` and `DELCOL` are never seen in the output, the string used
-should be chose to make the command line more legible.
+should be chosen to make the command line more legible. Similarly, the string `___` can be chosen
+by the user. It should not be among the values assigned to the keys in `delete-file.txt`, noting
+that the default value used by pick is `1`.
 
 The `pick` invocation if keys need to be retained is very similar, only in this case we keep
 those rows where the mapped value is *not* the same as the default (not found) value.
@@ -741,6 +743,8 @@ those rows where the mapped value is *not* the same as the default (not found) v
 ```
 pick  -A --fdict-KEEP/___=keep-file.txt KEEP:=myid^KEEP,map @KEEP/=___ < data.txt > reduced-data.txt
 ```
+
+[More information about maps.](map#column#values#using#a#dictionary)
 
 
 ### Creating fasta files
