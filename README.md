@@ -712,6 +712,37 @@ causes the file to be compressed using `gzip`.
 ## Miscellaneous
 
 
+### Maps can be useful to select or filter out data
+
+Direct filtering of data based on information in the table is not always possible.
+In some cases an external list has been computed that contains information of identifiers
+for which the rows should be deleted or retained. This is generically done like this:
+
+```
+pick  -A --fdict-DEL/___=delete-file.txt DEL:=myid^DEL,map @DEL=___ < data.txt > reduced-data.txt
+```
+
+Here a temporary column `DEL` is computed that contains the value in the `myid` column mapped
+using the keys in the file `delete-file.txt`. If the value is not to be deleted it is set to the
+default value `___`. Finally those rows are chosen where `DEL` has that value `___`.
+Of note is that `DEL` is used here in two ways, once as the name of the map, and once as the name
+of a column - these are entirely different namespaces. The following is equivalent:
+
+```
+pick  -A --fdict-DELMAP/___=delete-file.txt DELCOL:=myid^DELMAP,map @DELCOL=___ < data.txt > reduced-data.txt
+```
+
+In any case, `DEL` or `DELMAP` and `DELCOL` are never seen in the output, the string used
+should be chose to make the command line more legible.
+
+The `pick` invocation if keys need to be retained is very similar, only in this case we keep
+those rows where the mapped value is *not* the same as the default (not found) value.
+
+```
+pick  -A --fdict-KEEP/___=keep-file.txt KEEP:=myid^KEEP,map @KEEP/=___ < data.txt > reduced-data.txt
+```
+
+
 ### Creating fasta files
 
 Create fasta files with pick. In the example the identifier is in the first column with the sequence
