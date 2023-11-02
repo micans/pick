@@ -546,7 +546,7 @@ At most `<NUM>` columns are consumed in each row. Excess fields in the row will 
 onto the last consumed column. If the input row has fewer than `<NUM>` fields additional empty fields
 will be added (and output e.g. if `-A` is used).
 
-_For SAM input just use either_ `--sam` _or_ `--sam-h` _(the latter will output the SAM header if present)._
+_For SAM input just use either_ `--sam` _or_ `--sam-h` (the latter will output the SAM header if present).
 
 See below for more information about SAM and CIGAR support.
 
