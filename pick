@@ -182,7 +182,7 @@ my %cp_opdefinitions =
      incr      => [ 1, sub { $::STACK[-1]++ }, "x\tx++\tx incremented by one\tarithmetic" ],
      decr      => [ 1, sub { $::STACK[-1]-- }, "x\tx--\tx decremented by one\tarithmetic" ],
      uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
-     lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tuc(x)\tLower case of x\tstring" ],
+     lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tlc(x)\tLower case of x\tstring" ],
      rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
      rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tcrypto"  ],
      md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
@@ -394,8 +394,8 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_ve
       my $val = $fh_demux{$name};
       if (!defined($val)) {
          my $fh = new IO::File;
-         if ($name =~ /\.gz(ip)?$/) { $fh->open("|gzip >$name") || die "Failed to open $name"; }
-         else {                       $fh->open(">$name")       || die "Failed to open $name"; }
+         my $openstring = $name =~ /\.gz(ip)?$/ ? "|gzip >$name" : ">$name";
+         $fh->open("$openstring") || die "Failed to open $name";
             # fixme todo; if this fails because of too many open file handles then
             # close the least used file handles or nor recently used and retry.
          $val = [$fh, 0, 0];
@@ -553,8 +553,8 @@ EOH
      elsif ($options =~ /^other=(\S+)/) {
        my $fn = $1;
        $fh_other = new IO::File;
-       if ($fn =~ /\.gz(ip)?$/) { $fh_other->open("|gzip >$fn") || die "Cannot open $fn"; }
-       else {                     $fh_other->open(">$fn")       || die "Cannot open $fn"; }
+       my $openstring = ($fn =~ /\.gz(ip)?$/) ? "|gzip >$fn" : ">$fn";
+       $fh_other->open("$openstring") || die "Cannot open $fn";
      }
      elsif ($options eq 'remind-me' || $options eq 'rmm')  {
        if (!@::spec) {

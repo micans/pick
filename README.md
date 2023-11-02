@@ -377,11 +377,11 @@ introduced below, followed by more examples and explanation.
 ```
 
 -  Selecting multiple columns and reducing them to a single value by e.g. concatenation,
-   taking the minimum or maximum, or adding all values. Example usage
+   taking the minimum or maximum, or adding all values. Examples of usage:
 ```
-   pick nummax::'num\d{2}$',maxall < data.txt
-   pick 'num\d{2}$' nummax::'num\d{2}$',maxall < data.txt
-   echo {1..20} | tr ' ' $'\t' | pick -k ::'.*',mulall         # compute 20 factorial
+   pick nummax::'num\d+$',maxall < data.txt               # largest among all num[digit] columns
+
+   echo {1..20} | tr ' ' $'\t' | pick -k ::'.*',mulall    # compute 20 factorial
 ```
 
 -  Selecting multiple columns and executing the same operation on each column using
@@ -545,6 +545,11 @@ and requires additionally the `-k` parameter. With this type of input column nam
 At most `<NUM>` columns are consumed in each row. Excess fields in the row will be concatenated
 onto the last consumed column. If the input row has fewer than `<NUM>` fields additional empty fields
 will be added (and output e.g. if `-A` is used).
+
+_For SAM input just use either_ `--sam` _or_ `--sam-h` _(the latter will output the SAM header if present)._
+
+See below for more information about SAM and CIGAR support.
+
 
 
 ## SAM and CIGAR support
@@ -865,7 +870,7 @@ idiv        x y         x // y              Integer division, divide (cf -P and 
 incr        x           x++                 x incremented by one [arithmetic]
 int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
 joinall     * s         Stack-joined-by-s   Stringified stack with s as separator [string/devour]
-lc          x           uc(x)               Lower case of x [string]
+lc          x           lc(x)               Lower case of x [string]
 len         x           len(x)              Length of string x [string]
 lineno      -           x                   Push file line number x onto stack [input]
 log         x           log(x)              Natural logarithm of x [math]
