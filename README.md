@@ -744,7 +744,7 @@ those rows where the mapped value is *not* the same as the default (not found) v
 pick  -A --fdict-KEEP/___=keep-file.txt KEEP:=myid^KEEP,map @KEEP/=___ < data.txt > reduced-data.txt
 ```
 
-[More information about maps.](map#column-values-using-a-dictionary)
+[More information about maps.](#map-column-values-using-a-dictionary)
 
 
 ### Creating fasta files
