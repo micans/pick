@@ -51,6 +51,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Demuxing and forking output](#demuxing-and-forking-output)  
 [Miscellaneous](#miscellaneous)  
+&emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
+&emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -715,7 +717,7 @@ causes the file to be compressed using `gzip`.
 ### Maps can be useful to select or filter out data
 
 Direct filtering of data based on information in the table is not always possible.
-In some cases an external list has been computed that contains information of identifiers
+In some cases an external list has been computed that contains identifiers
 for which the rows should be deleted or retained. This is generically done like this:
 
 ```
