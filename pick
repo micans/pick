@@ -217,12 +217,14 @@ sub sam_reflen {
 }
 
 my %cp_samdefs = (
-     refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "-\trefcov\tAmount of reference covered by alignment\tsam" ],
+     refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "-\trefcov\tSpan of reference covered by alignment\tsam" ],
      refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "-\trefstart\tField 4 from sam format\tsam" ],
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "-\trefend\tLast base in reference covered by alignment\tsam" ],
      reflen    => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
 
-     qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tAmount of query covered by alignment\tsam" ],
+     alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\trefmatch\tAmount of reference/query matched by alignment (ignoring indels)\tsam" ],
+
+     qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
      qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MISH=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
      qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MISH=X', 'sum') }, "-\tqrylen\tLength of query sequence\tsam" ],
