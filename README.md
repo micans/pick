@@ -2,10 +2,11 @@
 # Unix table column and row manipulation using column names
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
+Entire scripts can be replaced by concise command line invocations.
 
-It allows database-style queries (*select*) and filters (*where*)
+Pick allows database-style queries (*select*) and filters (*where*)
 on a single text file or stream using its column names (or indexes if no names are present).
-Columns can be selected, transformed and combined and rows can be filtered using conditions.
+Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
 Additionally output can be demuxed into different files.
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
