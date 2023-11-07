@@ -1,4 +1,7 @@
 
+  -  onames for simply adding a few names e.g. with -k. maybe
+     OUTPUT_HEADER = $B_post_names ? @::NAMESLIST : map { $::HEADER[$_] } @::output_os
+
   -  protect against log(-1) etc
 
   ?  unify column/range/regex selection with a+x-y*k

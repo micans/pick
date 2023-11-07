@@ -77,6 +77,7 @@ my $M_ignore       = 0;     # M_ode (bits): 0 oblivious, 1 pass, 2 purge, 4 read
 my $B_debug        = 0;     # Mostly documents the stages of compute and selection definitions
 my $B_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
+my $B_posthoc_names = 0;    # Other names are given solely for output
 my $B_regex        = 1;     # Whether to interpret names as a regular expression if one of the characters in $REGEXP_CHARS is found
 my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable with PICK_*_INF environment variables.
 my $B_protect_discard = 0;  # Discard rows that needed protection.
@@ -403,7 +404,7 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_ve
          $val = [$fh, 0, 0];
          $fh_demux{$name} = $val;
          if ($B_print_header || $B_sprouthead) {
-            print $fh (join "\t", map { $::HEADER[$_] } @::output_os) . "\n";
+            print $fh (join "\t", @::OUTPUT_HEADER) . "\n";
          }
       }
       if ($do_print) {
@@ -546,6 +547,10 @@ EOH
        $nameslist=$2;
        $B_add_names = $1 ? 1 : 0;
      }
+     elsif ($options =~ /^onames=(.+)$/) {
+       $nameslist=$1;
+       $B_posthoc_names = 1;
+     }
      elsif ($options =~ /^inf=(\S+)/) {
        $PNAN{PICK_DIV_INF} = $1;
      }
@@ -630,7 +635,7 @@ EOH
 die "-O<N> requires -k\n" if $OFFSET_OMEGA > 0 && !$B_headless;
 
 $B_print_header = 0 if $B_headless;
-$B_print_header = 1 if $B_add_names;
+$B_print_header = 1 if $B_add_names || $B_posthoc_names;
 
 @::nameslist = $nameslist ? split ',', $nameslist : ();
 
@@ -1024,17 +1029,24 @@ while (<>) {
   }
   if (!$::Nrows) {
     @::HEADER = $B_headless ? (1..@F) : @F;
-    if (@::nameslist) {
+    if (@::nameslist && !$B_posthoc_names) {
       local $" = ' ';
       die "New names [@::nameslist] and data names [@::HEADER] differ in cardinality" if scalar @::nameslist != scalar @::HEADER;
       @::HEADER = @::nameslist;
     }
     wrangle_header();
+    if ($B_posthoc_names) {
+      die "New names [@::nameslist] and output offsets [@::output_os] differ in cardinality" if scalar @::nameslist != scalar @::output_os;
+      @::OUTPUT_HEADER = @::nameslist;
+    }
+    else {
+      @::OUTPUT_HEADER = map { $::HEADER[$_] } @::output_os;
+    }
     if ($B_print_header || $B_sprouthead) {
       local $, = "\t";
-      if ($index_demux < 0) { print map { $::HEADER[$_] } @::output_os; print "\n" }
+      if ($index_demux < 0) { print @::OUTPUT_HEADER; print "\n" }
       if ($fh_other) {
-         print $fh_other map { $::HEADER[$_] } @::output_os; print $fh_other "\n";
+         print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
       }
     }
     $::Nrows++;
