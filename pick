@@ -109,6 +109,16 @@ my %PNAN =                  # Protect against division by zero etc. Defaults exi
 )  ;
 for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
 
+
+sub hmeanall {
+   my $ret = 0.0;
+   if ($B_protect && grep { $_ == 0 } @::STACK) { $Nprotect++; }
+   else {
+      my $x = 0; $x += 1/abs($_) for @::STACK; 
+      if ($x || !$B_protect) { $ret = @::STACK / $x; } else { $Nprotect++ }
+   }
+   return $ret;
+}
                             # Nearly all of the below push 1 item on the stack after consuming X.
                             # Only X is specified; X = 0 indicate exceptional cases.
                             # Potentially neatify this by adding Y (number of pushed items).
@@ -120,7 +130,8 @@ my %cp_opdefinitions =
      minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "*\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
      meanall   => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = @::STACK ? ($x/@::STACK) : (0.0) }, "*\tmean(Stack)\tMean of all entries in stack\tarithmetic/devour" ],
-     gmeanall  => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
+     hmeanall  => [ 0, sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
+     gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
      idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
@@ -424,6 +435,27 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_ve
          $fh_demux{$_}[0]->close() || print STDERR "-- issue closing file handle for $_\n";
       }
    }
+}
+
+sub parse_range {
+  my $spec = shift;
+  @::colindexes = ();
+  if ($spec =~ /^(\d+)$/) {
+    @::colindexes = ($1);
+    return 1;
+  }
+  elsif ($spec =~ /^((\d+)\+)?(\d+)-(\d+)?(\*(\d+))?$/) {
+    my ($offset, $start, $end, $multiply) = ($2, $3, $4, $6);
+    $offset   = 0 unless defined($offset);
+    $multiply = 1 unless defined($multiply);
+    $end      = $::N unless defined($end);
+    @::colindexes = grep { $_ >= 1 && $_ <= $::N } map { $offset + $_ * $multiply } $start..$end;
+    if (@::colindexes < $end - $start + 1) {
+print STDERR "-- range expansion produced some indexes out of range (now dropped)\n";
+    }
+    return 1;   # even if the spec resulted in empty selection.
+  }
+  return 0;
 }
 
 sub parse_dict {
@@ -754,7 +786,10 @@ print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$sp
 
    for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
 print STDERR "-- (output) considering $item\n" if $B_verbose;
-      if ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
+      if ($B_headless && parse_range($item)) {
+         push @matches, map { [$_, $_] } @::colindexes;        #  global for the win.
+      }
+      elsif ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
          my $nfound = 0;
          for my $name (@::HEADER[0..($::N-1)]) {
             if ($name =~ qr/$item/) {
@@ -763,12 +798,6 @@ print STDERR "-- (output) considering $item\n" if $B_verbose;
             }
          }
 print STDERR "-- (output) $item was considered as regex and yielded no matches\n" unless $nfound;
-      }
-      elsif ($item =~ /^(\d+)\-(\d+)?$/ && $B_headless) {
-         my ($x, $y) = ($1, $2);
-         $x = 1 if $x > $::N;
-         $y = $::N if !defined($y) || $y > $::N;
-         push @matches, map { [$_, $_] } @::HEADER[($x-1)..($y-1)];
       }
       else {
          push @matches, [$item, $item];
@@ -832,14 +861,8 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
       push @::select, [$op, $indirection, $val, $handle, $arg];
                # NOTE. $arg for now only used by /ep/ and /om/ selection, ignored by the others.
     }
-    elsif ($B_headless && $spec =~ /^((\d+)\+)?(\d+)-(\d+)(\*(\d+))?$/) {
-      my ($offset, $start, $end, $multiply) = ($2, $3, $4, $6);
-      $offset   = 0 unless defined($offset);
-      $multiply = 1 unless defined($multiply);
-      my @colindexes = map { $offset + $_ * $multiply } $start..$end;
-      for (@colindexes) {
-         push @::output_nm, $_;
-      }
+    elsif ($B_headless && parse_range($spec)) {
+      push @::output_nm, @::colindexes;
     }
     else {
       $spec = urldecode($spec);

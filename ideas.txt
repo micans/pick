@@ -1,7 +1,5 @@
 
-  -  protect against log(-1) etc
-
-  ?  unify column/range/regex selection with a+x-y*k
+  ?  protect against log(-1) etc
   -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.
         currently: echo -e "_a_\t3\n_b_\t4\naba\t5" | pick -AiK --cdict-foo=a:Alpha,b:Beta x::1^_'(.)'_,get^foo,map 1::1^'_\K(.)(?=_)':x,ed
         where \K is available since Perl 5.10.0, 2007. Requires some perl, doesn't look great, but works.
@@ -13,6 +11,6 @@
   o  numerical comparisons check field is numeric; however duplicates perl's work/warnings
   ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
   ?  would --onames be helpful? (note -K)
-  ?  implement in C using pcre2. string/float/int the main point of pain.
+  ?  implement in C or Rust (use pcre2). string/float/int the main point of pain.
   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
 
