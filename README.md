@@ -720,11 +720,12 @@ causes the file to be compressed using `gzip`.
 
 Some uses of pick, especially involving computation, may require characters with special meaning
 either to the shell or to pick to be escaped. For the shell aspect this is usually possible simply by using
-single quotes. For pick the mechanism used is url-encoding, and this mechanism can equally be
+single quotes. For pick the mechanism used is url-encoding, and this can equally be
 used for characters with special meaning to the shell.
 
 A url-encoded character is written as a percent sign followed by two hexadecimal digits (a hexadecimal
-digits is one of `0123456789ABCDEF`), for example `%0A` for `<NEWLINE>`. A list of useful cases:
+digit is one of `0123456789ABCDEF`), for example `%0A` for `<NEWLINE>`. A list of useful cases (note that
+lower case versions of these are allowed too):
 
 ```
   ^   %5E     ;   %3B     (  %28     <TAB>      %09
@@ -738,15 +739,15 @@ to url-decode `<string>`.
 
 The characters `= / , : ^` require url-encoding in certain contexts as they are used as pick syntax:
 
-- `^`, `:`, `,` and `=` are used in computations syntax.
+- `^`, `:`, `,` and `=` are used in computation syntax.
 - `/`, `:` and `,` are used in map specifications using `--cdict-NAME=k1:v1,k2:v2`.
 
 These will be url-decoded:
 
-- Column names specified on the command line, including regular expressions.
+- Column names specified on the command line, including regular expressions expanding to column names.
 - For a computation `<name>::<compute>`, both `<name>` and any constants and names found in `<compute>`.
-- In selection filters `@<name><op><name|constant>` both `<name>` and `<name|constant>`.
-- In `--cdict-NAME/default=k1:v1,k2:v2` all keys (`k1` etc) and values (`v2` etc).
+- In selection filters `@<name><op><:name|constant>` both `<name>` and `<:name|constant>`.
+- In `--cdict-NAME/default=k1:v1,k2:v2` all keys (`k1` etc) and values (`v1` etc).
 
 
 ### Maps can be useful to select or filter out data
