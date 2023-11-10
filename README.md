@@ -52,7 +52,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Demuxing and forking output](#demuxing-and-forking-output)  
 [Miscellaneous](#miscellaneous)  
-&emps;&emps;[Escaping special characters](#escaping-special-characters)  
+&emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 [Option processing](#option-processing)  
