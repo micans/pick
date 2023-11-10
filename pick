@@ -461,7 +461,7 @@ print STDERR "-- range expansion produced some indexes out of range (now dropped
 sub parse_dict {
    my ($name, $string) = @_;
    for my $pair (split ",", $string) {
-      my ($k, $v) = map { urldecode($_) } split ':', $pair;
+      my ($k, $v) = map { urldecode($_) } split ':', $pair;          # @urldecode --cdict-NAME=
       if (!defined($v)) {
          print STDERR "-- Setting value for $k to 1\n" if $B_verbose;
          $v = 1;
@@ -484,7 +484,7 @@ while (@::spec && $::spec[0] =~ /^-/) {
 -- I url-encode (-z) or decode (-zz) any arguments. Useful cases:
   ^   %5E     ;   %3B     (  %28     <TAB>      %09
   :   %3A     !   %21     )  %29     <NEWLINE>  %0A
-  ,   %2C     /   %2F     <  %3C     <CR>       %0D
+  ,   %2C     /   %2F     <  %3C     <CR>       %0D     @   %40
   %   %25     \\   %5C     >  %3E     <SPACE>    %20     =   %3D
 For shell meta-characters it is easiest to just quote the argument to pick.
 EOH
@@ -703,7 +703,7 @@ sub parse_compute {
 
   while ($spec =~ /([,^:])([^,^:]*)/g) {
     my ($type, $what) = ($chartypetonum{$1}, $2);
-    $what = urldecode($what) if $type == $TYPE_SCALAR || $type == $TYPE_HANDLE;     #constant.
+    $what = urldecode($what) if $type == $TYPE_SCALAR || $type == $TYPE_HANDLE;     # @urldecode ^const :handle
     push @oplist, [$type, $what];
     $p = pos($spec);
     if ($type == $TYPE_OPATOR) {
@@ -828,7 +828,7 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
 
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
-      my ($handle, $type, $compute) = (urldecode($1), $2, $3);
+      my ($handle, $type, $compute) = (urldecode($1), $2, $3);                # @urldecode handle::
       die "Compute cannot be empty\n" unless length($compute);
       $handle = $DUMMY_NAME++ if $handle eq '';
       my ($duplicate, @matches) = expand_list_range_and_regex($handle, 1);
@@ -846,12 +846,12 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
                   #  V value or :handle
                   #    ( H )([ a1](      a2    )[ a3]|  b    | c | d )( V)(  arg )
     elsif ($spec =~ /^@(.*?)([\/~](?:[a-z]{2,4})[\/~]|[=~]{1}|\/=|\/~)(.*?)(\/.*?)?$/) {
-      my ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      #constant
+      my ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      # @urldecode @handle/../arg|handle/arg
       die "Unrecognised operator [$op]\n" unless defined($sel_opdefinitions{$op});
       if (defined($arg)) {
         die "Extra argument currently only allowed for /ep/ and /om/" unless $op =~ /^\/(ep|om)\/$/;
         $arg =~ s|^\/||;
-        $arg=urldecode($arg);      #constant
+        $arg=urldecode($arg);
       }
       else{
          $arg = 0;
@@ -865,7 +865,7 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
       push @::output_nm, @::colindexes;
     }
     else {
-      $spec = urldecode($spec);
+      $spec = urldecode($spec);                                               # @urldecode selection/regex-selection
       my @matches = expand_list_range_and_regex($spec, 0);
       for my $m (@matches) { push @::output_nm, $m->[0]; }
     }

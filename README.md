@@ -52,6 +52,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Demuxing and forking output](#demuxing-and-forking-output)  
 [Miscellaneous](#miscellaneous)  
+&emps;&emps;[Escaping special characters](#escaping-special-characters)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 [Option processing](#option-processing)  
@@ -71,8 +72,8 @@ pick foo bar < data.txt
 ```
 
 Below
-(1) pick columns `bar` and `foo` from `data.txt`, in that order.
-(2) Pick all columns excluding `bar` and `foo`; with `-h` the output header is dropped.
+(1) pick columns `bar` and `foo` from `data.txt`, in that order. With `-h` the output header is dropped.
+(2) Pick all columns excluding `bar` and `foo`.
 (3) With `-A` all columns are selected; this is useful when the goal is just to filter rows (see below).
 
 
@@ -713,6 +714,39 @@ causes the file to be compressed using `gzip`.
 
 
 ## Miscellaneous
+
+
+### Escaping special characters
+
+Some uses of pick, especially involving computation, may require characters with special meaning
+either to the shell or to pick to be escaped. For the shell aspect this is usually possible simply by using
+single quotes. For pick the mechanism used is url-encoding, and this mechanism can equally be
+used for characters with special meaning to the shell.
+
+A url-encoded character is written as a percent sign followed by two hexadecimal digits (a hexadecimal
+digits is one of `0123456789ABCDEF`), for example `%0A` for `<NEWLINE>`. A list of useful cases:
+
+```
+  ^   %5E     ;   %3B     (  %28     <TAB>      %09
+  :   %3A     !   %21     )  %29     <NEWLINE>  %0A
+  ,   %2C     /   %2F     <  %3C     <CR>       %0D     @   %40
+  %   %25     \   %5C     >  %3E     <SPACE>    %20     =   %3D
+```
+
+Use `pick -z` to show this list, use `pick -z <string>` to url-encode string, and `pick -zz <string>`
+to url-decode `<string>`.
+
+The characters `= / , : ^` require url-encoding in certain contexts as they are used as pick syntax:
+
+- `^`, `:`, `,` and `=` are used in computations syntax.
+- `/`, `:` and `,` are used in map specifications using `--cdict-NAME=k1:v1,k2:v2`.
+
+These will be url-decoded:
+
+- Column names specified on the command line, including regular expressions.
+- For a computation `<name>::<compute>`, both `<name>` and any constants and names found in `<compute>`.
+- In selection filters `@<name><op><name|constant>` both `<name>` and `<name|constant>`.
+- In `--cdict-NAME/default=k1:v1,k2:v2` all keys (`k1` etc) and values (`v2` etc).
 
 
 ### Maps can be useful to select or filter out data
