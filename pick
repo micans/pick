@@ -73,10 +73,11 @@ my $B_ko           = 0;     # With -k, make output columns unique and ordered as
 my $B_sprouthead   = 0;     # Create header e.g. from derived names
 my $B_weirdmode    = 0;     # Header exists, but users wants to use numbers (turns of selections for header)
 my $B_force        = 0;     # Force output if identical output names exist
-my $M_ignore       = 0;     # M_ode (bits): 0 oblivious, 1 pass, 2 purge, 4 read sam sequence lengths SN:(\S+)\s+LN:(\d+)
+my $F_ignore       = 0;     # Flags: 0 oblivious, 1 pass, 2 purge, 4 read sam sequence lengths SN:(\S+)\s+LN:(\d+)
 my $B_debug        = 0;     # Mostly documents the stages of compute and selection definitions
 my $B_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
+my $F_list         = 0;     # output index or name list of selected columns (1: index, 2: name)
 my $B_posthoc_names = 0;    # Other names are given solely for output
 my $B_regex        = 1;     # Whether to interpret names as a regular expression if one of the characters in $REGEXP_CHARS is found
 my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable with PICK_*_INF environment variables.
@@ -92,7 +93,7 @@ $::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myri
 $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
-my $DUMMY_NAME     = 'AAAAA';
+my $DUMMY_NAME     = 'PICKAAAAA';
 
 my $Nprotect      = 0;
 my $Nprotect_discard = 0;
@@ -352,6 +353,8 @@ my $help_options=q{Options:
                      Output names are from the list. If using -k --inames=CSV provides temporary
                      handles; use --add-inames=CSV to add them to the output.
 
+  --onames=CSV       Override output column names to be taken from comma-separated values.
+
   --fdict-NAME=fname fname should be two-column tab-separated file storing key and value per line.
                      This stores a dictionary called NAME that can be used to map values
                      with ...^NAME,map. Small dictionaries can be encoded on the command line with
@@ -363,6 +366,9 @@ my $help_options=q{Options:
   --demux=colname    use the value in colname as file name to write the row to.
                      Note: if all its rows are filtered the file will not be created (rather than
                      a file with zero rows), this could be dangerous if an older version exists.
+
+  --idx-list         Output list of selected indexes        }  can be combined, pick will exit after.
+  --name-list        Output list of selected column names   }
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
@@ -581,6 +587,9 @@ EOH
        $nameslist=$2;
        $B_add_names = $1 ? 1 : 0;
      }
+     elsif ($options =~ /^(idx|name)-list$/) {
+       $F_list |= $1 eq 'idx' ? 1 : 2;
+     }
      elsif ($options =~ /^onames=(.+)$/) {
        $nameslist=$1;
        $B_posthoc_names = 1;
@@ -610,8 +619,8 @@ EOH
        }
      }
      elsif ($options =~ /^sam(-h)?$/) {
-        if (defined($1)) { $M_ignore |= 5; $PAT_PASS  = '^@'; }
-        else             { $M_ignore |= 6; $PAT_PURGE = '^@'; }
+        if (defined($1)) { $F_ignore |= 5; $PAT_PASS  = '^@'; }
+        else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
         $B_headless = 1;
         $OFFSET_OMEGA = 11;
         $::dictnotfound{seqlen} = 0;
@@ -623,8 +632,8 @@ EOH
      next;
   }
 
-  if ($options =~ s/\/\/(.*)$//)    { $M_ignore |= 1; $PAT_PASS  = $1; }   # urldecode $PAT_PASS?
-  if ($options =~ s/\/([^\/].*)$//) { $M_ignore |= 2; $PAT_PURGE = $1; }   # urldecode $PAT_PURGE?
+  if ($options =~ s/\/\/(.*)$//)    { $F_ignore |= 1; $PAT_PASS  = $1; }   # urldecode $PAT_PASS?
+  if ($options =~ s/\/([^\/].*)$//) { $F_ignore |= 2; $PAT_PURGE = $1; }   # urldecode $PAT_PURGE?
 
   if ($options =~ s/O(\d+)//) {
      $OFFSET_OMEGA = $1 + 0;
@@ -673,7 +682,7 @@ $B_print_header = 1 if $B_add_names || $B_posthoc_names;
 
 @::nameslist = $nameslist ? split ',', $nameslist : ();
 
-helphelp(1) unless @::spec || $B_printall || $B_excise || $B_force || $B_count;
+helphelp(1) unless @::spec || $B_printall || $B_excise || $B_force || $B_count || $F_list;
 
 sub interval_plus {
   my ($x, $y, $val) = @_;
@@ -1032,13 +1041,13 @@ while (<>) {
   %::LINECACHE = ();
   my $Nprotect_previous = $Nprotect;
 
-  if ($M_ignore) {
-    my $hit1 = ($M_ignore & 1) && /$PAT_PASS/  ? 1 : 0;
-    my $hit2 = ($M_ignore & 2) && /$PAT_PURGE/ ? 1 : 0;
+  if ($F_ignore) {
+    my $hit1 = ($F_ignore & 1) && /$PAT_PASS/  ? 1 : 0;
+    my $hit2 = ($F_ignore & 2) && /$PAT_PURGE/ ? 1 : 0;
     if ($hit1 || $hit2) {
        print "$_" if $hit1;
        $Nignr++;
-       if (($M_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {         # get sequence lengths from SAM header.
+       if (($F_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {         # get sequence lengths from SAM header.
          $::dict{seqlen}{$1} = $2;
        }
        next;
@@ -1066,6 +1075,13 @@ while (<>) {
     }
     else {
       @::OUTPUT_HEADER = map { $::HEADER[$_] } @::output_os;
+    }
+    if ($F_list) {
+      local $, = "\t";
+      if ($F_list & 1) { print map { $_ + 1        } @::output_os; print "\n"; }
+      if ($F_list & 2) { print map { $::HEADER[$_] } @::output_os; print "\n"; }
+print STDERR "-- List contains items from newly computed columns\n" if @::compute;
+      exit 0;
     }
     if ($B_print_header || $B_sprouthead) {
       local $, = "\t";
@@ -1124,7 +1140,7 @@ while (<>) {
 
 print "$Nkeep\n" if $B_count;
 
-print STDERR "-- $Nignr ignored lines in input\n" if $M_ignore && $B_verbose;
+print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $B_verbose;
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $B_verbose;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
