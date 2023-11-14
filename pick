@@ -367,8 +367,8 @@ my $help_options=q{Options:
                      Note: if all its rows are filtered the file will not be created (rather than
                      a file with zero rows), this could be dangerous if an older version exists.
 
-  --idx-list         Output list of selected indexes        }  can be combined, pick will exit after.
-  --name-list        Output list of selected column names   }
+  --idx-list         Output list of selected indexes        \}  can be combined, pick will exit after.
+  --name-list        Output list of selected column names   \}
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
@@ -505,7 +505,7 @@ EOH
     for my $op (sort keys %cp_opdefinitions) {
       my $opdef = $cp_opdefinitions{$op};
       my @help = split "\t", $opdef->[2];
-      next unless $help[3] =~ /$filter/;
+      next unless $filter =~ /$help[3]/;
       printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
     }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
