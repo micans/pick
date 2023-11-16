@@ -50,6 +50,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [SAM and CIGAR support](#sam-and-cigar-support)  
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Demuxing and forking output](#demuxing-and-forking-output)  
+[Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
@@ -675,6 +676,14 @@ These two mechanisms can be used simultaneously. Similar to demuxing, a file nam
 causes the file to be compressed using `gzip`.
 
 
+## Retrieving unique values and asserting the number of rows found
+
+If the input is queried for a value that should be present and unique, you can do pick let the checking
+by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
+different from `<NUM>`.
+ 
+
+
 ## Miscellaneous
 
 
@@ -771,7 +780,7 @@ pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
 ```
 
 
-## Useful regular expression features
+### Useful regular expression features
 
 -  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
 
@@ -801,13 +810,6 @@ thequickfox theslowbear
 ```
 
 -  Use `(?i)pat` to make a pattern case insensitive.
-
-## Retrieving unique values and asserting the number of rows found
-
-If the input is queried for a value that should be present and unique, you can do pick let the checking
-by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
-different from `<NUM>`.
- 
 
 ## Option processing
 
