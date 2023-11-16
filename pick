@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+# Pick version
+my $v_v_v = "819b2359dff2251526e559d8b1eefe2badefb030::23-320";
+
   #                     Copyright (c) 2022-2023  Stijn van Dongen
   #      
   #      Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -593,7 +596,6 @@ EOH
        $F_list |= $1 eq 'idx' ? 1 : 2;
      }
      elsif ($options eq 'version') {
-       my $v_v_v = "ea264d9aba28566677372e8ad84d43a78a5ead39::23-320";
        print "pick version: $v_v_v\n";
        exit 0;
      }
