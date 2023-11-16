@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+local $/ = undef;
+open(R, '<pick') || die "No read";
+open(S, '>riskybusiness.txt') || die "No write";
+
+my $text = <R>; close(R);
+my $newversion = `echo -n "\$(git describe --abbrev=40 --always --tags)::\$(date +%y-%j)"`;
+
+if ($text =~ s/v_v_v = "\K([^"]*)/$newversion/) {
+  print S "$text";
+}
+else {
+   die "Versification circumstantially precluded"
+}
+
+close(S);
+print STDERR "Updated file written to riskybusiness.txt . Executing diff:\n";
+
+system 'diff', 'pick', 'riskybusiness.txt';
+

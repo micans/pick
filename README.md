@@ -48,13 +48,13 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Ragged input](#ragged-input)  
 [SAM and CIGAR support](#sam-and-cigar-support)  
-[Useful regular expression features](#useful-regular-expression-features)  
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Demuxing and forking output](#demuxing-and-forking-output)  
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
+&emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -639,44 +639,6 @@ You can use the `get` operator (`<value> <regex> get`)
 to retrieve information from the concatenated fields in picks last input column.
 
 
-## Useful regular expression features
-
--  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
-
-   `:HANDLE^'patx\Kpaty',delg` will retain pattern `patx` and only delete pattern `paty`.
-
-   Example:
-```
-> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'quick\Kbrown',delg
-thequickfox theslowbrownbear
-```
-
--  Use `patx(?=paty)` to anchor `patx` to `paty` without including `paty` in the matched part.
-
-   `:HANDLE^'patx(?=paty)',get` will just fetch `patx`.
-
-   Example:
-
-```
-> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)',delg
-thequickbrownfox theslowbear
-```
-
-   Such patterns can be combined - here either of the two is considered match:
-```
-> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)|quick\Kbrown',delg
-thequickfox theslowbear
-```
-
--  Use `(?i)pat` to make a pattern case insensitive.
-
-## Retrieving unique values and asserting the number of rows found
-
-If the input is queried for a value that should be present and unique, you can do pick let the checking
-by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
-different from `<NUM>`.
- 
-
 ## Demuxing and forking output
 
 Pick can be used to demux output into different files. Use e.g. this combination, where `NAME` is
@@ -809,6 +771,44 @@ pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
 ```
 
 
+## Useful regular expression features
+
+-  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
+
+   `:HANDLE^'patx\Kpaty',delg` will retain pattern `patx` and only delete pattern `paty`.
+
+   Example:
+```
+> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'quick\Kbrown',delg
+thequickfox theslowbrownbear
+```
+
+-  Use `patx(?=paty)` to anchor `patx` to `paty` without including `paty` in the matched part.
+
+   `:HANDLE^'patx(?=paty)',get` will just fetch `patx`.
+
+   Example:
+
+```
+> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)',delg
+thequickbrownfox theslowbear
+```
+
+   Such patterns can be combined - here either of the two is considered match:
+```
+> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)|quick\Kbrown',delg
+thequickfox theslowbear
+```
+
+-  Use `(?i)pat` to make a pattern case insensitive.
+
+## Retrieving unique values and asserting the number of rows found
+
+If the input is queried for a value that should be present and unique, you can do pick let the checking
+by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
+different from `<NUM>`.
+ 
+
 ## Option processing
 
 Single-letter options can be combined or specified separately. The offset for `-O` (ragged input), optional offset for `-A`
@@ -855,6 +855,20 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-zz ARG+` print url-decoding of `ARG+`
   
 -  `--inf=<str>` Set divide-by-zero result to `<str>`
+  
+-  `--add-inames=<csv>`, `--inames=<csv>`  
+    comma-separated values to use as column names instead of actual column names.
+    The list must cover all columns in the input. Names that are used
+    in selection, compute and filter expressions must be picked from this list.
+    Output names are from the list. If using `-k` then `--inames=CSV` provides temporary
+    handles; use `--add-inames=CSV` to add them to the output.
+  
+-  `--onames=<csv>` Override output column names to be taken from comma-separated values.
+  
+-  `--version` Output version number; outputs a corresponding git tag and date tag. The aim
+   is for this to be the git tag `x` of commit `x` that is prior to commit `y` that inserted
+   `x` into the pick version tag. I'm not quite sure how well this executes the idea of
+   an informative and lazy version numbering system.
 
 
 ## Pick operators

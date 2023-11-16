@@ -367,8 +367,10 @@ my $help_options=q{Options:
                      Note: if all its rows are filtered the file will not be created (rather than
                      a file with zero rows), this could be dangerous if an older version exists.
 
-  --idx-list         Output list of selected indexes        \}  can be combined, pick will exit after.
-  --name-list        Output list of selected column names   \}
+  --version          version
+
+  --idx-list         Output list of selected indexes       ⦊ can be combined, pick will exit after.
+  --name-list        Output list of selected column names  ⦊
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
@@ -589,6 +591,11 @@ EOH
      }
      elsif ($options =~ /^(idx|name)-list$/) {
        $F_list |= $1 eq 'idx' ? 1 : 2;
+     }
+     elsif ($options eq 'version') {
+       my $v_v_v = "ea264d9aba28566677372e8ad84d43a78a5ead39::23-320";
+       print "pick version: $v_v_v\n";
+       exit 0;
      }
      elsif ($options =~ /^onames=(.+)$/) {
        $nameslist=$1;
