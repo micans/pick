@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "819b2359dff2251526e559d8b1eefe2badefb030::23-320";
+my $v_v_v = "3077689f4cc210bfbc2e2835cac87142583696a3::23-321";
 
   #                     Copyright (c) 2022-2023  Stijn van Dongen
   #      
@@ -145,7 +145,8 @@ my %cp_opdefinitions =
      pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "x\t-\tRemove top entry x from stack\tstack" ],
      dup       => [ 0, sub { stacky('dup', 1); push @::STACK, $::STACK[-1] }, "x\tx x\tDuplicate top entry x\tstack" ],
      xch       => [ 0, sub { stacky('xch', 2); ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) }, "x y\ty x\tExchange x and y\tstack" ],
-     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "-\tx\tPush current table row number x onto stack\tinput" ],
+     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "-\tx\tPush current table (start one) row number x onto stack\tinput" ],
+     r0wno     => [ 0, sub { push @::STACK, $::Nrows -2+$B_headless }, "-\tx\tPush current table (start zero) row number x onto stack\tinput" ],
      lineno    => [ 0, sub { push @::STACK, $.      }, "-\tx\tPush file line number x onto stack\tinput" ],
 
      mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
@@ -157,7 +158,7 @@ my %cp_opdefinitions =
      min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
      dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
      sn        => [ 2, sub { $::STACK[-2] = sprintf("%.*e", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x in scientific notation with N decimal digits\tmath/format/precision" ],
-     zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx'\tx left zero-padded to width of N\toutput" ],
+     zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx'\tx left zero-padded to width of N\toutput/string/format" ],
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
                                          ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x r\tr-match-of-x\tIf x matches regex r take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
@@ -346,6 +347,7 @@ my $help_options=q{Options:
   -z  ARG+ print url-encoding of ARG+  (no argument prints a few especially useful cases)
   -zz ARG+ print url-decoding of ARG+
   -l or -l <string> list operators (matching section string if specified)
+     to specify multiple sections use a comma-separated string.
      sections: } . $opsections . q{
 
   -H Longer pick description
@@ -504,13 +506,14 @@ EOH
   }
   elsif ($options eq '-l') {
     my $filter = @::spec ? $::spec[0] : '.';
+    $filter =~ s/,/|/g;
     print "\nSelect comparison operators:\n  @opsf\n\n";
     printf "%-12s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
     print  '-' x 80 . "\n";
     for my $op (sort keys %cp_opdefinitions) {
       my $opdef = $cp_opdefinitions{$op};
       my @help = split "\t", $opdef->[2];
-      next unless $filter =~ /$help[3]/;
+      next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
       printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
     }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }

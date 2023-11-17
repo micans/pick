@@ -49,7 +49,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Ragged input](#ragged-input)  
 [SAM and CIGAR support](#sam-and-cigar-support)  
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
-[Demuxing and forking output](#demuxing-and-forking-output)  
+[Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
@@ -640,9 +640,9 @@ You can use the `get` operator (`<value> <regex> get`)
 to retrieve information from the concatenated fields in picks last input column.
 
 
-## Demuxing and forking output
+## Splitting, demultiplexing and forking rows across different outputs
 
-Pick can be used to demux output into different files. Use e.g. this combination, where `NAME` is
+Pick can be used to split or demultiplex output into different files. Use e.g. this combination, where `NAME` is
 of your choice:
 
 ```
@@ -655,6 +655,18 @@ In this example `NAME` is a computed column that is not output, where the filena
 formed from the value in the `sampleid` column with a `.txt` suffix added to it.
 
 _Pick will recognise file names ending in_ `.gz` _or_ `.gzip` _and in that case compress the output using gzip._
+
+The next example splits the input into chunks of size `1000`, retaining the header for each,
+with output names defined in the `S` column as `split<N>.txt`, where `<N>` are zero-padded batch numbers.
+
+```
+pick -A --demux=S S:=^split,r0wno^1000,idiv^4,zp^.txt < data.txt
+File           Written  Filtered
+split0001.txt  1000     0
+split0003.txt  1000     0
+split0002.txt  1000     0
+split0000.txt   384     0
+```
 
 If `--demux` is used pick will output on `STDERR` a table of output files and tallies of
 how many rows each file contains, as well as how many were deselected.
@@ -895,13 +907,13 @@ Arithmetic: `add addall decr div idiv incr max maxall min minall mod mul mulall 
 
 Bit operators: `and or xor`
 
-Stack devourers: `addall joinall maxall minall mulall`
+Stack devourers: `addall gmeanall hmeanall joinall maxall meanall minall mulall`
 
 Dictionary: `map`
 
 Formating: `binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec`
 
-Input: `binto hexto lineno md5 octto rowno urldc urlec`
+Input: `binto hexto lineno md5 octto rowno r0wno urldc urlec`
 
 Math: `abs ceil cos dd exp exp10 floor int log log10 sign sin sn sq sqrt tan`
 
@@ -954,7 +966,9 @@ exp10       x           10^x                10 to the power of x [math]
 floor       x           floor(x)            The floor of x [math]
 frac        x y N       x/y                 Division, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 get         x r         r-match-of-x        If x matches regex r take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
+gmeanall    *           gmean(Stack)        Geometric mean of all entries in stack, multiplication [arithmetic/devour]
 hexto       x           x'                  Read hex representation x [input/format]
+hmeanall    *           hmean(Stack)        Harmonic mean of all entries in stack [arithmetic/devour]
 idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
 incr        x           x++                 x incremented by one [arithmetic]
 int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
@@ -967,6 +981,7 @@ log10       x           log10(x)            Logarithm of x in base 10 [math]
 map         x dname     map-of-x            Use map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=) [string/dictionary]
 max         x y         max(x,y)            Maximum of x and y [arithmetic]
 maxall      *           max(Stack)          Max over all entries in stack [arithmetic/devour]
+meanall     *           mean(Stack)         Mean of all entries in stack [arithmetic/devour]
 md5         x           md5(x)              MD5 sum of x [string/format/input/output]
 min         x y         min(x,y)            Minimum of x and y [arithmetic]
 minall      *           min(Stack)          Min over all entries in stack [arithmetic/devour]
@@ -981,7 +996,8 @@ pop         x           -                   Remove top entry x from stack [stack
 pow         x y         x**y                x raised to power y [arithmetic]
 rc          x           rc(x)               Reverse complement [string]
 rev         x           rev(x)              String reverse of x [string]
-rowno       -           x                   Push current table row number x onto stack [input]
+rowno       -           x                   Push current table row number x onto stack; start at one [input]
+r0wno       -           x                   Push current table row number x onto stack; start at zero [input]
 sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
 sin         x           sin(x)              Sine of x [math]
 sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
@@ -1012,6 +1028,8 @@ qrycov      -           qrycov              Amount of query covered by alignment
 qryend      -           qryend              Last base in query covered by alignment [sam]
 qrylen      -           qrylen              Length of query sequence [sam]
 qrystart    -           qrystart            Start of alignment in query [sam]
+
+alnmatch    -           alnmatch            Amount of reference/query matched by alignment (ignoring indels)
 
 refcov      -           refcov              Amount of reference covered by alignment [sam]
 refend      -           refend              Last base in reference covered by alignment [sam]
