@@ -830,27 +830,28 @@ thequickfox theslowbear
 The recipes below can be limited to a set of columns by 
 using [regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges).
 In these examples all columns are selected with the regular expression `'.*'` that will match any string of at least one character.
+The in-place option `-i` is needed as input columns are changed and output under the same name.
 
 Increment each entry by one:
 ```
-pick -Ai '.*'::__,incr < data.txt
+pick -i '.*'::__,incr < data.txt
 ```
 
 Format each entry to have two digits behind the decimal comma:
 ```
-pick -Ai '.*'::__^2,dd < data.txt
+pick -i '.*'::__^2,dd < data.txt
 ```
 
 Format each entry in scientific notation with five significant digits:
 ```
-pick -Ai '.*'::__^5,sn < data.txt
+pick -i '.*'::__^5,sn < data.txt
 ```
 
 Remove leadinig and trailing whitespace (`%5E` encodes beginning of line `^`, needed as `^` indicates
 constant in pick computations):
 
 ```
-pick -Ai '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
+pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 ```
 
 
