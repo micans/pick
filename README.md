@@ -27,7 +27,7 @@ You can
 - Filter (or fork) rows on boolean clauses computed on columns
 - Select multiple columns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression
-- Write/demux rows to different files based on (computed) labels in columns
+- Split/demultiplex rows to different output files based on (computed) labels in columns
 
 
 There is no downside, except, as ever, it comes with its own syntax for
@@ -56,6 +56,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
+&emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -822,6 +823,36 @@ thequickfox theslowbear
 ```
 
 -  Use `(?i)pat` to make a pattern case insensitive.
+
+
+### Applying the same action to each table entry
+
+The recipes below can be limited to a set of columns by 
+using [regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges).
+In these examples all columns are selected with the regular expression `'.*'` that will match any string of at least one character.
+
+Increment each entry by one:
+```
+pick -Ai '.*'::__,incr < data.txt
+```
+
+Format each entry to have two digits behind the decimal comma:
+```
+pick -Ai '.*'::__^2,dd < data.txt
+```
+
+Format each entry in scientific notation with five significant digits:
+```
+pick -Ai '.*'::__^5,sn < data.txt
+```
+
+Remove leadinig and trailing whitespace (`%5E` encodes beginning of line `^`, needed as `^` indicates
+constant in pick computations):
+
+```
+pick -Ai '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
+```
+
 
 ## Option processing
 
