@@ -9,6 +9,19 @@ on a single text file or stream using its column names (or indexes if no names a
 Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
 Additionally output can be demuxed into different files.
 
+> [!NOTE]
+> For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/6.9.0/)
+> is an amazing widely-used command-line tool for handling tables, in an entirely
+> different league than pick in terms of capabilities. It is available in most
+> Linux distributions as a supported package.
+>  
+> Pick embodies, comparatively, an extremely minimalist approach with a different and
+> greatly limited focus in the same problem space.  Within its narrow focus on
+> column manipulation and row selection it is very concise, has extensive
+> support for SAM format, and has miscellaneous features such as simultaneous
+> transformations of multiple columns and mapping values using dictionaries.
+> Think of it as one of these weirdly evolved deep-sea creatures.
+
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
 I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows
@@ -128,7 +141,7 @@ o+x-y                columns o+x to o+y
 
 
 - Strings starting with `@` indicate a selection on one or two column values.
-- Selections can be operate on computed columns and computed values that are not output (see further below).
+- Selections can operate on computed columns and computed values that are not output (see further below).
 - Selections are performed only after all computations are finished. Hence it is currently not possible to perform a computation
   conditionally on a selection.
 - Selections can occur anywhere, even mixed in with column selections and computations. This will always be the case;
@@ -829,7 +842,7 @@ thequickfox theslowbear
 
 The recipes below can be limited to a set of columns by 
 using [regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges).
-In these examples all columns are selected with the regular expression `'.*'` that will match any string of at least one character.
+In these examples all column names are selected with the regular expression `'.*'` that will match any string of at least one character.
 The in-place option `-i` is needed as input columns are changed and output under the same name.
 
 Increment each entry by one:
@@ -847,8 +860,8 @@ Format each entry in scientific notation with five significant digits:
 pick -i '.*'::__^5,sn < data.txt
 ```
 
-Remove leadinig and trailing whitespace (`%5E` encodes beginning of line `^`, needed as `^` indicates
-constant in pick computations):
+Remove leadinig and trailing whitespace (`%5E` encodes beginning of line `^`, here needed as `^` indicates
+a constant in pick computations):
 
 ```
 pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
