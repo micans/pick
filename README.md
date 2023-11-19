@@ -923,11 +923,17 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
     handles; use `--add-inames=CSV` to add them to the output.
   
 -  `--onames=<csv>` Override output column names to be taken from comma-separated values.
+
+-  `--idx-list`        Output list of selected indexes.  
+   `--name-list`       Output list of selected column names.  
+   These can be combined. If combined, indexes will always come before names.
+   Pick will exit if any of them is used.
   
--  `--version` Output version number; outputs a corresponding git tag and date tag. The aim
-   is for this to be the git tag `x` of commit `x` that is prior to commit `y` that inserted
-   `x` into the pick version tag. I'm not quite sure how well this executes the idea of
-   an informative and lazy version numbering system.
+-  `--version` Output version number; outputs a corresponding git tag and date
+   tag. The aim is for this to be the git tag `x` of commit `x` that is prior
+   to commit `y` that inserted `x` into the pick version tag. I'm not quite
+   sure how well this executes the idea of an informative and lazy version
+   numbering system.
 
 
 ## Pick operators
