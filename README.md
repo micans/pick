@@ -10,7 +10,7 @@ Columns can be selected, mapped, transformed and combined and rows can be filter
 Additionally output can be demuxed into different files.
 
 > [!NOTE]
-> For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/6.9.0/)
+> For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
 > is an amazing widely-used command-line tool for handling tables, in an entirely
 > different league than pick in terms of capabilities. It is available in most
 > Linux distributions as a supported package.
@@ -19,8 +19,8 @@ Additionally output can be demuxed into different files.
 > greatly limited focus in the same problem space.  Within its narrow focus on
 > column manipulation and row selection it is very concise, has extensive
 > support for SAM format, and has miscellaneous features such as simultaneous
-> transformations of multiple columns and mapping values using dictionaries.
-> Think of it as one of these weirdly evolved deep-sea creatures.
+> transformations of multiple columns, demultiplexing rows to different files, and mapping values using dictionaries.
+> Think of it as one of these weirdly evolved deep-sea creatures (one that is pretty).
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
@@ -926,8 +926,8 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 -  `--idx-list`        Output list of selected indexes.  
    `--name-list`       Output list of selected column names.  
-   These can be combined. If combined, indexes will always come before names.
-   Pick will exit if any of them is used.
+   These can be combined. If combined, indexes will always come before names (transpose
+   the output to obtain an index-name mapping). Pick will exit if any of them is used.
   
 -  `--version` Output version number; outputs a corresponding git tag and date
    tag. The aim is for this to be the git tag `x` of commit `x` that is prior

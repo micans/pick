@@ -426,7 +426,7 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_ve
          my $openstring = $name =~ /\.gz(ip)?$/ ? "|gzip >$name" : ">$name";
          $fh->open("$openstring") || die "Failed to open $name";
             # fixme todo; if this fails because of too many open file handles then
-            # close the least used file handles or nor recently used and retry.
+            # close the least used file handles or not recently used and retry.
          $val = [$fh, 0, 0];
          $fh_demux{$name} = $val;
          if ($B_print_header || $B_sprouthead) {
@@ -443,7 +443,7 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_ve
    }
    sub demux_tally {
       print STDERR "File\tWritten\tFiltered\n";
-      for (sort { $fh_demux{$a}[1] <=> $fh_demux{$b}[1] } keys %fh_demux) {
+      for (sort { $a cmp $b } keys %fh_demux) {
          print STDERR "$_\t$fh_demux{$_}[1]\t$fh_demux{$_}[2]\n";
          $fh_demux{$_}[0]->close() || print STDERR "-- issue closing file handle for $_\n";
       }

@@ -7,10 +7,9 @@
         echo -e "_a_\t3\n_b_\t4\n_d_\t8" | pick -AviK --fdict-foo=dict --cdict-foo=a:Alpha,b:Beta,c:Gamma 1::1^'%5E_\K(.)(?=_$)'^foo,edmap
      -> $1 not the right control? You might want to replace more than just $1, using the map of $1.
         the two-step solution will allow this.
-  -  get -> option to return field if no match? -> covered by ed; get allows filtering on empty string with uie
-  o  numerical comparisons check field is numeric; however duplicates perl's work/warnings
+  ?  get: option to return field if no match? -> covered by ed; get allows filtering on empty string with uie
   ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
-  ?  would --onames be helpful? (note -K)
   ?  implement in C or Rust (use pcre2). string/float/int the main point of pain.
+  x  numerical comparisons check field is numeric; however duplicates perl's work/warnings
   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
 
