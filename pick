@@ -87,7 +87,7 @@ my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable
 my $B_protect_discard = 0;  # Discard rows that needed protection.
 my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
-my $B_pstore       = 0;     # If set, load ::dict{__p1__} with previous line final computed fields
+my $B_pstore       = 0;     # If set, load ::previous_row with previous line final computed fields
 
 my $fh_other       = undef;
 my $name_demux     = undef;
@@ -176,7 +176,7 @@ my %cp_opdefinitions =
      cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[SH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
      cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
-     pload     => [ 1, sub { $::STACK[-1] = $::dict{__p1__}{$::STACK[-1]}; $::STACK[-1] = $PSTORE_DEFAULT unless defined($::STACK[-1]) } ],
+     pload     => [ 1, sub { $::STACK[-1] = $::previous_row{$::STACK[-1]}; } ],
 
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
@@ -379,6 +379,12 @@ my $help_options=q{Options:
 
   --version          version
 
+  --pstore           cache/store previous row. Available to load with ^colname,pload. If <STRING>
+  --pstore/<STRING>  is specified it is used to populate all fields of the predecessor of the first row.
+                     Example:
+                     yes | head | ../pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
+                     Can be used to detect group boundaries in sorted data.
+
   --idx-list         Output list of selected indexes       ⦊ can be combined, pick will exit after.
   --name-list        Output list of selected column names  ⦊
 
@@ -406,6 +412,7 @@ my $nameslist = "";
 
 %::dict = ();
 %::dictnotfound = ();
+%::previous_row = ();
 
 sub read_dict {
    my ($name, $fname) = @_;
@@ -1019,6 +1026,8 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
   for (@::HEADER) {
     $_ = '' if $_ eq '_';
   }
+
+  for (keys %::handle_map) { $::previous_row{$_} = $PSTORE_DEFAULT; }
 }
 
 
@@ -1053,9 +1062,7 @@ sub do_compute {
 
 
 sub do_cache {
-   for (keys %::handle_map) {
-      $::dict{__p1__}{$_} = $::Flink->[$::handle_map{$_}];
-   }
+   for (keys %::handle_map) { $::previous_row{$_} = $::Flink->[$::handle_map{$_}]; }
 }
 
 

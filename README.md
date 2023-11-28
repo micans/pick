@@ -70,6 +70,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
+&emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -868,6 +869,27 @@ pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 ```
 
 
+### Loading data from the previous row
+
+   Use `--pstore` or `--pstore/<STRING>` to cache/store the previous row.
+   Fields from the previous row are then available to load with `^colname,pload`.
+   If `<STRING>` is specified it is used to populate all fields of the predecessor of the first line
+   (the default value for this is the empty string).  Example (compute the first twelve Fibonacci numbers):
+```
+yes | head | ../pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
+```
+   This functionality can be used to detect group boundaries in sorted data and marry successive records
+   such as 'end position found in previous row' with 'start position found in current row':
+```
+pick -k --pstore/__ prevend::^3,pload curstart::2 pname:=^1,pload @pname=:1
+```
+   This loads column 3 from the previous row, column 2 from the current row and the previous
+   name from the first column. It then makes sure the first row is skipped and that
+   the previous name is identical to the currrent name (in column 1). In this case `__` is
+   used as a string that is not expected to occur as a name. [unresolved: it would be nice
+   to allow different default values for number and string fields]
+
+
 ## Option processing
 
 Single-letter options can be combined or specified separately. The offset for `-O` (ragged input), optional offset for `-A`
@@ -934,6 +956,10 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
    to commit `y` that inserted `x` into the pick version tag. I'm not quite
    sure how well this executes the idea of an informative and lazy version
    numbering system.
+
+
+-  `--pstore`,  `--pstore/<STRING>`  
+   [Use this to load data from the previous row.](#loading-data-from-the-previous-row)
 
 
 ## Pick operators
