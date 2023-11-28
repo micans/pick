@@ -70,7 +70,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
-&emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)
+&emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
