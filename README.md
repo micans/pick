@@ -884,10 +884,10 @@ yes | head | pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
 pick -k --pstore/__ prevend::^3,pload curstart::2 pname:=^1,pload @pname=:1
 ```
    This loads column 3 from the previous row, column 2 from the current row and the previous
-   name from the first column. It then makes sure the first row is skipped and that
+   name from the first column. It then ensures that
    the previous name is identical to the currrent name (in column 1). In this case `__` is
-   used as a string that is not expected to occur as a name. [unresolved: it would be nice
-   to allow different default values for number and string fields]
+   used as a string that is not expected to occur as a name in the firt row.
+   [to do: allow different default values for (number and string) fields]
 
 
 ## Option processing
