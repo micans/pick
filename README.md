@@ -876,7 +876,7 @@ pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
    If `<STRING>` is specified it is used to populate all fields of the predecessor of the first line
    (the default value for this is the empty string).  Example (compute the first twelve Fibonacci numbers):
 ```
-yes | head | ../pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
+yes | head | pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
 ```
    This functionality can be used to detect group boundaries in sorted data and marry successive records
    such as 'end position found in previous row' with 'start position found in current row':
