@@ -292,7 +292,7 @@ These are
 - caret `^` for a constant value (number or string)
 - comma `,` for an operator
 
-Constant values and column handles are url-decoded, hence the escape mechanism
+Constant values and column handles are URL-decoded, hence the escape mechanism
 for including any of the characters `^:,%` in a constant value or column handle is to url-encode them.
 The following is an example of a computation:
 
@@ -740,7 +740,7 @@ The characters `= / , : ^` require url-encoding in certain contexts as they are 
 - `^`, `:`, `,` and `=` are used in computation syntax.
 - `/`, `:` and `,` are used in map specifications using `--cdict-NAME=k1:v1,k2:v2`.
 
-These will be url-decoded:
+These will be URL-decoded:
 
 - Column names specified on the command line, including regular expressions expanding to column names.
 - For a computation `<name>::<compute>`, both `<name>` and any constants and names found in `<compute>`.
@@ -871,23 +871,32 @@ pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 
 ### Loading data from the previous row
 
-   Use `--pstore` or `--pstore/<STRING>` to cache/store the previous row.
-   Fields from the previous row are then available to load with `^colname,pload`.
-   If `<STRING>` is specified it is used to populate all fields of the predecessor of the first line
-   (the default value for this is the empty string).  Example (compute the first twelve Fibonacci numbers):
+   To cache/store the previous row use one of
 ```
-yes | head | pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
+--pstore
+--pstore/<LIST>
+--pstore/<LIST>/<DEFAULT>
+--pstore//<DEFAULT>
+```
+
+   Fields from the previous row are then available to load with `^colname,pload`.
+   If specified, `<LIST>` should be a comma-separated string of key-value pairs themselves
+   separated by a colon; all keys and values will be URL-decoded. The keys should be column names;
+   the values will be used to initialise the fields of the predecessor of the first row.
+   If `<DEFAULT>` is specified it is used for all columns not yet named.
+   Example (compute the first ten Fibonacci numbers):
+```
+yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
 ```
    This functionality can be used to detect group boundaries in sorted data and marry successive records
    such as 'end position found in previous row' with 'start position found in current row':
 ```
-pick -k --pstore/__ prevend::^3,pload curstart::2 pname:=^1,pload @pname=:1
+pick -k --pstore/1:no-such-name prevend::^3,pload curstart::2 pname:=^1,pload @pname=:1
 ```
    This loads column 3 from the previous row, column 2 from the current row and the previous
    name from the first column. It then ensures that
-   the previous name is identical to the currrent name (in column 1). In this case `__` is
-   used as a string that is not expected to occur as a name in the firt row.
-   [to do: allow different default values for (number and string) fields]
+   the previous name is identical to the current name (in column 1). In this case `no-such-name` is
+   used as a string that is not expected to occur as a name in the first row.
 
 
 ## Option processing
@@ -958,8 +967,11 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
    numbering system.
 
 
--  `--pstore`,  `--pstore/<STRING>`  
-   [Use this to load data from the previous row.](#loading-data-from-the-previous-row)
+-  `--pstore`  
+   `--pstore/<LIST>`  
+   `--pstore/<LIST>/<DEFAULT>`  
+   `--pstore//<DEFAULT>`  
+   [Use one of these to load data from the previous row.](#loading-data-from-the-previous-row)
 
 
 ## Pick operators

@@ -99,7 +99,8 @@ $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
 
-my $PSTORE_DEFAULT = "";
+my $PSTORE_DEFAULT = "00000000";
+my $PSTORE_LIST    = '';      # how annoying.
 
 my $Nprotect      = 0;
 my $Nprotect_discard = 0;
@@ -176,7 +177,7 @@ my %cp_opdefinitions =
      cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[SH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
      cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
-     pload     => [ 1, sub { $::STACK[-1] = $::previous_row{$::STACK[-1]}; } ],
+     pload     => [ 1, sub { $::STACK[-1] = $::previous_row{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate" ],
 
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
@@ -314,7 +315,7 @@ my %sel_opdefinitions = (
 );
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
-my $opsections  = 'arithmetic bitop devour dictionary format input math output precision regex sam stack string';
+my $opsections  = 'arithmetic bitop devour dictionary format input math output precision regex sam stack state string';
 
 my $help_options=q{Options:
   -h do not print header
@@ -369,7 +370,8 @@ my $help_options=q{Options:
                      This stores a dictionary called NAME that can be used to map values
                      with ...^NAME,map. Small dictionaries can be encoded on the command line with
   --cdict-NAME=<csv> where <csv> is a comma separated string of key:value pairs -- after splitting
-                     on commas and colons all keys and values are url-decoded. Example usage:
+                     on commas and colons all keys and values are url-decoded. Example:
+
        echo -e "a\t3\nb\t4" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
 
   --other=fname      write discarded rows to fname
@@ -379,10 +381,17 @@ my $help_options=q{Options:
 
   --version          version
 
-  --pstore           cache/store previous row. Available to load with ^colname,pload. If <STRING>
-  --pstore/<STRING>  is specified it is used to populate all fields of the predecessor of the first row.
-                     Example:
-                     yes | head | ../pick -k --pstore/1 fib1::^fib2,pload fib2::fib1^fib1,pload,add
+  --pstore
+  --pstore/<LIST>/<DEFAULT>
+  --pstore/<LIST>/   
+  --pstore//<DEFAULT>
+                     Cache/store previous row. Available to load with ^colname,pload. If <LIST>
+                     (comma-separated, colon-separated key-value pairs) is specified it is used to
+                     populate the named fields of the predecessor of the first row.  If <DEFAULT>
+                     is specified it is used for all fields not named. Example (Fibonacci):
+
+       yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
+
                      Can be used to detect group boundaries in sorted data.
 
   --idx-list         Output list of selected indexes       ⦊ can be combined, pick will exit after.
@@ -486,7 +495,7 @@ print STDERR "-- range expansion produced some indexes out of range (now dropped
 sub parse_dict {
    my ($name, $string) = @_;
    for my $pair (split ",", $string) {
-      my ($k, $v) = map { urldecode($_) } split ':', $pair;          # @urldecode --cdict-NAME=
+      my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;        # @urldecode --cdict-NAME=
       if (!defined($v)) {
          print STDERR "-- Setting value for $k to 1\n" if $B_verbose;
          $v = 1;
@@ -610,9 +619,10 @@ EOH
      elsif ($options =~ /^(idx|name)-list$/) {
        $F_list |= $1 eq 'idx' ? 1 : 2;
      }
-     elsif ($options =~ /^pstore(\/(.+))?$/) {
+     elsif ($options =~ /^pstore(\/(.*?))?(\/(.*?))?$/) {
        $B_pstore = 1;
-       $PSTORE_DEFAULT = $2 if defined($1);
+       $PSTORE_LIST = $2 if defined($1);
+       $PSTORE_DEFAULT = $4 if defined($3);
      }
      elsif ($options eq 'version') {
        print "pick version: $v_v_v\n";
@@ -745,7 +755,8 @@ sub parse_compute {
     $p = pos($spec);
     if ($type == $TYPE_OPATOR) {
       my $opdef = $cp_opdefinitions{$what};
-      die "Not supported [$what]\n" unless defined($opdef);
+      die "Not supported [$what]" unless defined($opdef);
+      die "Operator 'pload' requires option --pstore" unless $B_pstore || $what ne 'pload';
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
 print STDERR "-- $handle >> type=$type op=$what N=$opdef->[0], code=$what:$opdef->[1]\n" if $B_debug;
@@ -1027,7 +1038,15 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
     $_ = '' if $_ eq '_';
   }
 
-  for (keys %::handle_map) { $::previous_row{$_} = $PSTORE_DEFAULT; }
+  if ($B_pstore) {
+     for my $pair (split ",", $PSTORE_LIST) {
+        my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;
+        die "Name $k is not a known column handle with --pstore" unless defined($::handle_map{$k});
+        die "Column $k was not supplied with a value" unless defined($v);
+        $::previous_row{$k} = $v;
+     }
+     for (keys %::handle_map) { $::previous_row{$_} = $PSTORE_DEFAULT unless defined($::previous_row{$_}); }
+  }
 }
 
 
