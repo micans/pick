@@ -756,7 +756,12 @@ sub parse_compute {
     if ($type == $TYPE_OPATOR) {
       my $opdef = $cp_opdefinitions{$what};
       die "Not supported [$what]" unless defined($opdef);
-      die "Operator 'pload' requires option --pstore" unless $B_pstore || $what ne 'pload';
+      if ($what eq 'pload') {
+         die "Operator 'pload' requires option --pstore" unless $B_pstore;
+         die "Operator 'pload' requires operand" unless @oplist > 1;
+         die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
+            unless $oplist[-2][0] == $TYPE_SCALAR;
+      }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
 print STDERR "-- $handle >> type=$type op=$what N=$opdef->[0], code=$what:$opdef->[1]\n" if $B_debug;
@@ -959,6 +964,8 @@ print STDERR "-- Identical output column names exist ($job)\n";
   ##  In derived column specs replace names by offsets into field array.
   #
 
+  my %pload_references = ();
+
   for (my $i=0; $i<@::compute; $i++) {
     my ($name, $compute) = @{$::compute[$i]};
     die "Name $name already defined (use -i for in-place change)\n" if defined($::handle_map{$name}) && !$B_inplace;
@@ -973,6 +980,8 @@ print STDERR "-- Identical output column names exist ($job)\n";
          push @expanded_compute, $comp;
       }
     }
+    my $prev_what = undef; # ugly/fixme; temporary to enforce pload compile-time check for column name presence.
+
     for my $comp (@expanded_compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
@@ -982,6 +991,10 @@ print STDERR "-- Identical output column names exist ($job)\n";
                               # for the current foo, and the second foo no longer exists. The first foo does not have an
                               # associated offset yet;
       }
+      if ($type == $TYPE_OPATOR && $what eq 'pload') {
+         $pload_references{$prev_what}++;
+      }
+      $prev_what = $what;
     }
     $::compute[$i] = [$name, \@expanded_compute];
 
@@ -992,6 +1005,9 @@ print STDERR "-- Identical output column names exist ($job)\n";
                               # This process is consistently applied if multiple foo:: are specified.
 print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
   }
+
+  my @pload_notfound = grep { !defined($::handle_map{$_}) } keys %pload_references;
+  die "'pload' argument(s) @pload_notfound not among the column names I know" if @pload_notfound;
 
   if (defined($name_demux)) {
      $index_demux = $::handle_map{$name_demux};
