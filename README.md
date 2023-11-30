@@ -71,6 +71,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
+&emsp;&emsp;[Caching the first row of a group](#caching-the-first-row-of-a-group)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -897,6 +898,21 @@ pick -k --pstore/1:no-such-name prevend::^3,pload curstart::2 pname:=^1,pload @p
    name from the first column. It then ensures that
    the previous name is identical to the current name (in column 1). In this case `no-such-name` is
    used as a string that is not expected to occur as a name in the first row.
+
+
+### Caching the first row of a group
+
+This functionality is an extension of the general caching mechanism. With
+
+```
+--pgroup=<COLNAME>
+```
+
+After computing new columns, if any, pick will cache each row where column `<COLNAME>` assumes a new value (compared
+to the previous row), and then skip that row.
+The skipped row is the first row of, and deemed to be the reference for, the group of consecutive rows that share the same value in column `<COLNAME>`.
+For subsequent rows in the group the operator `pload` will load data from the reference row.
+If there are no consecutive rows in the input where `<COLNAME>` assumes the same value then all rows will be skipped.
 
 
 ## Option processing

@@ -78,7 +78,7 @@ my $B_weirdmode    = 0;     # Header exists, but users wants to use numbers (tur
 my $B_force        = 0;     # Force output if identical output names exist
 my $F_ignore       = 0;     # Flags: 0 oblivious, 1 pass, 2 purge, 4 read sam sequence lengths SN:(\S+)\s+LN:(\d+)
 my $B_debug        = 0;     # Mostly documents the stages of compute and selection definitions
-my $B_verbose      = 0;     # Not terrifically interesting
+my $L_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
 my $F_list         = 0;     # output index or name list of selected columns (1: index, 2: name)
 my $B_posthoc_names = 0;    # Other names are given solely for output
@@ -437,8 +437,8 @@ sub read_dict {
       $::dict{$name}{$F[0]} = $value;
    } close(D);
    my $n = keys %{$::dict{$name}};
-print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $B_verbose;
-print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_verbose && $n_novalue;
+print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
+print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 2 && $n_novalue;
 }
 
 {  my %fh_demux = ();
@@ -500,13 +500,13 @@ sub parse_dict {
    for my $pair (split ",", $string) {
       my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;        # @urldecode --cdict-NAME=
       if (!defined($v)) {
-         print STDERR "-- Setting value for $k to 1\n" if $B_verbose;
+         print STDERR "-- Setting value for $k to 1\n" if $L_verbose >= 2;
          $v = 1;
       }
       $::dict{$name}{$k} = $v;
    }
    my $n = keys %{$::dict{$name}};
-print STDERR "-- dictionary $name has $n keys after parsing string\n" if $B_verbose;
+print STDERR "-- dictionary $name has $n keys after parsing string\n" if $L_verbose >= 2;
 }
 
 while (@::spec && $::spec[0] =~ /^-/) {
@@ -702,7 +702,7 @@ EOH
   $B_protect      = 1 if $options =~ s/P//;
   ($B_protect, $B_protect_discard) = (1,1) if $options =~ s/Z//;
   $B_select_and   = 0 if $options =~ s/o//;
-  $B_verbose      = 1 if $options =~ s/v//;
+  $L_verbose += length($1)  if $options =~ s/(v+)//;
   $B_ko           = 1 if $options =~ s/U//;
   $B_excise       = 1 if $options =~ s/x//;
   $B_add_row_column =1 if $options =~ s/R//;
@@ -845,7 +845,7 @@ print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$sp
    }
 
    for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
-print STDERR "-- (output) considering $item\n" if $B_verbose;
+print STDERR "-- (output) considering $item\n" if $L_verbose >= 2;
       if ($B_headless && parse_range($item)) {
          push @matches, map { [$_, $_] } @::colindexes;        #  global for the win.
       }
@@ -865,7 +865,7 @@ print STDERR "-- (output) $item was considered as regex and yielded no matches\n
    }
    my $n_matches = @matches; local $" = ' ';
    $_->[1] = "$prefix$_->[1]$suffix" for @matches; my @matchnames = map { $_->[0] } @matches;
-print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $B_verbose || (!$n_matches && $spec);
+print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_verbose >= 2 || (!$n_matches && $spec);
    # dangersign, below is ugly.
    unshift @matches, $duplicate if $has_compute;
    return (@matches);
@@ -1125,9 +1125,9 @@ sub do_cache {
 
 
  $::Nrows = 0;    # includes header.
-my $Nignr = 0;
-my $Ndisc = 0;
-my $Nskip = 0;    # --pgroup
+my $Nignr = 0;    # skipped based on pattern; e.g. pick -/^#
+my $Ndisc = 0;    # skipped because @ criteria not met
+my $Ngroup = 0;   # skipped because first in group: --pgroup
 my $Nkeep = 0;
 
 while (<>) {
@@ -1197,9 +1197,8 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
   if ($B_pstore) {
      if (do_cache()) {
-       $Nskip++;
+       $Ngroup++;
        next;
-       # ^ fixme checkme make sure this works with all (tallying) modes
      }
   }
 
@@ -1242,12 +1241,13 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
 print "$Nkeep\n" if $B_count;
 
-print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $B_verbose;
-print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $B_verbose;
+print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $L_verbose >= 1;
+print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $L_verbose >= 1;
+print STDERR "-- $Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
 my $B_header = 1 - $B_headless;
-print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$Nskip)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$Nskip;
+print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$Ngroup;
 
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
