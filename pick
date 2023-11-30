@@ -101,6 +101,9 @@ my $DUMMY_NAME     = 'PICKAAAAA';
 
 my $PSTORE_DEFAULT = "00000000";
 my $PSTORE_LIST    = '';      # how annoying.
+my $PSTORE_PIVOT_COLUMN  = undef;
+my $PSTORE_PIVOT_HANDLE  = undef;
+my $PSTORE_PIVOT_VALUE   = undef;
 
 my $Nprotect      = 0;
 my $Nprotect_discard = 0;
@@ -624,6 +627,10 @@ EOH
        $PSTORE_LIST = $2 if defined($1);
        $PSTORE_DEFAULT = $4 if defined($3);
      }
+     elsif ($options =~ /^pgroup=(\S+)$/) {
+       $B_pstore = 1;
+       $PSTORE_PIVOT_HANDLE = $1;
+     }
      elsif ($options eq 'version') {
        print "pick version: $v_v_v\n";
        exit 0;
@@ -755,7 +762,7 @@ sub parse_compute {
     $p = pos($spec);
     if ($type == $TYPE_OPATOR) {
       my $opdef = $cp_opdefinitions{$what};
-      die "Not supported [$what]" unless defined($opdef);
+      die "[$what] is not an operator I know" unless defined($opdef);
       if ($what eq 'pload') {
          die "Operator 'pload' requires option --pstore" unless $B_pstore;
          die "Operator 'pload' requires operand" unless @oplist > 1;
@@ -1009,6 +1016,11 @@ print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
   my @pload_notfound = grep { !defined($::handle_map{$_}) } keys %pload_references;
   die "'pload' argument(s) @pload_notfound not among the column names I know" if @pload_notfound;
 
+  if (defined($PSTORE_PIVOT_HANDLE)) {
+     $PSTORE_PIVOT_COLUMN = $::handle_map{$PSTORE_PIVOT_HANDLE};
+     die "--pgroup argument $PSTORE_PIVOT_HANDLE not among the column names I know" unless defined($PSTORE_PIVOT_COLUMN);
+  }
+
   if (defined($name_demux)) {
      $index_demux = $::handle_map{$name_demux};
      die "Demux column $name_demux not found" unless defined($index_demux);
@@ -1097,13 +1109,25 @@ sub do_compute {
 
 
 sub do_cache {
-   for (keys %::handle_map) { $::previous_row{$_} = $::Flink->[$::handle_map{$_}]; }
+  my $skip = 0;
+  if (defined($PSTORE_PIVOT_COLUMN)) {
+    if (!defined($PSTORE_PIVOT_VALUE) || $PSTORE_PIVOT_VALUE ne $::Flink->[$PSTORE_PIVOT_COLUMN]) {
+      $PSTORE_PIVOT_VALUE = $::Flink->[$PSTORE_PIVOT_COLUMN];
+      $skip = 1;
+    }
+    else {
+      return 0;     # cache is still valid, not a new group
+    }
+  }
+  for (keys %::handle_map) { $::previous_row{$_} = $::Flink->[$::handle_map{$_}]; }
+  return $skip;
 }
 
 
  $::Nrows = 0;    # includes header.
 my $Nignr = 0;
 my $Ndisc = 0;
+my $Nskip = 0;    # --pgroup
 my $Nkeep = 0;
 
 while (<>) {
@@ -1171,7 +1195,13 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
   do_compute(\@F) if @::compute;         # this pushes compute onto @F if present.
 
-  do_cache() if $B_pstore;
+  if ($B_pstore) {
+     if (do_cache()) {
+       $Nskip++;
+       next;
+       # ^ fixme checkme make sure this works with all (tallying) modes
+     }
+  }
 
   my $nmatch = 0;
 
@@ -1217,7 +1247,7 @@ print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && 
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
 my $B_header = 1 - $B_headless;
-print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc;
+print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$Nskip)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$Nskip;
 
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
