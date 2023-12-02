@@ -37,12 +37,12 @@ The second part is a listing of useful programs and techniques, currently under 
    data frames where various (but certainly not all) transformations and
    derivations among raw data and processed data can be achieved using relatively short command lines
    comprised of chains of standard tools.
-   This way of working can bring clarity and improvements in the data structures and outputs committed
-   to the file system, leading to worfklows that are easier to monitor, inspect and debug.
+   This way of working can bring _clarity and improvements in the data structures and outputs committed
+   to the file system_, leading to worfklows that are easier to monitor, inspect and debug.
 
-   Where possible this approach goes beyond standard UNIX piped commands by using tools and methods
-   that are able to utilise column names and row names.
-   An additional benefit is often that data can be streamed rather
+   Where possible this approach goes beyond standard UNIX piped commands by using
+   _tools and methods that use column names and row names as handles to specify desired transformation_.
+   An additional benefit is often that _data can be streamed_ rather
    loaded in its entirety into memory, thus scaling to very large data sets.
    Even where this benefit does not apply, such as in the often-needed case of
    sorting large data, unix `sort` is a highly optimised tool, sorting data that does
@@ -54,7 +54,7 @@ The second part is a listing of useful programs and techniques, currently under 
    are very slow compared to in-memory transformations. The flip side of this is that
    in-memory transformations put limits on the data size that can be handled and lead to more opaque
    and less flexible workflows, inducing monolithic programs with intricate
-   logic. Streamed data is more condordant with a functional programming mindset [note/ref].
+   logic. _Streamed data is more condordant with a functional programming mindset_ [note/ref].
    Furthermore, the streaming aspect can be independently optimised.
    One example is the piping of commands, avoiding disk access between successive
    transformations. A second example, applicable in narrow cases, is that of binary formats that obviate
