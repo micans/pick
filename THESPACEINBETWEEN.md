@@ -97,7 +97,7 @@ The second part is a listing of useful programs and techniques, currently under 
   My main use for this is to compute data statistics, optionally grouped over a categorical second variable. `mlr` can do
   many of these things as well.
 
-- [bioawk](https://github.com/lh3/bioawk)
+- [bioawk](https://github.com/lh3/bioawk)  
   _Bioawk is an extension to Brian Kernighan's awk, adding the support of several common biological data formats, including optionally gzip'ed BED, GFF, SAM, VCF, FASTA/Q and TAB-delimited formats with column names._
   Written by Heng Li, this is an extremely useful tool.
 
@@ -122,20 +122,20 @@ Of note is that these examples can be achieved with `mlr --tsv sort` and `mlr --
 approach can be a useful option e.g. for very large inputs.
 
 
-- `transpose` -- flip a table so rows become columns and vice versa.
+- `transpose` - flip a table so rows become columns and vice versa.
    [My own version](https://github.com/micans/reaper) is battle-tested and highly memory efficient, with useful features
    such as the ability to read gzip-compressed files directly.  Out of the datamash box it is available as `datamash transpose`.
 
-- `join` -- join two files on a common field.  
+- `join` - join two files on a common field.  
    Caveat; the columns to be compared need to be in `sort(1)` order just using the option `-b` (ignore leading
    blank character).  In small tests I carried out both regular sort and version sort seemed to work, but even just
    testing this is probably an extremely daft thing to do. [todo-add a short description of what happens when `join` is
    not happy about the sort order.]
 
-- `sort` -- versatile workhorse.  
+- `sort` - versatile workhorse.  
    Use `sort -V` for "version sort".
 
--  `uniq -c` -- rather use `datamash -g 1 count 1`
+-  `uniq -c` - rather use `datamash -g 1 count 1`
 
 - `hissyfit`  
    Visualisation is the hardest to come by on the command line. Histograms are a useful workhorse
@@ -143,7 +143,7 @@ approach can be a useful option e.g. for very large inputs.
    bar characters, providing eight levels per output line. As a very poor alternative alternative to scatterplots
    I occassionally resort to a histogram of ratios (poor alternative I must stress).
 
-- `nl` -- number lines. Use `nl -w 1 [-v 0] [-i 1]` (`-w 1` to avoid pretty printing with spaces, `-v 0` zero-based, `-i` increment).
+- `nl` - number lines. Use `nl -w 1 [-v 0] [-i 1]` (`-w 1` to avoid pretty printing with spaces, `-v 0` zero-based, `-i` increment).
 
 - GNU `parallel`; parallel execution on a single multi-CPU machine. Caveat the right version of parallel. Insanely powerful.
 
@@ -177,8 +177,9 @@ approach can be a useful option e.g. for very large inputs.
 
 - `env`
 
-- `grep` -- generally I use pick, e.g. pick @foo=bar (exact match) or @foo~bar (regular expression match)
-   grep is faster, but pick offers precise control. `grep` has many useful options [todo-add].
+- `grep` - generally I use `pick`, e.g. `pick @foo=bar` (exact match) or `pick @foo~bar` (regular expression match)
+   and the negated versions `pick @foo/=bar` (exclude exact match) and `pick @foo/~bar` (exclude regular expression match).
+  `grep` is faster, but `pick` offers precise control. `grep` has many useful options [todo-add].
 
 - `bc -l <<< 'scale=4; 1/2'` (`s` for sine `c` for cosine `a` for atan `l` for log `e` for exp)
 
@@ -215,7 +216,7 @@ approach can be a useful option e.g. for very large inputs.
 -  `awk` is cell table-entry aware, but otherwise not a DSL - it essentially requires writing scripts.
    `Bioawk` is a highly useful adaptation.
 
--   https://mikulskibartosz.name/functional-programming-principles-vs-data-streaming
+-   [Data flow - what functional programming and Unix philosophy can teach us about data streaming](https://mikulskibartosz.name/functional-programming-principles-vs-data-streaming)  
    _Functional programming is about focusing on what is relevant to the problem and expressing it as a series of data transformations. Jessica Kerr describes pure functions as “data-in data-out” functions. Those things are conceptually the same._
 
 
