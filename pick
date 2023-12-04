@@ -87,7 +87,7 @@ my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable
 my $B_protect_discard = 0;  # Discard rows that needed protection.
 my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
-my $B_pstore       = 0;     # If set, load ::previous_row with previous line final computed fields
+my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
 
 my $fh_other       = undef;
 my $name_demux     = undef;
@@ -104,6 +104,7 @@ my $PSTORE_LIST    = '';      # how annoying.
 my $PSTORE_PIVOT_COLUMN  = undef;
 my $PSTORE_PIVOT_HANDLE  = undef;
 my $PSTORE_PIVOT_VALUE   = undef;
+%::pstore_cache = ();
 
 my $Nprotect      = 0;
 my $Nprotect_discard = 0;
@@ -180,7 +181,7 @@ my %cp_opdefinitions =
      cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[SH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
      cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
-     pload     => [ 1, sub { $::STACK[-1] = $::previous_row{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate" ],
+     pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate" ],
 
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
@@ -424,7 +425,6 @@ my $nameslist = "";
 
 %::dict = ();
 %::dictnotfound = ();
-%::previous_row = ();
 
 sub read_dict {
    my ($name, $fname) = @_;
@@ -764,10 +764,11 @@ sub parse_compute {
       my $opdef = $cp_opdefinitions{$what};
       die "[$what] is not an operator I know" unless defined($opdef);
       if ($what eq 'pload') {
-         die "Operator 'pload' requires option --pstore" unless $B_pstore;
+         die "Operator 'pload' requires option --pstore (or --pgroup)" unless $B_pstore;
          die "Operator 'pload' requires operand" unless @oplist > 1;
          die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
             unless $oplist[-2][0] == $TYPE_SCALAR;
+         $::pstore_cache{$oplist[-2][1]}++;
       }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
@@ -1067,13 +1068,13 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
   }
 
   if ($B_pstore) {
-     for my $pair (split ",", $PSTORE_LIST) {
+     for my $pair (split ",", $PSTORE_LIST) {                  # Note empty string yields empty list with split.
         my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;
         die "Name $k is not a known column handle with --pstore" unless defined($::handle_map{$k});
         die "Column $k was not supplied with a value" unless defined($v);
-        $::previous_row{$k} = $v;
+        $::pstore_cache{$k} = $v;
      }
-     for (keys %::handle_map) { $::previous_row{$_} = $PSTORE_DEFAULT unless defined($::previous_row{$_}); }
+     for (keys %::pstore_cache) { $::pstore_cache{$_} = $PSTORE_DEFAULT unless defined($::pstore_cache{$_}); }
   }
 }
 
@@ -1119,7 +1120,7 @@ sub do_cache {
       return 0;     # cache is still valid, not a new group
     }
   }
-  for (keys %::handle_map) { $::previous_row{$_} = $::Flink->[$::handle_map{$_}]; }
+  for (keys %::pstore_cache) { $::pstore_cache{$_} = $::Flink->[$::handle_map{$_}]; }
   return $skip;
 }
 
