@@ -1084,8 +1084,6 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
 
 sub do_compute {
 
-  my $F = shift;
-
   for my $spic (@::compute) {
 
     my ($handle, $compute) = @$spic;
@@ -1095,7 +1093,7 @@ sub do_compute {
 
       my ($type, $what, @other) = @$comp;
 
-         if ($type == $TYPE_HANDLE) { push @::STACK, $F->[$what]; }
+         if ($type == $TYPE_HANDLE) { push @::STACK, $::Flink->[$what]; }
       elsif ($type == $TYPE_SCALAR) { push @::STACK, $what; }
       elsif ($type != $TYPE_OPATOR) { die "Really unfortunate!\n"; }
 
@@ -1106,14 +1104,16 @@ sub do_compute {
          pop @::STACK while --$n_wanted > 0;    # subs put computed element in the right place.
       }
     }
-    push @$F, (join "", @::STACK);
+    push @$::Flink, (join "", @::STACK);
   }
-  die "Cp error\n" unless @::HEADER == @$F;
+  die "Cp error\n" unless @::HEADER == @$::Flink;
 }
 
 
 sub do_cache {
+
   my $skip = 0;
+
   if (defined($PSTORE_PIVOT_COLUMN)) {
     if (!defined($PSTORE_PIVOT_VALUE) || $PSTORE_PIVOT_VALUE ne $::Flink->[$PSTORE_PIVOT_COLUMN]) {
       $PSTORE_PIVOT_VALUE = $::Flink->[$PSTORE_PIVOT_COLUMN];
@@ -1197,10 +1197,10 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
     $::Nrows++;
   }
 
-  do_compute(\@F) if @::compute;         # this pushes compute onto @F if present.
+  do_compute if @::compute;         # this pushes compute onto @F if present.
 
   if ($B_pstore) {
-     if (do_cache()) {
+     if (do_cache) {
        $Ngroup++;
        next;
      }
