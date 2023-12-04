@@ -848,28 +848,31 @@ print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$sp
    for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
 print STDERR "-- (output) considering $item\n" if $L_verbose >= 2;
       if ($B_headless && parse_range($item)) {
-         push @matches, map { [$_, $_] } @::colindexes;        #  global for the win.
+         push @matches, map { { namein => $_, nameout => $_ } } @::colindexes;        #  global for the win.
       }
       elsif ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
          my $nfound = 0;
          for my $name (@::HEADER[0..($::N-1)]) {
             if ($name =~ qr/$item/) {
-               push @matches, [$name, defined($1) ? $1 : $name];
+               push @matches, { namein => $name, nameout => defined($1) ? $1 : $name };
                $nfound++;
             }
          }
 print STDERR "-- (output) $item was considered as regex and yielded no matches\n" unless $nfound;
       }
       else {
-         push @matches, [$item, $item];
+         push @matches, { namein => $item, nameout => $item };
       }
    }
    my $n_matches = @matches; local $" = ' ';
-   $_->[1] = "$prefix$_->[1]$suffix" for @matches; my @matchnames = map { $_->[0] } @matches;
+   for (@matches) {
+      $_->{nameout} = "$prefix$_->{nameout}$suffix";
+   }
+   my @matchnames = map { $_->{namein} } @matches;
 print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_verbose >= 2 || (!$n_matches && $spec);
    # dangersign, below is ugly.
-   unshift @matches, $duplicate if $has_compute;
-   return (@matches);
+   # unshift @matches, $duplicate if $has_compute;
+   return ($duplicate, \@matches);
 }
 
 sub wrangle_header {
@@ -889,17 +892,17 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
 
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
-      my ($handle, $type, $compute) = (urldecode($1), $2, $3);                # @urldecode handle::
+      my ($handle, $type, $compute) = (urldecode($1), $2, $3);    # @urldecode handle::
       die "Compute cannot be empty\n" unless length($compute);
       $handle = $DUMMY_NAME++ if $handle eq '';
-      my ($duplicate, @matches) = expand_list_range_and_regex($handle, 1);
+      my ($duplicate, $matches) = expand_list_range_and_regex($handle, 1);
       $compute = ":$compute" unless $compute =~ /^[,:^]/;
-      for my $m (@matches) {
-        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->[0]/g;
+      for my $m (@$matches) {
+        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->{namein}/g;
         my $parsed_compute = parse_compute($handle, $compute_m);
-        push @::compute, [$m->[1], $parsed_compute];
-        push @::output_nm, $m->[0] if $duplicate;
-        push @::output_nm, $m->[1] if $type eq '::';        # ':=' is assignment without output.
+        push @::compute, [$m->{nameout}, $parsed_compute];
+        push @::output_nm, $m->{namein} if $duplicate;            # fixme consider // duplicate combined with := assignment
+        push @::output_nm, $m->{nameout} if $type eq '::';        # ':=' is assignment without output.
       }
     }
                   #  H handle
@@ -927,8 +930,8 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
     }
     else {
       $spec = urldecode($spec);                                               # @urldecode selection/regex-selection
-      my @matches = expand_list_range_and_regex($spec, 0);
-      for my $m (@matches) { push @::output_nm, $m->[0]; }
+      my ($unused_variable, $matches) = expand_list_range_and_regex($spec, 0);
+      for my $m (@$matches) { push @::output_nm, $m->{namein}; }
     }
   }
 
@@ -981,8 +984,8 @@ print STDERR "-- Identical output column names exist ($job)\n";
     for my $comp (@$compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
-         my @matches = expand_list_range_and_regex($what, 0);
-         for my $h (@matches) { push @expanded_compute, [$TYPE_HANDLE, $h->[0]]; }
+         my ($unused_variable, $matches) = expand_list_range_and_regex($what, 0);
+         for my $m (@$matches) { push @expanded_compute, [$TYPE_HANDLE, $m->{namein}]; }
       }
       else {
          push @expanded_compute, $comp;
