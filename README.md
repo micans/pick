@@ -71,7 +71,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
-&emsp;&emsp;[Caching the first row of a group](#caching-the-first-row-of-a-group)  
+&emsp;&emsp;[Loading a previous row within a group](#loading-a-previous-row-within-a-group)
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -900,7 +900,7 @@ pick -k --pstore/1:no-such-name prevend::^3,pload curstart::2 pname:=^1,pload @p
    used as a string that is not expected to occur as a name in the first row.
 
 
-### Caching the first row of a group
+### Loading a previous row within a group
 
 This functionality is an extension of the general caching mechanism (`--pstore` in the previous section). With
 
@@ -909,12 +909,11 @@ This functionality is an extension of the general caching mechanism (`--pstore` 
 --group-first-ref=<COLNAME>
 ```
 
-After computing new columns, if any, pick will cache each row where column `<COLNAME>` assumes a new value (compared
-to the previous row), and then skip that row.
+pick recognises groups of consecutive rows where column `<COLNAME>` has the same value.
+The first row of such a group is always skipped (after computation, before output). Each subsequent row of the
+group can load column values from a previous reference row using `pload`.
 With `--group` the reference row is simply the previous row.
-With `--group-first-ref` the skipped row is the first row of, and deemed to be the reference for,
-the group of consecutive rows that share the same value in column `<COLNAME>`.
-For subsequent rows in the group the operator `pload` will load data from the reference (previous or first) row.
+With `--group-first-ref` the first (skipped) row is the reference row.
 If there are no consecutive rows in the input where `<COLNAME>` assumes the same value then all rows will be skipped.
 
 
