@@ -902,16 +902,19 @@ pick -k --pstore/1:no-such-name prevend::^3,pload curstart::2 pname:=^1,pload @p
 
 ### Caching the first row of a group
 
-This functionality is an extension of the general caching mechanism. With
+This functionality is an extension of the general caching mechanism (`--pstore` in the previous section). With
 
 ```
---pgroup=<COLNAME>
+--group=<COLNAME>
+--group-first-ref=<COLNAME>
 ```
 
 After computing new columns, if any, pick will cache each row where column `<COLNAME>` assumes a new value (compared
 to the previous row), and then skip that row.
-The skipped row is the first row of, and deemed to be the reference for, the group of consecutive rows that share the same value in column `<COLNAME>`.
-For subsequent rows in the group the operator `pload` will load data from the reference row.
+With `--group` the reference row is simply the previous row.
+With `--group-first-ref` the skipped row is the first row of, and deemed to be the reference for,
+the group of consecutive rows that share the same value in column `<COLNAME>`.
+For subsequent rows in the group the operator `pload` will load data from the reference (previous or first) row.
 If there are no consecutive rows in the input where `<COLNAME>` assumes the same value then all rows will be skipped.
 
 

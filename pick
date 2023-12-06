@@ -88,6 +88,7 @@ my $B_protect_discard = 0;  # Discard rows that needed protection.
 my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
+my $B_groupfirst   = 0;     # Whether to cache the first row of a group for all subsequent group elements.
 
 my $fh_other       = undef;
 my $name_demux     = undef;
@@ -627,9 +628,10 @@ EOH
        $PSTORE_LIST = $2 if defined($1);
        $PSTORE_DEFAULT = $4 if defined($3);
      }
-     elsif ($options =~ /^pgroup=(\S+)$/) {
+     elsif ($options =~ /^group(-first-ref)?=(\S+)$/) {
        $B_pstore = 1;
-       $PSTORE_PIVOT_HANDLE = $1;
+       $PSTORE_PIVOT_HANDLE = $2;
+       $B_groupfirst = 1 if defined($1);
      }
      elsif ($options eq 'version') {
        print "pick version: $v_v_v\n";
@@ -764,7 +766,7 @@ sub parse_compute {
       my $opdef = $cp_opdefinitions{$what};
       die "[$what] is not an operator I know" unless defined($opdef);
       if ($what eq 'pload') {
-         die "Operator 'pload' requires option --pstore (or --pgroup)" unless $B_pstore;
+         die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
          die "Operator 'pload' requires operand" unless @oplist > 1;
          die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
             unless $oplist[-2][0] == $TYPE_SCALAR;
@@ -870,8 +872,7 @@ print STDERR "-- (output) $item was considered as regex and yielded no matches\n
    }
    my @matchnames = map { $_->{namein} } @matches;
 print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_verbose >= 2 || (!$n_matches && $spec);
-   # dangersign, below is ugly.
-   # unshift @matches, $duplicate if $has_compute;
+
    return ($duplicate, \@matches);
 }
 
@@ -1022,7 +1023,7 @@ print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
 
   if (defined($PSTORE_PIVOT_HANDLE)) {
      $PSTORE_PIVOT_COLUMN = $::handle_map{$PSTORE_PIVOT_HANDLE};
-     die "--pgroup argument $PSTORE_PIVOT_HANDLE not among the column names I know" unless defined($PSTORE_PIVOT_COLUMN);
+     die "--group argument $PSTORE_PIVOT_HANDLE not among the column names I know" unless defined($PSTORE_PIVOT_COLUMN);
   }
 
   if (defined($name_demux)) {
@@ -1120,7 +1121,7 @@ sub do_cache {
       $skip = 1;
     }
     else {
-      return 0;     # cache is still valid, not a new group
+      return 0 if $B_groupfirst;     # cache is still valid, not a new group
     }
   }
   for (keys %::pstore_cache) { $::pstore_cache{$_} = $::Flink->[$::handle_map{$_}]; }
@@ -1131,7 +1132,7 @@ sub do_cache {
  $::Nrows = 0;    # includes header.
 my $Nignr = 0;    # skipped based on pattern; e.g. pick -/^#
 my $Ndisc = 0;    # skipped because @ criteria not met
-my $Ngroup = 0;   # skipped because first in group: --pgroup
+my $Ngroup = 0;   # skipped because first in group: --group
 my $Nkeep = 0;
 
 while (<>) {

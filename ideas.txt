@@ -1,5 +1,5 @@
 
-  -  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
+  /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
      during compilation perhaps use hashes to increase legibility.
 
   ?  protect against log(-1) etc
