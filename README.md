@@ -71,7 +71,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
-&emsp;&emsp;[Loading a previous row within a group](#loading-a-previous-row-within-a-group)
+&emsp;&emsp;[Loading a previous row within a group](#loading-a-previous-row-within-a-group)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -911,7 +911,7 @@ This functionality is an extension of the general caching mechanism (`--pstore` 
 
 pick recognises groups of consecutive rows where column `<COLNAME>` has the same value.
 The first row of such a group is always skipped (after computation, before output). Each subsequent row of the
-group can load column values from a previous reference row using `pload`.
+group can load column values from a reference row using `pload`.
 With `--group` the reference row is simply the previous row.
 With `--group-first-ref` the first (skipped) row is the reference row.
 If there are no consecutive rows in the input where `<COLNAME>` assumes the same value then all rows will be skipped.
