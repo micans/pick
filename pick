@@ -78,7 +78,7 @@ my $B_weirdmode    = 0;     # Header exists, but users wants to use numbers (tur
 my $B_force        = 0;     # Force output if identical output names exist
 my $F_ignore       = 0;     # Flags: 0 oblivious, 1 pass, 2 purge, 4 read sam sequence lengths SN:(\S+)\s+LN:(\d+)
 my $B_debug        = 0;     # Mostly documents the stages of compute and selection definitions
-my $B_verbose      = 0;     # Not terrifically interesting
+my $L_verbose      = 0;     # Not terrifically interesting
 my $B_add_names    = 0;     # If other names are given, whether to output them as column names
 my $F_list         = 0;     # output index or name list of selected columns (1: index, 2: name)
 my $B_posthoc_names = 0;    # Other names are given solely for output
@@ -87,6 +87,7 @@ my $B_protect      = 0;     # Some protection against divide-by-zero; modifiable
 my $B_protect_discard = 0;  # Discard rows that needed protection.
 my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
+my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
 
 my $fh_other       = undef;
 my $name_demux     = undef;
@@ -97,6 +98,13 @@ $::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
+
+my $PSTORE_DEFAULT = "00000000";
+my $PSTORE_LIST    = '';      # how annoying.
+my $PSTORE_PIVOT_COLUMN  = undef;
+my $PSTORE_PIVOT_HANDLE  = undef;
+my $PSTORE_PIVOT_VALUE   = undef;
+%::pstore_cache = ();
 
 my $Nprotect      = 0;
 my $Nprotect_discard = 0;
@@ -172,6 +180,8 @@ my %cp_opdefinitions =
      cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MISH=X', 'sum') }, "c\tqrylen\tLength of query (MIS=X events) in cigar string c\tstring/sam" ],
      cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[SH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
      cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
+
+     pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate" ],
 
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
@@ -309,7 +319,7 @@ my %sel_opdefinitions = (
 );
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
-my $opsections  = 'arithmetic bitop devour dictionary format input math output precision regex sam stack string';
+my $opsections  = 'arithmetic bitop devour dictionary format input math output precision regex sam stack state string';
 
 my $help_options=q{Options:
   -h do not print header
@@ -364,7 +374,8 @@ my $help_options=q{Options:
                      This stores a dictionary called NAME that can be used to map values
                      with ...^NAME,map. Small dictionaries can be encoded on the command line with
   --cdict-NAME=<csv> where <csv> is a comma separated string of key:value pairs -- after splitting
-                     on commas and colons all keys and values are url-decoded. Example usage:
+                     on commas and colons all keys and values are url-decoded. Example:
+
        echo -e "a\t3\nb\t4" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
 
   --other=fname      write discarded rows to fname
@@ -373,6 +384,19 @@ my $help_options=q{Options:
                      a file with zero rows), this could be dangerous if an older version exists.
 
   --version          version
+
+  --pstore
+  --pstore/<LIST>/<DEFAULT>
+  --pstore/<LIST>/   
+  --pstore//<DEFAULT>
+                     Cache/store previous row. Available to load with ^colname,pload. If <LIST>
+                     (comma-separated, colon-separated key-value pairs) is specified it is used to
+                     populate the named fields of the predecessor of the first row.  If <DEFAULT>
+                     is specified it is used for all fields not named. Example (Fibonacci):
+
+       yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
+
+                     Can be used to detect group boundaries in sorted data.
 
   --idx-list         Output list of selected indexes       ⦊ can be combined, pick will exit after.
   --name-list        Output list of selected column names  ⦊
@@ -413,8 +437,8 @@ sub read_dict {
       $::dict{$name}{$F[0]} = $value;
    } close(D);
    my $n = keys %{$::dict{$name}};
-print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $B_verbose;
-print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $B_verbose && $n_novalue;
+print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
+print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 2 && $n_novalue;
 }
 
 {  my %fh_demux = ();
@@ -474,15 +498,15 @@ print STDERR "-- range expansion produced some indexes out of range (now dropped
 sub parse_dict {
    my ($name, $string) = @_;
    for my $pair (split ",", $string) {
-      my ($k, $v) = map { urldecode($_) } split ':', $pair;          # @urldecode --cdict-NAME=
+      my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;        # @urldecode --cdict-NAME=
       if (!defined($v)) {
-         print STDERR "-- Setting value for $k to 1\n" if $B_verbose;
+         print STDERR "-- Setting value for $k to 1\n" if $L_verbose >= 2;
          $v = 1;
       }
       $::dict{$name}{$k} = $v;
    }
    my $n = keys %{$::dict{$name}};
-print STDERR "-- dictionary $name has $n keys after parsing string\n" if $B_verbose;
+print STDERR "-- dictionary $name has $n keys after parsing string\n" if $L_verbose >= 2;
 }
 
 while (@::spec && $::spec[0] =~ /^-/) {
@@ -598,6 +622,15 @@ EOH
      elsif ($options =~ /^(idx|name)-list$/) {
        $F_list |= $1 eq 'idx' ? 1 : 2;
      }
+     elsif ($options =~ /^pstore(\/(.*?))?(\/(.*?))?$/) {
+       $B_pstore = 1;
+       $PSTORE_LIST = $2 if defined($1);
+       $PSTORE_DEFAULT = $4 if defined($3);
+     }
+     elsif ($options =~ /^pgroup=(\S+)$/) {
+       $B_pstore = 1;
+       $PSTORE_PIVOT_HANDLE = $1;
+     }
      elsif ($options eq 'version') {
        print "pick version: $v_v_v\n";
        exit 0;
@@ -669,7 +702,7 @@ EOH
   $B_protect      = 1 if $options =~ s/P//;
   ($B_protect, $B_protect_discard) = (1,1) if $options =~ s/Z//;
   $B_select_and   = 0 if $options =~ s/o//;
-  $B_verbose      = 1 if $options =~ s/v//;
+  $L_verbose += length($1)  if $options =~ s/(v+)//;
   $B_ko           = 1 if $options =~ s/U//;
   $B_excise       = 1 if $options =~ s/x//;
   $B_add_row_column =1 if $options =~ s/R//;
@@ -729,7 +762,14 @@ sub parse_compute {
     $p = pos($spec);
     if ($type == $TYPE_OPATOR) {
       my $opdef = $cp_opdefinitions{$what};
-      die "Not supported [$what]\n" unless defined($opdef);
+      die "[$what] is not an operator I know" unless defined($opdef);
+      if ($what eq 'pload') {
+         die "Operator 'pload' requires option --pstore (or --pgroup)" unless $B_pstore;
+         die "Operator 'pload' requires operand" unless @oplist > 1;
+         die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
+            unless $oplist[-2][0] == $TYPE_SCALAR;
+         $::pstore_cache{$oplist[-2][1]}++;
+      }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
 print STDERR "-- $handle >> type=$type op=$what N=$opdef->[0], code=$what:$opdef->[1]\n" if $B_debug;
@@ -806,30 +846,33 @@ print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$sp
    }
 
    for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
-print STDERR "-- (output) considering $item\n" if $B_verbose;
+print STDERR "-- (output) considering $item\n" if $L_verbose >= 2;
       if ($B_headless && parse_range($item)) {
-         push @matches, map { [$_, $_] } @::colindexes;        #  global for the win.
+         push @matches, map { { namein => $_, nameout => $_ } } @::colindexes;        #  global for the win.
       }
       elsif ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
          my $nfound = 0;
          for my $name (@::HEADER[0..($::N-1)]) {
             if ($name =~ qr/$item/) {
-               push @matches, [$name, defined($1) ? $1 : $name];
+               push @matches, { namein => $name, nameout => defined($1) ? $1 : $name };
                $nfound++;
             }
          }
 print STDERR "-- (output) $item was considered as regex and yielded no matches\n" unless $nfound;
       }
       else {
-         push @matches, [$item, $item];
+         push @matches, { namein => $item, nameout => $item };
       }
    }
    my $n_matches = @matches; local $" = ' ';
-   $_->[1] = "$prefix$_->[1]$suffix" for @matches; my @matchnames = map { $_->[0] } @matches;
-print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $B_verbose || (!$n_matches && $spec);
+   for (@matches) {
+      $_->{nameout} = "$prefix$_->{nameout}$suffix";
+   }
+   my @matchnames = map { $_->{namein} } @matches;
+print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_verbose >= 2 || (!$n_matches && $spec);
    # dangersign, below is ugly.
-   unshift @matches, $duplicate if $has_compute;
-   return (@matches);
+   # unshift @matches, $duplicate if $has_compute;
+   return ($duplicate, \@matches);
 }
 
 sub wrangle_header {
@@ -842,24 +885,24 @@ sub wrangle_header {
 
   for (my $i=0; $i<@::HEADER; $i++) {
     my $name = $::HEADER[$i];
-    die "Name $name defined more than once\n" if defined($::handle_map{$name}) && !defined($B_force);
+    die "Name $name defined more than once\n" if defined($::handle_map{$name}) && !$B_force;
     $::handle_map{$name} = $i;   
 print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   }
 
   for my $spec (@::spec) {
     if ($spec =~ /^(.*?)(:[:=])(.*)/) {
-      my ($handle, $type, $compute) = (urldecode($1), $2, $3);                # @urldecode handle::
+      my ($handle, $type, $compute) = (urldecode($1), $2, $3);    # @urldecode handle::
       die "Compute cannot be empty\n" unless length($compute);
       $handle = $DUMMY_NAME++ if $handle eq '';
-      my ($duplicate, @matches) = expand_list_range_and_regex($handle, 1);
+      my ($duplicate, $matches) = expand_list_range_and_regex($handle, 1);
       $compute = ":$compute" unless $compute =~ /^[,:^]/;
-      for my $m (@matches) {
-        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->[0]/g;
+      for my $m (@$matches) {
+        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->{namein}/g;
         my $parsed_compute = parse_compute($handle, $compute_m);
-        push @::compute, [$m->[1], $parsed_compute];
-        push @::output_nm, $m->[0] if $duplicate;
-        push @::output_nm, $m->[1] if $type eq '::';
+        push @::compute, [$m->{nameout}, $parsed_compute];
+        push @::output_nm, $m->{namein} if $duplicate;            # fixme consider // duplicate combined with := assignment
+        push @::output_nm, $m->{nameout} if $type eq '::';        # ':=' is assignment without output.
       }
     }
                   #  H handle
@@ -887,8 +930,8 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
     }
     else {
       $spec = urldecode($spec);                                               # @urldecode selection/regex-selection
-      my @matches = expand_list_range_and_regex($spec, 0);
-      for my $m (@matches) { push @::output_nm, $m->[0]; }
+      my ($unused_variable, $matches) = expand_list_range_and_regex($spec, 0);
+      for my $m (@$matches) { push @::output_nm, $m->{namein}; }
     }
   }
 
@@ -932,6 +975,8 @@ print STDERR "-- Identical output column names exist ($job)\n";
   ##  In derived column specs replace names by offsets into field array.
   #
 
+  my %pload_references = ();
+
   for (my $i=0; $i<@::compute; $i++) {
     my ($name, $compute) = @{$::compute[$i]};
     die "Name $name already defined (use -i for in-place change)\n" if defined($::handle_map{$name}) && !$B_inplace;
@@ -939,13 +984,15 @@ print STDERR "-- Identical output column names exist ($job)\n";
     for my $comp (@$compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
-         my @matches = expand_list_range_and_regex($what, 0);
-         for my $h (@matches) { push @expanded_compute, [$TYPE_HANDLE, $h->[0]]; }
+         my ($unused_variable, $matches) = expand_list_range_and_regex($what, 0);
+         for my $m (@$matches) { push @expanded_compute, [$TYPE_HANDLE, $m->{namein}]; }
       }
       else {
          push @expanded_compute, $comp;
       }
     }
+    my $prev_what = undef; # ugly/fixme; temporary to enforce pload compile-time check for column name presence.
+
     for my $comp (@expanded_compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
@@ -955,6 +1002,10 @@ print STDERR "-- Identical output column names exist ($job)\n";
                               # for the current foo, and the second foo no longer exists. The first foo does not have an
                               # associated offset yet;
       }
+      if ($type == $TYPE_OPATOR && $what eq 'pload') {
+         $pload_references{$prev_what}++;
+      }
+      $prev_what = $what;
     }
     $::compute[$i] = [$name, \@expanded_compute];
 
@@ -964,6 +1015,14 @@ print STDERR "-- Identical output column names exist ($job)\n";
                               # inplace NOTE continued. Future lookups for foo will refer to this definition; This includes output.
                               # This process is consistently applied if multiple foo:: are specified.
 print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
+  }
+
+  my @pload_notfound = grep { !defined($::handle_map{$_}) } keys %pload_references;
+  die "'pload' argument(s) @pload_notfound not among the column names I know" if @pload_notfound;
+
+  if (defined($PSTORE_PIVOT_HANDLE)) {
+     $PSTORE_PIVOT_COLUMN = $::handle_map{$PSTORE_PIVOT_HANDLE};
+     die "--pgroup argument $PSTORE_PIVOT_HANDLE not among the column names I know" unless defined($PSTORE_PIVOT_COLUMN);
   }
 
   if (defined($name_demux)) {
@@ -1010,12 +1069,20 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
   for (@::HEADER) {
     $_ = '' if $_ eq '_';
   }
+
+  if ($B_pstore) {
+     for my $pair (split ",", $PSTORE_LIST) {                  # Note empty string yields empty list with split.
+        my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;
+        die "Name $k is not a known column handle with --pstore" unless defined($::handle_map{$k});
+        die "Column $k was not supplied with a value" unless defined($v);
+        $::pstore_cache{$k} = $v;
+     }
+     for (keys %::pstore_cache) { $::pstore_cache{$_} = $PSTORE_DEFAULT unless defined($::pstore_cache{$_}); }
+  }
 }
 
 
 sub do_compute {
-
-  my $F = shift;
 
   for my $spic (@::compute) {
 
@@ -1026,7 +1093,7 @@ sub do_compute {
 
       my ($type, $what, @other) = @$comp;
 
-         if ($type == $TYPE_HANDLE) { push @::STACK, $F->[$what]; }
+         if ($type == $TYPE_HANDLE) { push @::STACK, $::Flink->[$what]; }
       elsif ($type == $TYPE_SCALAR) { push @::STACK, $what; }
       elsif ($type != $TYPE_OPATOR) { die "Really unfortunate!\n"; }
 
@@ -1037,15 +1104,34 @@ sub do_compute {
          pop @::STACK while --$n_wanted > 0;    # subs put computed element in the right place.
       }
     }
-    push @$F, (join "", @::STACK);
+    push @$::Flink, (join "", @::STACK);
   }
-  die "Cp error\n" unless @::HEADER == @$F;
+  die "Cp error\n" unless @::HEADER == @$::Flink;
+}
+
+
+sub do_cache {
+
+  my $skip = 0;
+
+  if (defined($PSTORE_PIVOT_COLUMN)) {
+    if (!defined($PSTORE_PIVOT_VALUE) || $PSTORE_PIVOT_VALUE ne $::Flink->[$PSTORE_PIVOT_COLUMN]) {
+      $PSTORE_PIVOT_VALUE = $::Flink->[$PSTORE_PIVOT_COLUMN];
+      $skip = 1;
+    }
+    else {
+      return 0;     # cache is still valid, not a new group
+    }
+  }
+  for (keys %::pstore_cache) { $::pstore_cache{$_} = $::Flink->[$::handle_map{$_}]; }
+  return $skip;
 }
 
 
  $::Nrows = 0;    # includes header.
-my $Nignr = 0;
-my $Ndisc = 0;
+my $Nignr = 0;    # skipped based on pattern; e.g. pick -/^#
+my $Ndisc = 0;    # skipped because @ criteria not met
+my $Ngroup = 0;   # skipped because first in group: --pgroup
 my $Nkeep = 0;
 
 while (<>) {
@@ -1111,7 +1197,14 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
     $::Nrows++;
   }
 
-  do_compute(\@F) if @::compute;         # this pushes compute onto @F if present.
+  do_compute if @::compute;         # this pushes compute onto @F if present.
+
+  if ($B_pstore) {
+     if (do_cache) {
+       $Ngroup++;
+       next;
+     }
+  }
 
   my $nmatch = 0;
 
@@ -1152,12 +1245,13 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
 print "$Nkeep\n" if $B_count;
 
-print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $B_verbose;
-print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $B_verbose;
+print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $L_verbose >= 1;
+print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $L_verbose >= 1;
+print STDERR "-- $Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
 my $B_header = 1 - $B_headless;
-print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc;
+print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$Ngroup;
 
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";

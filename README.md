@@ -70,6 +70,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
+&emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
+&emsp;&emsp;[Caching the first row of a group](#caching-the-first-row-of-a-group)  
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
@@ -291,7 +293,7 @@ These are
 - caret `^` for a constant value (number or string)
 - comma `,` for an operator
 
-Constant values and column handles are url-decoded, hence the escape mechanism
+Constant values and column handles are URL-decoded, hence the escape mechanism
 for including any of the characters `^:,%` in a constant value or column handle is to url-encode them.
 The following is an example of a computation:
 
@@ -739,7 +741,7 @@ The characters `= / , : ^` require url-encoding in certain contexts as they are 
 - `^`, `:`, `,` and `=` are used in computation syntax.
 - `/`, `:` and `,` are used in map specifications using `--cdict-NAME=k1:v1,k2:v2`.
 
-These will be url-decoded:
+These will be URL-decoded:
 
 - Column names specified on the command line, including regular expressions expanding to column names.
 - For a computation `<name>::<compute>`, both `<name>` and any constants and names found in `<compute>`.
@@ -868,6 +870,51 @@ pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 ```
 
 
+### Loading data from the previous row
+
+   To cache/store the previous row use one of
+```
+--pstore
+--pstore/<LIST>
+--pstore/<LIST>/<DEFAULT>
+--pstore//<DEFAULT>
+```
+
+   Fields from the previous row are then available to load with `^colname,pload`.
+   If specified, `<LIST>` should be a comma-separated string of key-value pairs themselves
+   separated by a colon; all keys and values will be URL-decoded. The keys should be column names;
+   the values will be used to initialise the fields of the predecessor of the first row.
+   If `<DEFAULT>` is specified it is used for all columns not yet named.
+   Example (compute the first ten Fibonacci numbers):
+```
+yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
+```
+   This functionality can be used to detect group boundaries in sorted data and marry successive records
+   such as 'end position found in previous row' with 'start position found in current row':
+```
+pick -k --pstore/1:no-such-name prevend::^3,pload curstart::2 pname:=^1,pload @pname=:1
+```
+   This loads column 3 from the previous row, column 2 from the current row and the previous
+   name from the first column. It then ensures that
+   the previous name is identical to the current name (in column 1). In this case `no-such-name` is
+   used as a string that is not expected to occur as a name in the first row.
+
+
+### Caching the first row of a group
+
+This functionality is an extension of the general caching mechanism. With
+
+```
+--pgroup=<COLNAME>
+```
+
+After computing new columns, if any, pick will cache each row where column `<COLNAME>` assumes a new value (compared
+to the previous row), and then skip that row.
+The skipped row is the first row of, and deemed to be the reference for, the group of consecutive rows that share the same value in column `<COLNAME>`.
+For subsequent rows in the group the operator `pload` will load data from the reference row.
+If there are no consecutive rows in the input where `<COLNAME>` assumes the same value then all rows will be skipped.
+
+
 ## Option processing
 
 Single-letter options can be combined or specified separately. The offset for `-O` (ragged input), optional offset for `-A`
@@ -934,6 +981,13 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
    to commit `y` that inserted `x` into the pick version tag. I'm not quite
    sure how well this executes the idea of an informative and lazy version
    numbering system.
+
+
+-  `--pstore`  
+   `--pstore/<LIST>`  
+   `--pstore/<LIST>/<DEFAULT>`  
+   `--pstore//<DEFAULT>`  
+   [Use one of these to load data from the previous row.](#loading-data-from-the-previous-row)
 
 
 ## Pick operators
