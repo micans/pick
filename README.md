@@ -9,6 +9,10 @@ on a single text file or stream using its column names (or indexes if no names a
 Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
 Additionally output can be demuxed into different files.
 
+`pick` is **robust** and **intuitive** by supporting column names as handles.
+It is **lightweight** as it processes data per-line without the need to load the table into memory.
+It is **expressive** in that short command lines are sufficient to get at the data.
+
 > [!NOTE]
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
 > is an amazing widely-used command-line tool for handling tables, in an entirely
@@ -26,12 +30,7 @@ In simple to middling cases pick can avoid both the need for a script (R, awk, P
 having to load the entire data set into memory.
 I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows
 and make them more robust and understandable by promoting the use of column names as handles
-(as opposed to column indexes as used with `cut` and `awk`).
-
-`pick` is **robust** and **intuitive** by supporting column names as handles.
-It is **lightweight** as it processes data per-line without the need to load the table into memory.
-It is **expressive** in that short command lines are sufficient to get at the data.
-You can
+(as opposed to column indexes as used with `cut` and `awk`). You can
 
 - Use column names or column indexes to
 - Select columns
@@ -889,20 +888,10 @@ pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 ```
 yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
 ```
-   This functionality can be used to detect group boundaries in sorted data and marry successive records
-   such as 'end position found in previous row' with 'start position found in current row':
-```
-pick -k --pstore/1:no-such-name prevend::^3,pload curstart::2 pname:=^1,pload @pname=:1
-```
-   This loads column 3 from the previous row, column 2 from the current row and the previous
-   name from the first column. It then ensures that
-   the previous name is identical to the current name (in column 1). In this case `no-such-name` is
-   used as a string that is not expected to occur as a name in the first row.
-
 
 ### Loading a previous row within a group
 
-This functionality is an extension of the general caching mechanism (`--pstore` in the previous section). With
+This functionality is an extension of the general caching mechanism (`--pstore` in the previous section). With either of
 
 ```
 --group=<COLNAME>
@@ -915,6 +904,14 @@ group can load column values from a reference row using `pload`.
 With `--group` the reference row is simply the previous row.
 With `--group-first-ref` the first (skipped) row is the reference row.
 If there are no consecutive rows in the input where `<COLNAME>` assumes the same value then all rows will be skipped.
+
+
+Below groups based on the value found in column `gene`, then retrieves the previous exon end coordinate
+and the current exon start coordinate, increments the former and decrements the latter, thus
+outputting intron coordinates.
+```
+pick --group=gene intron_start::^exon_end,pload,incr intron_end::exon_start,decr < data.txt
+```
 
 
 ## Option processing

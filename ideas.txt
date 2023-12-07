@@ -16,3 +16,6 @@
   x  numerical comparisons check field is numeric; however duplicates perl's work/warnings
   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
 
+  x  --group-all -> do not skip first row (re-populate %::pstore_cache from user-specified)
+     problematic that repopulation only happens after compute finished. This is fine if first
+     row is skipped, but pretty impossible for the first row. Current status: overreach.

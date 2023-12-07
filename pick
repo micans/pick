@@ -4,17 +4,17 @@
 my $v_v_v = "c2ab560e6134adfae66462b0545021129af7c0b5::23-331";
 
   #                     Copyright (c) 2022-2023  Stijn van Dongen
-  #      
+  #
   #      Permission is hereby granted, free of charge, to any person obtaining a copy
   #      of this software and associated documentation files (the "Software"), to deal
   #      in the Software without restriction, including without limitation the rights
   #      to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
   #      copies of the Software, and to permit persons to whom the Software is
   #      furnished to do so, subject to the following conditions:
-  #      
+  #
   #      The above copyright notice and this permission notice shall be included in all
   #      copies or substantial portions of the Software.
-  #      
+  #
   #      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   #      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   #      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -105,6 +105,7 @@ my $PSTORE_LIST    = '';      # how annoying.
 my $PSTORE_PIVOT_COLUMN  = undef;
 my $PSTORE_PIVOT_HANDLE  = undef;
 my $PSTORE_PIVOT_VALUE   = undef;
+%::pstore_init  = ();
 %::pstore_cache = ();
 
 my $Nprotect      = 0;
@@ -127,7 +128,7 @@ sub hmeanall {
    my $ret = 0.0;
    if ($B_protect && grep { $_ == 0 } @::STACK) { $Nprotect++; }
    else {
-      my $x = 0; $x += 1/abs($_) for @::STACK; 
+      my $x = 0; $x += 1/abs($_) for @::STACK;
       if ($x || !$B_protect) { $ret = @::STACK / $x; } else { $Nprotect++ }
    }
    return $ret;
@@ -157,6 +158,8 @@ my %cp_opdefinitions =
      rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "-\tx\tPush current table (start one) row number x onto stack\tinput" ],
      r0wno     => [ 0, sub { push @::STACK, $::Nrows -2+$B_headless }, "-\tx\tPush current table (start zero) row number x onto stack\tinput" ],
      lineno    => [ 0, sub { push @::STACK, $.      }, "-\tx\tPush file line number x onto stack\tinput" ],
+     groupno   => [ 0, sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
+     groupi    => [ 0, sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
 
      mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
      pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
@@ -342,7 +345,7 @@ my $help_options=q{Options:
 
   -k headerless input, use 1 2 .. for input column names
      x-y for range from x to y
-     a+x-y*k for range from a + k*x to a+y*k with incrementes of k 
+     a+x-y*k for range from a + k*x to a+y*k with incrementes of k
   -K headerless input, as above, use derived names to output column names
   -U with -k and -K keep output columns unique and in original order
 
@@ -388,7 +391,7 @@ my $help_options=q{Options:
 
   --pstore
   --pstore/<LIST>/<DEFAULT>
-  --pstore/<LIST>/   
+  --pstore/<LIST>/
   --pstore//<DEFAULT>
                      Cache/store previous row. Available to load with ^colname,pload. If <LIST>
                      (comma-separated, colon-separated key-value pairs) is specified it is used to
@@ -558,7 +561,7 @@ $help_options
 <colspec>
 HANDLE identifies either a column by name, or a derived value as in form (4).
 Form (1) -- just a handle -- selects it for output.
-Form (2) creates a select criterion comparing a handle to a constant value. 
+Form (2) creates a select criterion comparing a handle to a constant value.
 Form (3) creates a select criterion comparing a handle to another handle.
 Form (4) creates a derived value in handle, <COMPUTE> specification below.
 Form (5) as form 4, and selects the handle for output.
@@ -628,10 +631,13 @@ EOH
        $PSTORE_LIST = $2 if defined($1);
        $PSTORE_DEFAULT = $4 if defined($3);
      }
-     elsif ($options =~ /^group(-first-ref)?=(\S+)$/) {
+     elsif ($options =~ /^group(-(first-ref|all))?=(\S+)$/) {
        $B_pstore = 1;
-       $PSTORE_PIVOT_HANDLE = $2;
-       $B_groupfirst = 1 if defined($1);
+       $PSTORE_PIVOT_HANDLE = $3;
+       if (defined($1)) {
+          if ($2 eq 'first-ref') { $B_groupfirst = 1; }
+          else             { die "--group-all not available currently"; }
+       }
      }
      elsif ($options eq 'version') {
        print "pick version: $v_v_v\n";
@@ -770,7 +776,7 @@ sub parse_compute {
          die "Operator 'pload' requires operand" unless @oplist > 1;
          die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
             unless $oplist[-2][0] == $TYPE_SCALAR;
-         $::pstore_cache{$oplist[-2][1]}++;
+         $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
@@ -887,7 +893,7 @@ sub wrangle_header {
   for (my $i=0; $i<@::HEADER; $i++) {
     my $name = $::HEADER[$i];
     die "Name $name defined more than once\n" if defined($::handle_map{$name}) && !$B_force;
-    $::handle_map{$name} = $i;   
+    $::handle_map{$name} = $i;
 print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   }
 
@@ -1076,9 +1082,10 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
         my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;
         die "Name $k is not a known column handle with --pstore" unless defined($::handle_map{$k});
         die "Column $k was not supplied with a value" unless defined($v);
-        $::pstore_cache{$k} = $v;
+        $::pstore_init{$k} = $v;
      }
-     for (keys %::pstore_cache) { $::pstore_cache{$_} = $PSTORE_DEFAULT unless defined($::pstore_cache{$_}); }
+     for (keys %::pstore_init) { $::pstore_init{$_} = $PSTORE_DEFAULT unless defined($::pstore_init{$_}); }
+     %::pstore_cache = %::pstore_init;
   }
 }
 
@@ -1118,9 +1125,12 @@ sub do_cache {
   if (defined($PSTORE_PIVOT_COLUMN)) {
     if (!defined($PSTORE_PIVOT_VALUE) || $PSTORE_PIVOT_VALUE ne $::Flink->[$PSTORE_PIVOT_COLUMN]) {
       $PSTORE_PIVOT_VALUE = $::Flink->[$PSTORE_PIVOT_COLUMN];
+      $::Ngroup++;
+      $::Groupi = 2;
       $skip = 1;
     }
     else {
+      $::Groupi++;
       return 0 if $B_groupfirst;     # cache is still valid, not a new group
     }
   }
@@ -1130,10 +1140,12 @@ sub do_cache {
 
 
  $::Nrows = 0;    # includes header.
+$::Ngroup = 0;    # skipped because first in group: --group
 my $Nignr = 0;    # skipped based on pattern; e.g. pick -/^#
 my $Ndisc = 0;    # skipped because @ criteria not met
-my $Ngroup = 0;   # skipped because first in group: --group
 my $Nkeep = 0;
+
+$::Groupi = 2;    # index within group.
 
 while (<>) {
 
@@ -1202,7 +1214,6 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
   if ($B_pstore) {
      if (do_cache) {
-       $Ngroup++;
        next;
      }
   }
@@ -1248,11 +1259,11 @@ print "$Nkeep\n" if $B_count;
 
 print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $L_verbose >= 1;
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $L_verbose >= 1;
-print STDERR "-- $Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
+print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
 my $B_header = 1 - $B_headless;
-print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$Ngroup;
+print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup;
 
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
