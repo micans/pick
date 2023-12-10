@@ -36,14 +36,17 @@ The second part is a listing of useful programs and techniques, currently under 
    In this approach the file system is thought of as an object store of tables and
    data frames where various (but certainly not all) transformations and
    derivations among raw data and processed data can be achieved using relatively short command lines
-   comprised of chains of standard tools.
-   This way of working can bring
-   **clarity and improvements in the data structures and outputs committed to the file system**,
-   leading to worfklows that are easier to monitor, inspect and debug.
+   comprised of chains of standard or custom but often-used tools.
+   This data-centric way of working can bring
+   **clarity and improvements in the data structures and outputs committed to the file system**.
+   The ability to monitor, inspect and debug a workflow,
+   alongside the definitions of quality control measures and summary statistics
+   naturally arise as part of the development process.
+   The data-centric approach induces **rich, parsimonious and orthogonal outputs**.
 
    Where possible this approach goes beyond standard UNIX piped commands by using
    **tools and methods that use column names and row names as handles to specify desired transformation**.
-   An additional benefit is often that **data can be streamed** rather
+   An additional benefit is often that **data can be streamed** rather than
    loaded in its entirety into memory, thus scaling to very large data sets.
    Even where this benefit does not apply, such as in the often-needed case of
    sorting large data, unix `sort` is a highly optimised tool, sorting data that does
@@ -55,12 +58,13 @@ The second part is a listing of useful programs and techniques, currently under 
    are very slow compared to in-memory transformations. The flip side of this is that
    in-memory transformations put limits on the data size that can be handled and lead to more opaque
    and less flexible workflows, inducing monolithic programs with intricate
-   logic. **Streamed data is more condordant with a functional programming mindset** [note/ref].
+   logic. **Streamed data is more condordant with a functional programming mindset**
+   ([what functional programming and Unix philosophy can teach us about data streaming](https://mikulskibartosz.name/functional-programming-principles-vs-data-streaming)).
    Furthermore, the streaming aspect can be independently optimised.
    One example is the piping of commands, avoiding disk access between successive
    transformations. A second example, applicable in narrow cases, is that of binary formats that obviate
-   the need for parsing. Such formats encode arrays that can be mapped directly into memory [note mcl]
-   and can speed up streaming by orders of magnitude. [note arrow?]
+   the need for parsing. Such formats encode arrays that can be mapped directly into memory
+   and can speed up streaming by orders of magnitude. [note mcl; arrow?]
 
 
 ## Useful comman-line tools 
@@ -187,6 +191,8 @@ approach can be a useful option e.g. for very large inputs.
 - `tsort` topological sort
 
 - `jq` Command-line JSON processor
+
+- `sqlite3` Lightweight no-server embedded SQL database engine
 
 - various bash constructs
 

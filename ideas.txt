@@ -13,9 +13,9 @@
   ?  get: option to return field if no match? -> covered by ed; get allows filtering on empty string with uie
   ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
   ?  implement in C or Rust (use pcre2). string/float/int the main point of pain.
-  x  numerical comparisons check field is numeric; however duplicates perl's work/warnings
   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
 
-  x  --group-all -> do not skip first row (re-populate %::pstore_cache from user-specified)
+  x  numerical comparisons check field is numeric; however duplicates perl's work/warnings
+  x  --group-all -> do not skip first row (re-populate %::pstore_cache from %::pstore_init)
      problematic that repopulation only happens after compute finished. This is fine if first
      row is skipped, but pretty impossible for the first row. Current status: overreach.
