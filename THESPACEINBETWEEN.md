@@ -67,16 +67,21 @@ The second part is a listing of useful programs and techniques, currently under 
    and can speed up streaming by orders of magnitude. [note mcl; arrow?]
 
 
-## Useful comman-line tools 
+## Useful command-line tools
 
    This is a work in progress. In particular, incorporation of the right selection
    of profitable shell (bash) features and syntax requires some thought and iteration.
+   I've not yet taken great care to distinguish between different shell versions.
+   The aim is that all shell features listed here are available in reasonably modern versions of
+   both `bash` and `zsh`.  
+   *Todo:* be more specific (e.g. Bash version before hash arrays were introduced).  
+   *Todo:* incorporate more techniques to make examples bullet-proof against weird file names.
 
    I'm sure this list is far from complete.  I've strived to include only standard
    widely available softare, but I have added three tools I wrote that I use a lot.  The first,
    `transpose`, is a very fast memory-efficient tool to transpose tables.
    An alternative is offered by `datamash transpose`, but my version was quite a bit
-   faster and more memory efficient when last tested - [todo-add measurements below]. The second,
+   faster and more memory efficient when last tested - [*Todo:* measurements below]. The second,
    `hissyfit` is a single script to draw histograms in the terminal using Unicode
    bar characters to achieve acceptable resolution.
    Similar small-project solutions exist, I like `hissyfit`'s single-script
@@ -123,8 +128,10 @@ Example usages:
 
    preserve_header shuf -n 10 < data.txt
 ```
-Of note is that these examples can be achieved with `mlr --tsv sort` and `mlr --tsv sample`. The above
-approach can be a useful option e.g. for very large inputs.
+The above approach can be a useful option e.g. for very large inputs. Equally there can be some piece of mind
+in consistently using widely-used, battle-tested and feature-rich Unix programs. As such `preserve_header` offers
+a bit of a half-way house, because generally those programs use positional indexes as in the examples above.
+Of note is that these examples can be achieved with `mlr --tsv sort` and `mlr --tsv sample`.
 
 
 - `transpose` - flip a table so rows become columns and vice versa.
@@ -134,16 +141,47 @@ approach can be a useful option e.g. for very large inputs.
 - `join` - join two files on a common field.  
    Caveat; the columns to be compared need to be in `sort(1)` order just using the option `-b` (ignore leading
    blank character).  In small tests I carried out both regular sort and version sort seemed to work, but even just
-   testing this is probably an extremely daft thing to do. [todo-add a short description of what happens when `join` is
+   testing this is probably an extremely daft thing to do. [*Todo:* a short description of what happens when `join` is
    not happy about the sort order.]
 
 - `sort` - versatile workhorse.  
-   Use `sort -V` for "version sort".
+   Use `sort -V` for "version sort".  
+   *Todo:* syntax for multi-column sort
 
--  `uniq -c` - rather use `datamash -g 1 count 1`
+-  Count occurrences of items. Classically people used `uniq -c` for this but
+```
+datamash -H -g foo count foo      # if a header is present tally grouped items in column foo
+
+datamash -g 1 count 1             # in the absence of a header tally grouped items in column 1.
+```
+   are much better and more powerful alternatives. This approach is more useful as it is possible to
+   compute multiple statistics at the same time. For example, below counts items in column `num`,
+   computes the mean across groups in column `fib`, and the sum across groups in column `fib2`.
+   **As with the input for uniq, the input must be sorted on the column of interest.**
+```
+datamash -H -g num4 count num4 mean fib sum fib2
+```
+   `uniq -c` is one of the most irritating commands I know, as the first (count) field
+   is right-justified without any option available to avoid this white-space padding. It is quite puzzling
+   that Richard Stallman let this program loose on the world as it violates usual Unix well-behavedness
+   of textual interfaces. Another option is to use a function such as this (Unix diehards may prefer an awk version):
+```
+unic ()
+{
+    uniq -c | perl -pe 's/^\s*(\d+)\s+/$1\t/'
+}
+```
+   There are remnants of the `leading blank` issue in other Unix commands, for
+   example `join` by default ignores leading blanks and requires input sorted with
+   the sort `-b` option. Was it too tempting for
+   the early Unix pioneers to pass up some default right justification, rather
+   than separating presentation from computation?  Generations of programmers
+   and bugs have suffered as a result.
+
+   *Todo:* Miller equivalents.
 
 - `hissyfit`  
-   Visualisation is the hardest to come by on the command line. Histograms are a useful workhorse
+   Visualisation is the hardest to come by on the command line. **Histograms are a useful workhorse**
    and for that purpose I use `hissyfit`. It allows quite reasonable quantitation using Unicode
    bar characters, providing eight levels per output line. As a very poor alternative alternative to scatterplots
    I occassionally resort to a histogram of ratios (poor alternative I must stress).
@@ -152,7 +190,7 @@ approach can be a useful option e.g. for very large inputs.
 
 - GNU `parallel`; parallel execution on a single multi-CPU machine. Caveat the right version of parallel. Insanely powerful.
 
-- `comm` (not so often used)
+- `comm` Not so often used. Requires sorted files and outputs part common to two input files.
 
 - `echo -e`, `echo -n`, `echo -en`
 
@@ -184,7 +222,26 @@ approach can be a useful option e.g. for very large inputs.
 
 - `grep` - generally I use `pick`, e.g. `pick @foo=bar` (exact match) or `pick @foo~bar` (regular expression match)
    and the negated versions `pick @foo/=bar` (exclude exact match) and `pick @foo/~bar` (exclude regular expression match).
-  `grep` is faster, but `pick` offers precise control. `grep` has many useful options [todo-add].
+  `grep` is faster, but `pick` offers precise control. Still, there are many cases where `grep` is exceedingly useful.
+  Some options I use a lot:
+
+  `-i`   for case insensitive matching
+  
+  `-v`   output lines that do not match.
+
+  `-F`   treat pattern as fixed - no meta patterns. This increases processing speed.
+
+  `-w`   require matches to align on word boundaries.
+
+  `-f fname`   search for any of the patterns listed in file `fname` (one on each line).
+
+  `--color=auto`  output with matching parts highlighted in colour
+
+  `-o`   only output matching parts (each part output on a separate line)
+
+  `-m <num>`   output no more than `<num>` matches
+
+  `q`    no output, exit states indicates match or match found. A use case is e.g. in an if statement.
 
 - `bc -l <<< 'scale=4; 1/2'` (`s` for sine `c` for cosine `a` for atan `l` for log `e` for exp)
 
@@ -197,22 +254,34 @@ approach can be a useful option e.g. for very large inputs.
 - various bash constructs
 
 ```
-   $((33*33))
-   commands in strings: echo e "$d\t$(wc -l < $d.txt)"
+echo $((1+3**2+8/4))                         # simple integer arithmetic
+
+echo $(( $(echo -e "a\nb" | wc -l) + 2))     # as above, with nested command substitution
+
+echo -e "somefile.txt\t$(( $(wc -l < somefile.txt)/4 ))"    # as above, within quotes
+```
+   Arithmetic expansion `$(( .. ))` and command substitution `$( .. )` are useful tools
+   to combine different outputs and results in a succinct manner.
+   **Caveat:** division discards the remainder - use e.g. `bc` for a proper calculator.
+   A useful feature is that these constructs can be nested and can be used within quotes,
+   although beware that nested quoted constructs are best avoided if possible in order to avoid
+   *shell quote hell*.
+
+```
    <<<
    var=
    ${var%.txt}
    ${var#out.}
-   <(some-command)
+   <(some-command > myfile)
    >(some-command > myfile)
    for
    while
-   set -eou pipefail (and caveats about)
+   set -euo pipefail (and caveats about)
 ```
    Caveats: variables in subshells are not accessible
 
 
--  `miller` [todo-add various verbs]
+-  `miller` *Todo:* add various verbs
 
 
 ## Notes
