@@ -128,10 +128,21 @@ Example usages:
 
    preserve_header shuf -n 10 < data.txt
 ```
-The above approach can be a useful option e.g. for very large inputs. Equally there can be some piece of mind
+The above approach can be a useful option e.g. for very large inputs. Equally there can be some peace of mind
 in consistently using widely-used, battle-tested and feature-rich Unix programs. As such `preserve_header` offers
 a bit of a half-way house, because generally those programs use positional indexes as in the examples above.
 Of note is that these examples can be achieved with `mlr --tsv sort` and `mlr --tsv sample`.
+It is equally possible to ask `pick` for the right column indexes for a selection of columns, e.g.
+
+```
+ ▷  pick --idx-list fib fib2 num4 < data.txt
+2	3	10
+```
+Thus if you want to sort on column `num4` the following works without using positional indexes.
+```
+   preserve_header sort -nk $(pick --idx-list num4 < data.txt) < data.txt
+```
+In interactive command lines this looks a bit unwieldy, but it can be a useful technique in scripts.
 
 
 - `transpose` - flip a table so rows become columns and vice versa.
