@@ -233,6 +233,7 @@ my %cp_opdefinitions =
      log2      => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
      exp10     => [ 1, sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
      sign      => [ 1, sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
+     neg       => [ 1, sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
      ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
      floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
      int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
@@ -268,8 +269,8 @@ my %cp_samdefs = (
      qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
      qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ],
 
-     fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta\tID and sequence in FASTA format\tsam" ],
-     fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq\tID and sequence in FASTQ format\tsam" ]
+     fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tsam" ],
+     fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tsam" ]
 
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
