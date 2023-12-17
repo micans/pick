@@ -636,10 +636,10 @@ EOH
   }
 
   elsif ($options =~ s/^--//) {
-     if ($options =~ /^f([aq]?)dict-(\w+)(\/(.*?))?=(.+)$/) {
-       read_dict($2, $5) if $1 eq '';
-       read_fadict($2, $5) if $1 eq 'a';
-       read_fqdict($2, $5) if $1 eq 'q';
+     if ($options =~ /^(f|fastq-|fasta-)dict-(\w+)(\/(.*?))?=(.+)$/) {
+       read_dict($2, $5) if $1 eq 'f';
+       read_fadict($2, $5) if $1 eq 'fasta-';
+       read_fqdict($2, $5) if $1 eq 'fastq-';
        $::dictnotfound{$2} = $4 if length($3);
      }
      elsif ($options =~ /^cdict-(\w+)(\/(.*?))?=(.+)$/) {
