@@ -266,7 +266,10 @@ my %cp_samdefs = (
      refclipr  => [ 0, sub { push @::STACK, &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum')}, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
 
      qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
-     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
+     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ],
+
+     fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta\tID and sequence in FASTA format\tsam" ],
+     fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq\tID and sequence in FASTQ format\tsam" ]
 
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
