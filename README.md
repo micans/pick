@@ -507,6 +507,9 @@ Dictionaries can be specified in different ways:
 
 --cdict-NAME=foo:bar,zut:tim        comma-separated key:value pairs
 --cdict-NAME=foo,zut                comma-separated keys, all set to value 1
+
+--fasta-dict-NAME=/path/to/fastafile   read ID->sequence mapping from fasta file
+--fastq-dict-NAME=/path/to/fastqfile   read ID->sequence mapping from fastq file
 ```
 
 `NAME` is the name of the dictionary. Multiple dictionaries can be imported.
@@ -523,6 +526,8 @@ to specify a not-found string using this syntax:
 ```
 --fdict-NAME/STRING=/path/to/dictfile
 --cdict-NAME/STRING=foo:bar,zut:tim
+--fasta-dict-NAME/STRING=foo:bar,zut:tim
+--fastq-dict-NAME/STRING=foo:bar,zut:tim
 ```
 
 For example
@@ -1041,6 +1046,7 @@ Below is the table pick supplies when given `-l`.
 ```
 Operator    Consumed    Produced            Description
 --------------------------------------------------------------------------------
+F0          -           F[0]                First input column [demo]
 abs         x           abs(x)              Absolute value of x [math]
 add         x y         x+y                 Add x and y, sum, addition [arithmetic]
 addall      *           sum(Stack)          Sum of all entries in stack [arithmetic/devour]
@@ -1071,6 +1077,8 @@ floor       x           floor(x)            The floor of x [math]
 frac        x y N       x/y                 Division, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 get         x r         r-match-of-x        If x matches regex r take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
 gmeanall    *           gmean(Stack)        Geometric mean of all entries in stack, multiplication [arithmetic/devour]
+groupi      -           x                   Push within-group offset x onto stack [input]
+groupno     -           x                   Push group number x onto stack [input]
 hexto       x           x'                  Read hex representation x [input/format]
 hmeanall    *           hmean(Stack)        Harmonic mean of all entries in stack [arithmetic/devour]
 idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
@@ -1082,26 +1090,30 @@ len         x           len(x)              Length of string x [string]
 lineno      -           x                   Push file line number x onto stack [input]
 log         x           log(x)              Natural logarithm of x [math]
 log10       x           log10(x)            Logarithm of x in base 10 [math]
+log2        x           log2(x)             Logarithm of x in base 2 [math]
 map         x dname     map-of-x            Use map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=) [string/dictionary]
 max         x y         max(x,y)            Maximum of x and y [arithmetic]
 maxall      *           max(Stack)          Max over all entries in stack [arithmetic/devour]
-meanall     *           mean(Stack)         Mean of all entries in stack [arithmetic/devour]
 md5         x           md5(x)              MD5 sum of x [string/format/input/output]
+meanall     *           mean(Stack)         Mean of all entries in stack [arithmetic/devour]
 min         x y         min(x,y)            Minimum of x and y [arithmetic]
 minall      *           min(Stack)          Min over all entries in stack [arithmetic/devour]
 mod         x y         x mod y             x modulo y, remainder [arithmetic]
 mul         x y         x*y                 Multiply x and y, multiplication, product [arithmetic]
 mulall      *           product(Stack)      Product of all entries in stack, multiplication [arithmetic/devour]
+neg         x           -x                  The sign-reversed value of x [math]
 octto       x           x'                  Read octal representation x [input/format]
 or          x y         x or y              Bitwise or between x and y [bitop]
 pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+pload       c           prevrow[c]          Field of column c in the previous row [state]
 pml         x y N       pct(x/y)            Promille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 pop         x           -                   Remove top entry x from stack [stack]
 pow         x y         x**y                x raised to power y [arithmetic]
+r0wno       -           x                   Push current table (start zero) row number x onto stack [input]
 rc          x           rc(x)               Reverse complement [string]
 rev         x           rev(x)              String reverse of x [string]
-rowno       -           x                   Push current table row number x onto stack; start at one [input]
-r0wno       -           x                   Push current table row number x onto stack; start at zero [input]
+rot13       x           rot13(x)            Rot13 encoding of x [crypto]
+rowno       -           x                   Push current table (start one) row number x onto stack [input]
 sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
 sin         x           sin(x)              Sine of x [math]
 sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
@@ -1119,34 +1131,38 @@ urldc       x           urldc(x)            Url decoding of x [string/format/inp
 urlec       x           urlec(x)            Url encoding of x [string/format/input/output]
 xch         x y         y x                 Exchange x and y [stack]
 xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
-zp          x N         x'                  x left zero-padded to width of N [output]
+zp          x N         x'                  x left zero-padded to width of N [output/string/format]
 ```
-
 
 These are additionally available if `--sam` is supplied:
 
 ```
 Operator    Consumed    Produced            Description
 --------------------------------------------------------------------------------
-qrycov      -           qrycov              Amount of query covered by alignment [sam]
+alnmatch    -           refmatch            Amount of reference/query matched by alignment (ignoring indels) [sam]
+cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
+cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
+cgqrycov    c           qrycov              Count of query bases covered by cigar string c (MI=X events) [string/sam]
+cgqryend    c           qryend              Last base considered aligned in query for cigar string c [string/sam]
+cgqrylen    c           qrylen              Length of query (MIS=X events) in cigar string c [string/sam]
+cgqrystart  c           qrystart            First base considered aligned in query for cigar string c [string/sam]
+cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
+cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
+fasta       i s         fasta format        ID and sequence in FASTA format [sam]
+fastq       i s         fastq format        ID and sequence in FASTQ format [sam]
+qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
+qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]
+qrycov      -           qrycov              Span of query covered by alignment [sam]
 qryend      -           qryend              Last base in query covered by alignment [sam]
 qrylen      -           qrylen              Length of query sequence [sam]
 qrystart    -           qrystart            Start of alignment in query [sam]
-
-alnmatch    -           alnmatch            Amount of reference/query matched by alignment (ignoring indels)
-
-refcov      -           refcov              Amount of reference covered by alignment [sam]
+refclipl    -           refclipl            Number of 5p trailing reference bases [sam]
+refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
+refcov      -           refcov              Span of reference covered by alignment [sam]
 refend      -           refend              Last base in reference covered by alignment [sam]
 reflen      -           reflen              Length of reference sequence (requires samtools view -h) [sam]
 refstart    -           refstart            Field 4 from sam format [sam]
-
-qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
-qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]
-
-refclipl    -           refclipl            Number of 5p trailing reference bases [sam]
-refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
 ```
-
 
 ## Implementation notes
 
