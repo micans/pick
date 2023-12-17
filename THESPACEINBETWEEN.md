@@ -75,7 +75,8 @@ The second part is a listing of useful programs and techniques, currently under 
    The aim is that all shell features listed here are available in reasonably modern versions of
    both `bash` and `zsh`.  
    *Todo:* be more specific (e.g. Bash version before hash arrays were introduced).  
-   *Todo:* incorporate more techniques to make examples bullet-proof against weird file names.
+   *Todo:* incorporate more techniques to make examples bullet-proof against weird file names, e.g.
+   `printf` is safer than `echo` when used with variables.
 
    I'm sure this list is far from complete.  I've strived to include only standard
    widely available softare, but I have added three tools I wrote that I use a lot.  The first,
@@ -138,7 +139,7 @@ It is equally possible to ask `pick` for the right column indexes for a selectio
  ▷  pick --idx-list fib fib2 num4 < data.txt
 2	3	10
 ```
-Thus if you want to sort on column `num4` the following works without using positional indexes.
+Thus if you want to sort on column `num4` and preserve column names the following works without using positional indexes.
 ```
    preserve_header sort -nk $(pick --idx-list num4 < data.txt) < data.txt
 ```
@@ -271,12 +272,14 @@ echo $(( $(echo -e "a\nb" | wc -l) + 2))     # as above, with nested command sub
 
 echo -e "somefile.txt\t$(( $(wc -l < somefile.txt)/4 ))"    # as above, within quotes
 ```
-   Arithmetic expansion `$(( .. ))` and command substitution `$( .. )` are useful tools
+   [Arithmetic expansion](https://www.gnu.org/software/bash/manual/html_node/Arithmetic-Expansion.html) `$(( .. ))` and
+   [command substitution](https://www.gnu.org/software/bash/manual/html_node/Command-Substitution.html)
+   `$( .. )` are useful tools
    to combine different outputs and results in a succinct manner.
    **Caveat:** division discards the remainder - use e.g. `bc` for a proper calculator.
    A useful feature is that these constructs can be nested and can be used within quotes,
-   although beware that nested quoted constructs are best avoided if possible in order to avoid
-   *shell quote hell*.
+   although beware that nested quoted constructs (not shown here) are best avoided if possible in order to
+   stay away from *shell quote hell*.
 
 ```
    <<<

@@ -432,7 +432,7 @@ my $nameslist = "";
 
 sub read_dict {
    my ($name, $fname) = @_;
-   open(D, "<$fname") || die "cannot open $fname for dictionary reading";
+   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
    my $n_novalue = 0;
    while(<D>) {
       chomp; my @F = split "\t";
@@ -443,6 +443,31 @@ sub read_dict {
    my $n = keys %{$::dict{$name}};
 print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
 print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 2 && $n_novalue;
+}
+
+sub read_fadict {
+   my ($name, $fname) = @_;
+   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
+   my ($id, $seq) = (undef, "");
+   while(<D>) {
+      if (/^>(\S+)/) { $::dict{$name}{$id} = $seq if defined($id); ($id, $seq) = ($1, ""); }
+      else           { chomp; $seq .= $_; }
+   } close(D);
+   $::dict{$name}{$id} = $seq if defined($id);
+   my $n = keys %{$::dict{$name}};
+print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
+}
+
+sub read_fqdict {
+   my ($name, $fname) = @_;
+   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
+   my ($id, $seq) = (undef, "");
+   while(<D>) {
+      if ($. % 4 == 1)       { die "Fastq read error on line %." unless /^@(\S+)/; $id = $1; }
+      elsif ($. % 4 == 2)    { chomp; $::dict{$name}{$id} = $_; }
+   } close(D);
+   my $n = keys %{$::dict{$name}};
+print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
 }
 
 {  my %fh_demux = ();
@@ -611,9 +636,11 @@ EOH
   }
 
   elsif ($options =~ s/^--//) {
-     if ($options =~ /^fdict-(\w+)(\/(.*?))?=(.+)$/) {
-       read_dict($1, $4);
-       $::dictnotfound{$1} = $3 if length($2);
+     if ($options =~ /^f([aq]?)dict-(\w+)(\/(.*?))?=(.+)$/) {
+       read_dict($2, $5) if $1 eq '';
+       read_fadict($2, $5) if $1 eq 'a';
+       read_fqdict($2, $5) if $1 eq 'q';
+       $::dictnotfound{$2} = $4 if length($3);
      }
      elsif ($options =~ /^cdict-(\w+)(\/(.*?))?=(.+)$/) {
        parse_dict($1, $4);
