@@ -66,7 +66,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
-&emsp;&emsp;[Creating fasta files](#creating-fasta-and-fastq-files)  
+&emsp;&emsp;[Creating fasta and fastq files](#creating-fasta-and-fastq-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
@@ -794,7 +794,7 @@ pick  -A --fdict-KEEP/___=keep-file.txt KEEP:=myid^KEEP,map @KEEP/=___ < data.tx
 [More information about maps.](#map-column-values-using-a-dictionary)
 
 
-### Creating FASTQ and FASTQ files
+### Creating FASTA and FASTQ files
 
 Create FASTA files with pick. The operator `,fasta` makes this easy.
 Previously one needed, assuming identifier and sequence are stored in `key` and `sequence`
