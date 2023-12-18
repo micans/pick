@@ -510,11 +510,16 @@ Dictionaries can be specified in different ways:
 
 --fasta-dict-NAME=/path/to/fastafile   read ID->sequence mapping from fasta file
 --fastq-dict-NAME=/path/to/fastqfile   read ID->sequence mapping from fastq file
+--table-dict-NAME=/path/to/tablefile   read ID->column->item mapping from table file
 ```
 
 `NAME` is the name of the dictionary. Multiple dictionaries can be imported.
-A dictionary is specified by its name for use with the map operator as seen below.
-Multiple `fdict` and `cdict` specifications can be used for the same `NAME`.
+A dictionary is specified by its name for use with the `map` operator or `tmap` operator for table dictionaries.
+A table dictionary uses the row names in the file as key,
+and associates for each row name its column values by using the column name as key.
+`map` needs two keys; the first is the item to look up, the second is the `NAME` of the dictionary to use.
+`tmap` needs a third key; the name of the column.
+Multiple dictionary specifications can be used for the same `NAME`.
 
 ```
 echo -e "a\t3\nb\t4\nc\t8" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
@@ -526,8 +531,9 @@ to specify a not-found string using this syntax:
 ```
 --fdict-NAME/STRING=/path/to/dictfile
 --cdict-NAME/STRING=foo:bar,zut:tim
---fasta-dict-NAME/STRING=foo:bar,zut:tim
---fastq-dict-NAME/STRING=foo:bar,zut:tim
+--fasta-dict-NAME/STRING=/path/to/fastafile
+--fastq-dict-NAME/STRING=/path/to/fastqfile
+--table-dict-NAME/STRING=/path/to/tablefile
 ```
 
 For example

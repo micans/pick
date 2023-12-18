@@ -103,14 +103,23 @@ The second part is a listing of useful programs and techniques, currently under 
   add `mlr` recipes where applicable (an ongoing process).
 
 
-- [datamash](https://www.gnu.org/software/datamash/  
+- [`datamash`](https://www.gnu.org/software/datamash/  
   _GNU datamash is a command-line program which performs basic numeric, textual and statistical operations on input textual data files._
   My main use for this is to compute data statistics, optionally grouped over a categorical second variable. `mlr` can do
   many of these things as well.
 
-- [bioawk](https://github.com/lh3/bioawk)  
+- [`bioawk`](https://github.com/lh3/bioawk)  
   _Bioawk is an extension to Brian Kernighan's awk, adding the support of several common biological data formats, including optionally gzip'ed BED, GFF, SAM, VCF, FASTA/Q and TAB-delimited formats with column names._
   Written by Heng Li, this is an extremely useful tool.
+
+- [`sqlite3`](https://www.sqlite.org/index.html) _Lightweight no-server embedded SQL database engine._ For multiple queries
+  on a single large dataset this can be highly efficient. Importing a `tsv` file is as simple as
+```
+sqlite> .mode tabs
+sqlite> .import data.tsv people
+```
+   if table `people` already exists. [See this stackoverflow answer](https://stackoverflow.com/a/41865056) for
+   a very simple `create` `load` `index` `query` workflow.
 
 
 - `preserve_header` is a simple shell script that allows manipulation of tabular data
@@ -260,8 +269,6 @@ unic ()
 - `tsort` topological sort
 
 - `jq` Command-line JSON processor
-
-- `sqlite3` Lightweight no-server embedded SQL database engine
 
 - various bash constructs
 

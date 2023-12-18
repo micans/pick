@@ -197,7 +197,15 @@ my %cp_opdefinitions =
                               if (defined($m)) { $::STACK[-2] = $m; }
                               elsif (defined($::dictnotfound{$d})) { $::STACK[-2] = $::dictnotfound{$d} }
                            },
-                           "x dname\tmap-of-x\tUse map of x in dictionary dname (if found; cf --cdict-dname= --fdict-dname=)\tstring/dictionary"
+                           "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
+                  ],
+     tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1];
+                              my $dict = $::dict{$d}{$k};
+                              my $m = defined($dict) ? $dict->{$x} : undef;
+                              if (defined($m)) { $::STACK[-3] = $m; }
+                              elsif (defined($::dictnotfound{$d})) { $::STACK[-3] = $::dictnotfound{$d} }
+                           },
+                           "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
      pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
@@ -449,6 +457,23 @@ print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verb
 print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 2 && $n_novalue;
 }
 
+sub read_tbdict {
+   my ($name, $fname) = @_;
+   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
+   my $header=<D>; chomp $header; my @header = split "\t", $header; my %h = ();
+   for (my $i=0; $i<@header; $i++) { $h{$i} = $header[$i] }
+   while(<D>) {
+      chomp; my @items = split "\t", $_;
+      die "Table read error" unless scalar @items == scalar @header;
+      for (my $i=1; $i<@items; $i++) {
+         $::dict{$name}{$h{$i}}{$items[0]} = $items[$i];
+      }
+   } close(D);
+   my $n = keys %{$::dict{$name}};
+   my $k = @header - 1;
+print STDERR "-- table dictionary $name has $n keys for $k columns after reading $fname\n" if $L_verbose >= 2;
+}
+
 sub read_fadict {
    my ($name, $fname) = @_;
    open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
@@ -640,10 +665,11 @@ EOH
   }
 
   elsif ($options =~ s/^--//) {
-     if ($options =~ /^(f|fastq-|fasta-)dict-(\w+)(\/(.*?))?=(.+)$/) {
+     if ($options =~ /^(f|fastq-|fasta-|table-)dict-(\w+)(\/(.*?))?=(.+)$/) {
        read_dict($2, $5) if $1 eq 'f';
        read_fadict($2, $5) if $1 eq 'fasta-';
        read_fqdict($2, $5) if $1 eq 'fastq-';
+       read_tbdict($2, $5) if $1 eq 'table-';
        $::dictnotfound{$2} = $4 if length($3);
      }
      elsif ($options =~ /^cdict-(\w+)(\/(.*?))?=(.+)$/) {
