@@ -66,7 +66,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
-&emsp;&emsp;[Creating fasta files](#creating-fasta-files)  
+&emsp;&emsp;[Creating fasta files](#creating-fasta-and-fastq-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
@@ -794,28 +794,30 @@ pick  -A --fdict-KEEP/___=keep-file.txt KEEP:=myid^KEEP,map @KEEP/=___ < data.tx
 [More information about maps.](#map-column-values-using-a-dictionary)
 
 
-### Creating fasta files
+### Creating FASTQ and FASTQ files
 
-Create fasta files with pick. In the example the identifier is in the first column with the sequence
-in the second column.  Quotes needed as `>` is a shell meta character.
-`%0A` is the url-encoding of a newline.
-
+Create FASTA files with pick. The operator `,fasta` makes this easy.
+Previously one needed, assuming identifier and sequence are stored in `key` and `sequence`
+(quotes needed as `>` is special to the shell),
 ```
-pick  -k '::^>:1^%0A:2' > out.fa
+pick  -h '::^>:key^%0A:sequence' > out.fa
+```
+This has now been simplified to
+```
+pick  -h ::key:sequence,fasta > out.fa
+```
+The `,fasta` operator requires two string values on the stack. To add further
+annotation to the identifier line construct the required sequence of strings
+and then apply for example `,catall`. The example below constructs a template
+` (zut=#)` and then replaces the placeholder character `#` with the column/variable `zut`.
+The template is quoted to avoid shell interpretation of parenthesis and hash sign.
+```
+pick  -h ::key^' (zut=#)^#':zut,ed,catall:sequence,fasta > out.fa
 ```
 
-
-Using columns `foo` and `bar` instead. In this case `-h` is needed to avoid printing a header.
-
-```
-pick -h '::^>:foo^%0A:bar' > out.fa
-```
-
-As above, add column `zut` as further annotation. Optionally use `%20` for the space character.
-
-```
-pick -h '::^>:foo^ :zut^%0A:bar' > out.fa
-```
+The `,fastq` operator works in exactly the same way as the `,fasta` operator.
+The result is a FASTQ record, where the quality string is currently always set to `Z`
+in every position.
 
 
 ### Useful regular expression features
