@@ -293,7 +293,7 @@ echo -e "somefile.txt\t$(( $(wc -l < somefile.txt)/4 ))"    # as above, within q
    var=
    ${var%.txt}
    ${var#out.}
-   <(some-command > myfile)
+   <(some-command)
    >(some-command > myfile)
    for
    while

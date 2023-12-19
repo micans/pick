@@ -589,8 +589,22 @@ See below for more information about SAM and CIGAR support.
 Use `--sam` or `--sam-h` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
 (overflow columns collated in column 11) and make the sequence lengths available in the `seqlen`
 dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-h`.
+It is possible to load sequences to combine (and excise subsequences from) with SAM input by
+[using either `--fasta-dict-NAME` or `--fastq-dict-NAME`](#map-column-values-using-a-dictionary). With this
+(where `NAME` can be freely chosen) a sequence can be retrieved from the read name field (column 1 in SAM format) with
+```
+::1^NAME,map
+```
+To obtain the left- and right-clipped (non-aligned) sequences as well as the matched part from the read (see below
+for operators such as `qryclipl`):
+```
+   SEQ:=1^SEQ,map \
+   leftclip::SEQ^0,qryclipl,substr \
+   matchedpart::SEQ,qryclipl,qrycov,substr \
+   rightclip::SEQ,qryclipr,dup,neg,xch,substr \
+```
 
-When using either of these options pick makes several new operators available that compute certain alignment-related
+When using either of `--sam` or `--sam-h` pick makes several new operators available that compute certain alignment-related
 offsets and widths. The following table lists these shorthand operators, along with
 a more verbose and obtuse/obsolete pick equivalent using older operators (still available).
 Shown below are simple computes with just a single operator used. Obviously these
@@ -1020,7 +1034,7 @@ The documentation is output when given `-H` (`-h` is the option to prevent
 output of column names) or `-l` for a table of operators, also supplied below.
 
 
-Arithmetic: `add addall decr div idiv incr max maxall min minall mod mul mulall pow sub`
+Arithmetic: `add addall catall decr div idiv incr max maxall min minall mod mul mulall pow sub`
 
 Bit operators: `and or xor`
 
@@ -1061,6 +1075,7 @@ addall      *           sum(Stack)          Sum of all entries in stack [arithme
 and         x y         x and y             Bitwise and between x and y [bitop]
 binto       x           x'                  Read binary representation x [input/format]
 cat         x y         xy                  Concatenation of x and y [string]
+catall      *           Stack-joined        Stringified stack [string/devour]
 ceil        x           ceil(x)             The ceil of x [math]
 cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
 cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
@@ -1181,7 +1196,8 @@ Perl's support for regexes is built deeply into the language. I've been pleasant
 and ease of its treatment of command-line strings as regexes.
 Some useful regex features are [described here](#useful-regular-expression-features).
 
-Pick additionally benefits from Perl's mechanisms for number/string and string/number conversion.
+Pick additionally benefits greatly from Perl's mechanisms for number/string and string/number conversion.
+[Some interesting insights into Perl's data type conversions](https://medium.com/booking-com-development/how-we-spent-two-days-making-perl-faster-939457ef16a1).
 
 This implementation compiles all references to column names into array
 offsets.  It has no hash lookups during the core computation and output loop. Each computation

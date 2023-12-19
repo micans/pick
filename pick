@@ -454,8 +454,8 @@ sub read_dict {
       $::dict{$name}{$F[0]} = $value;
    } close(D);
    my $n = keys %{$::dict{$name}};
-print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
-print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 2 && $n_novalue;
+print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
+print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 1 && $n_novalue;
 }
 
 sub read_tbdict {
@@ -464,7 +464,7 @@ sub read_tbdict {
    my $header=<D>; chomp $header; my @header = split "\t", $header; my %h = ();
    for (my $i=0; $i<@header; $i++) { $h{$i} = $header[$i] }
    while(<D>) {
-      chomp; my @items = split "\t", $_;
+      chomp; my @items = split "\t", $_, -1;                      # recognise empty fields (-1 split argument)
       die "Table read error" unless scalar @items == scalar @header;
       for (my $i=1; $i<@items; $i++) {
          $::dict{$name}{$h{$i}}{$items[0]} = $items[$i];
@@ -472,7 +472,7 @@ sub read_tbdict {
    } close(D);
    my $n = keys %{$::dict{$name}};
    my $k = @header - 1;
-print STDERR "-- table dictionary $name has $n keys for $k columns after reading $fname\n" if $L_verbose >= 2;
+print STDERR "-- table dictionary $name has $n keys for $k columns after reading $fname\n" if $L_verbose >= 1;
 }
 
 sub read_fadict {
@@ -485,19 +485,19 @@ sub read_fadict {
    } close(D);
    $::dict{$name}{$id} = $seq if defined($id);
    my $n = keys %{$::dict{$name}};
-print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
+print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
 }
 
 sub read_fqdict {
    my ($name, $fname) = @_;
    open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
-   my ($id, $seq) = (undef, "");
+   my $id = undef;
    while(<D>) {
       if ($. % 4 == 1)       { die "Fastq read error on line %." unless /^@(\S+)/; $id = $1; }
       elsif ($. % 4 == 2)    { chomp; $::dict{$name}{$id} = $_; }
    } close(D);
    my $n = keys %{$::dict{$name}};
-print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 2;
+print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
 }
 
 {  my %fh_demux = ();
@@ -565,7 +565,7 @@ sub parse_dict {
       $::dict{$name}{$k} = $v;
    }
    my $n = keys %{$::dict{$name}};
-print STDERR "-- dictionary $name has $n keys after parsing string\n" if $L_verbose >= 2;
+print STDERR "-- dictionary $name has $n keys after parsing string\n" if $L_verbose >= 1;
 }
 
 while (@::spec && $::spec[0] =~ /^-/) {
