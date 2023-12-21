@@ -1167,7 +1167,7 @@ sub do_compute {
          my ($n_wanted, $code) = @other;
          die "Stack underflow ($spic->[0] item [$what])\n" unless @::STACK >= $n_wanted;
          &{$code};
-         pop @::STACK while --$n_wanted > 0;    # subs put computed element in the right place.
+         $#::STACK -= ($n_wanted-1) if $n_wanted > 1;  # subs put computed element in the right place.
       }
     }
     push @$::Flink, (join "", @::STACK);
