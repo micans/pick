@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "1658e3ff8be11cdc911ee29a1dd4fd99fdd46858::24-004";
+my $v_v_v = "6dd6fea86efbeed827ba43cdfe2e098966639ce8::24-020";
 
   #                     Copyright (c) 2022-2024  Stijn van Dongen
   #
@@ -512,7 +512,7 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
             # close the least used file handles or not recently used and retry.
          $val = [$fh, 0, 0];
          $fh_demux{$name} = $val;
-         if ($B_print_header || $B_sprouthead) {
+         if ($B_print_header) {
             print $fh (join "\t", @::OUTPUT_HEADER) . "\n";
          }
       }
@@ -789,7 +789,7 @@ EOH
 die "-O<N> requires -k\n" if $OFFSET_OMEGA > 0 && !$B_headless;
 
 $B_print_header = 0 if $B_headless;
-$B_print_header = 1 if $B_add_names || $B_posthoc_names;
+$B_print_header = 1 if $B_add_names || $B_posthoc_names || $B_sprouthead;
 
 @::nameslist = $nameslist ? split ',', $nameslist : ();
 
@@ -1167,7 +1167,8 @@ sub do_compute {
          my ($n_wanted, $code) = @other;
          die "Stack underflow ($spic->[0] item [$what])\n" unless @::STACK >= $n_wanted;
          &{$code};
-         $#::STACK -= ($n_wanted-1) if $n_wanted > 1;  # subs put computed element in the right place.
+         $n_wanted--;
+         $#::STACK -= $n_wanted if $n_wanted > 0;    # subs put computed element in the right place.
       }
     }
     push @$::Flink, (join "", @::STACK);
@@ -1252,7 +1253,7 @@ while (<>) {
 print STDERR "-- List contains items from newly computed columns\n" if @::compute;
       exit 0;
     }
-    if ($B_print_header || $B_sprouthead) {
+    if ($B_print_header) {
       local $, = "\t";
       if ($index_demux < 0) { print @::OUTPUT_HEADER; print "\n" }
       if ($fh_other) {

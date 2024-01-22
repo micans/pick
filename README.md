@@ -15,7 +15,7 @@ It is **expressive** in that short command lines are sufficient to get at the da
 
 > [!NOTE]
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
-> is an amazing widely-used command-line tool for handling tables, in an entirely
+> is an amazing widely-used command-line tool for handling tables (using column names also), in an entirely
 > different league than pick in terms of capabilities. It is available in most
 > Linux distributions as a supported package.
 >  
@@ -402,6 +402,11 @@ introduced below, followed by more examples and explanation.
    pick nummax::'num\d+$',maxall < data.txt               # largest among all num[digit] columns
 
    echo {1..20} | tr ' ' $'\t' | pick -k ::'.*',mulall    # compute 20 factorial
+
+   echo {1..9} | tr ' ' '\t' | pick  -iK sum-squared::'.*',addall,sq '.*':=__^3,pow sum-cubes::'.*',addall | column -t
+
+                                                          # compute 1**3 + 2**3 + .. + 9**3 and
+                                                          # (1+2+..+9)**2
 ```
 
 -  Selecting multiple columns and executing the same operation on each column using
