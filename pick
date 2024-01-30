@@ -177,6 +177,9 @@ my %cp_opdefinitions =
                                          ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x r\tr-match-of-x\tIf x matches regex r take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
      uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring" ],
 
+     fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tformat/bio" ],
+     fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tformat/bio" ],
+
      cgsum     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'sum') }, "c s\tSum of s in c\tSum of lengths of s items in cigar string c\tstring/sam" ],
      cgmax     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
      cgcount   => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
@@ -276,10 +279,7 @@ my %cp_samdefs = (
      refclipr  => [ 0, sub { push @::STACK, &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum')}, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
 
      qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
-     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ],
-
-     fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tsam" ],
-     fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tsam" ]
+     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
 
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
@@ -336,7 +336,7 @@ my %sel_opdefinitions = (
 );
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
-my $opsections  = 'arithmetic bitop devour dictionary format input math output precision regex sam stack state string';
+my $opsections  = 'arithmetic bio bitop devour dictionary format input math output precision regex sam stack state string';
 
 my $help_options=q{Options:
   -h do not print header
