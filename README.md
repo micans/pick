@@ -738,7 +738,6 @@ causes the file to be compressed using `gzip`.
 If the input is queried for a value that should be present and unique, you can do pick let the checking
 by passing `-E1`. More generally `-E<NUM>` will exit with an error if the number of rows found is
 different from `<NUM>`.
- 
 
 
 ## Miscellaneous
@@ -841,6 +840,10 @@ in every position.
 
 ### Useful regular expression features
 
+-  Use `(?:...)` to group a pattern without creating a backreference - this can
+   be relevant for `get` (see below).  **In pick computations** this has to be
+   specified as `(?%3A...)` due to the special meaning of the colon.
+
 -  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
 
    `:HANDLE^'patx\Kpaty',delg` will retain pattern `patx` and only delete pattern `paty`.
@@ -850,6 +853,38 @@ in every position.
 > echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'quick\Kbrown',delg
 thequickfox theslowbrownbear
 ```
+
+-  Use `\K` (keep) to anchor a pattern but *ignore* it with `get`. Consider the following
+   examples.
+
+   (1) In the absence of parentheses, `get` will grab the matched pattern.
+```
+> echo -e "a\nquick fox" | pick -h ::a^'\S+\s+\S+',get
+quick fox
+```
+   (2) It is possible to anchor the pattern with `\K`; anything before `\K` will
+   not be included in the matched part.
+```
+> echo -e "a\nquick fox" | pick -h ::a^'\S+\s+\K\S+',get
+fox
+```
+   (3) If parentheses are used, `get` will get the pattern within the leftmost pair of
+   parentheses that is not neutralised by the `(?%3A..)` construct.
+```
+> echo -e "a\nquick fox" | pick -h ::a^'\S+\s+(\S+)',get
+fox
+```
+   (4) The leftmost group is used ..
+```
+> echo -e "a\nquick fox" | pick -h ::a^'(\S+)\s+(\S+)',get
+quick
+```
+   (5) from those groups that actually induce backreferences.
+```
+> echo -e "a\nquick fox" | pick -h ::a^'(?%3A\S+)\s+(\S+)',get
+fox
+
+
 
 -  Use `patx(?=paty)` to anchor `patx` to `paty` without including `paty` in the matched part.
 
@@ -999,14 +1034,14 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
     in selection, compute and filter expressions must be picked from this list.
     Output names are from the list. If using `-k` then `--inames=CSV` provides temporary
     handles; use `--add-inames=CSV` to add them to the output.
-  
+
 -  `--onames=<csv>` Override output column names to be taken from comma-separated values.
 
 -  `--idx-list`        Output list of selected indexes.  
    `--name-list`       Output list of selected column names.  
    These can be combined. If combined, indexes will always come before names (transpose
    the output to obtain an index-name mapping). Pick will exit if any of them is used.
-  
+
 -  `--version` Output version number; outputs a corresponding git tag and date
    tag. The aim is for this to be the git tag `x` of commit `x` that is prior
    to commit `y` that inserted `x` into the pick version tag. I'm not quite

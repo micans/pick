@@ -395,10 +395,19 @@ my $help_options=q{Options:
 
        echo -e "a\t3\nb\t4" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
 
+  --table-dict-NAME=fname  Read table; Use ...^NAME^columnname,tmap for lookup.
+  --fasta-dict-NAME=fname  Read fasta file; Sequences can be looked up with map.
+  --fastq-dict-NAME=fname  Read fastq file; Sequences can be looked up with map.
+
+  With all dictionary loading the part
+
+     NAME=fname         can be augmented to
+     NAME/<string>=fname
+
+  If a key is not found with map or tmap then <string> will be used as the default value.
+
   --other=fname      write discarded rows to fname
   --demux=colname    use the value in colname as file name to write the row to.
-                     Note: if all its rows are filtered the file will not be created (rather than
-                     a file with zero rows), this could be dangerous if an older version exists.
 
   --version          version
 
