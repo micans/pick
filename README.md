@@ -857,34 +857,33 @@ thequickfox theslowbrownbear
 -  Use `\K` (keep) to anchor a pattern but *ignore* it with `get`. Consider the following
    examples.
 
-   (1) In the absence of parentheses, `get` will grab the matched pattern.
+(1) In the absence of parentheses, `get` will grab the matched pattern.
 ```
 > echo -e "a\nquick fox" | pick -h ::a^'\S+\s+\S+',get
 quick fox
 ```
-   (2) It is possible to anchor the pattern with `\K`; anything before `\K` will
+(2) It is possible to anchor the pattern with `\K`; anything before `\K` will
    not be included in the matched part.
 ```
 > echo -e "a\nquick fox" | pick -h ::a^'\S+\s+\K\S+',get
 fox
 ```
-   (3) If parentheses are used, `get` will get the pattern within the leftmost pair of
+(3) If parentheses are used, `get` will get the pattern within the leftmost pair of
    parentheses that is not neutralised by the `(?%3A..)` construct.
 ```
 > echo -e "a\nquick fox" | pick -h ::a^'\S+\s+(\S+)',get
 fox
 ```
-   (4) The leftmost group is used ..
+(4) The leftmost group is used ..
 ```
 > echo -e "a\nquick fox" | pick -h ::a^'(\S+)\s+(\S+)',get
 quick
 ```
-   (5) from those groups that actually induce backreferences.
+(5) from those groups that actually induce backreferences.
 ```
 > echo -e "a\nquick fox" | pick -h ::a^'(?%3A\S+)\s+(\S+)',get
 fox
-
-
+```
 
 -  Use `patx(?=paty)` to anchor `patx` to `paty` without including `paty` in the matched part.
 
