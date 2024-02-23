@@ -892,14 +892,16 @@ fox
    Example:
 
 ```
-> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)',delg
-thequickbrownfox theslowbear
+> echo -e "a\nthequickbrownfox\ntheslowbrownbear" | pick -h ::a^'brown(?=bear)',delg
+thequickbrownfox
+theslowbear
 ```
 
    Such patterns can be combined - here either of the two is considered match:
 ```
-> echo -e "a\nthequickbrownfox theslowbrownbear" | pick -h ::a^'brown(?=bear)|quick\Kbrown',delg
-thequickfox theslowbear
+> echo -e "a\nthequickbrownfox\ntheslowbrownbear" | pick -h ::a^'brown(?=bear)|quick\Kbrown',delg
+thequickfox
+theslowbear
 ```
 
 -  Use `(?i)pat` to make a pattern case insensitive.
