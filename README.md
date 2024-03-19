@@ -44,7 +44,7 @@ and make them more robust and understandable by promoting the use of column name
 
 There is no downside, except, as ever, it comes with its own syntax for
 computation. For plain column selection and row filtering this syntax is not needed though;
-pick command lines look pleasant enough for common use cases.
+**pick command lines look pleasant enough for common use cases.**
 
 Computation syntax is minimalist and terse, employing a stack language with just three types (variables, constants and operators).
 In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
