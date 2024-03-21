@@ -212,9 +212,9 @@ my %cp_opdefinitions =
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
-     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
-     pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
-     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
 
      tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
      tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
@@ -241,8 +241,8 @@ my %cp_opdefinitions =
      sin       => [ 1, sub { $::STACK[-1] = sin($::STACK[-1]) }, "x\tsin(x)\tSine of x\tmath" ],
      tan       => [ 1, sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : ($Nprotect++, $PNAN{PICK_TAN_INF}) }, "x\ttan(x)\tTangens of x\tmath" ],
      log       => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : ($Nprotect++, $PNAN{PICK_LOG_INF}) }, "x\tlog(x)\tNatural logarithm of x\tmath" ],
-     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
-     log2      => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
+     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
+     log2      => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
      exp10     => [ 1, sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
      sign      => [ 1, sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
      neg       => [ 1, sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
@@ -268,7 +268,9 @@ my %cp_samdefs = (
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "-\trefend\tLast base in reference covered by alignment\tsam" ],
      reflen    => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
 
-     alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\trefmatch\tAmount of reference/query matched by alignment (ignoring indels)\tsam" ],
+     alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels)\tsam" ],
+     alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
+     alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
@@ -742,7 +744,7 @@ EOH
         if (defined($1)) { $F_ignore |= 5; $PAT_PASS  = '^@'; }
         else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
         $B_headless = 1;
-        $OFFSET_OMEGA = 11;
+        $OFFSET_OMEGA = 12;
         $::dictnotfound{seqlen} = 0;
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
