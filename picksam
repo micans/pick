@@ -1279,7 +1279,7 @@ $::Groupi = 2;    # index within group.
     while ($pos--) {
       my $sbase = chop $sref; my $tbase = chop $sqry;
       my $p = $posref + $pos + 1;
-      push @mm, "p=$p,c=$sbase$tbase" if $sbase ne $tbase;
+      push @mm, "x=$p,c=$sbase$tbase" if $sbase ne $tbase;
     }
     return reverse(@mm);
   }
@@ -1319,8 +1319,8 @@ $::Groupi = 2;    # index within group.
         push @mismatch, align_get_mismatch(substr($ref, $pref, $num), substr($qry, $pqry, $num), $pref);
         $pref += $num; $pqry += $num;
       }
-      elsif ($it eq 'I')                { $pqry += $num; }
-      elsif ($it eq 'D' || $it eq 'N')  { $pref += $num; }
+      elsif ($it eq 'I')                { push @mismatch, "i=$pref,n=$num"; $pqry += $num; }
+      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, "d=$pref,n=$num"; $pref += $num; }
       elsif ($it eq 'S')                { $pqry += $num; }
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
