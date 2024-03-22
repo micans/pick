@@ -1263,69 +1263,69 @@ $::Groupi = 2;    # index within group.
          print STDERR "-- [$.] No query sequence for $pair\n";
        }
        elsif ((my $l1 = length($sam_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
-         print STDERR "-- [$.] No query sequence / cigar string mismatch $l1 / $l2 for $pair\n";
+         print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n";
        }
     }
   }
 
-	sub align_get_mismatch {
-		my ($sref, $sqry, $posref) = @_;
-		my @mm = ();
-		my $ls = length($sref);
-		my $lt = length($sqry);
-		return -1 unless $ls == $lt;
+  sub align_get_mismatch {
+    my ($sref, $sqry, $posref) = @_;
+    my @mm = ();
+    my $ls = length($sref);
+    my $lt = length($sqry);
+    return -1 unless $ls == $lt;
 
-		my $pos = $ls;
-		while ($pos--) {
-			my $sbase = chop $sref; my $tbase = chop $sqry;
-			my $p = $posref + $pos + 1;
-			push @mm, "p=$p,c=$sbase$tbase" if $sbase ne $tbase;
-		}
-		return reverse(@mm);
-	}
+    my $pos = $ls;
+    while ($pos--) {
+      my $sbase = chop $sref; my $tbase = chop $sqry;
+      my $p = $posref + $pos + 1;
+      push @mm, "p=$p,c=$sbase$tbase" if $sbase ne $tbase;
+    }
+    return reverse(@mm);
+  }
 
-	sub getalnposx {
+  sub getalnposx {
 
     my $qry = $sam_cache[3];
     my $ref = $sam_ref_sequence;
-		my $pair = "$::Flink->[0] $::Flink->[2]";
+    my $pair = "$::Flink->[0] $::Flink->[2]";
 
-		return "" unless length($qry) && length($ref);
+    return "" unless length($qry) && length($ref);
 
-		$qry =~ tr/acgtu/ACGTT/;
-		$ref =~ tr/acgtu/ACGTT/;
+    $qry =~ tr/acgtu/ACGTT/;
+    $ref =~ tr/acgtu/ACGTT/;
 
-		my ($pqry, $sqry, $eqry) = (0, 0, 0);             # position query, start query, end query
+    my ($pqry, $sqry, $eqry) = (0, 0, 0);             # position query, start query, end query
 
-		my ($nsoft_start, $nsoft_end) = (0, 0);
-		my ($nhard_start, $nhard_end) = (0, 0);
+    my ($nsoft_start, $nsoft_end) = (0, 0);
+    my ($nhard_start, $nhard_end) = (0, 0);
 
-		my $pref = $::Flink->[3]-1;
+    my $pref = $::Flink->[3]-1;
 
-		my ($rlen, $qlen) = (length($ref), length($qry));
-		my @mismatch = ();
+    my ($rlen, $qlen) = (length($ref), length($qry));
+    my @mismatch = ();
 
-		while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
-			my ($num, $it) = ($1, $2);
+    while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
+      my ($num, $it) = ($1, $2);
 
-			my $rright = $pref + $num;
-			my $qright = $pqry + $num;
+      my $rright = $pref + $num;
+      my $qright = $pqry + $num;
 
-			if ($it eq 'M') {
-				if ($rright > $rlen || $qright > $qlen) {
-					print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
-					last;
-				}
-				push @mismatch, align_get_mismatch(substr($ref, $pref, $num), substr($qry, $pqry, $num), $pref);
-				$pref += $num; $pqry += $num;
-			}
-			elsif ($it eq 'I')                { $pqry += $num; }
-			elsif ($it eq 'D' || $it eq 'N')  { $pref += $num; }
-			elsif ($it eq 'S')                { $pqry += $num; }
-			elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
-		}
-		return join ':', @mismatch;
-	}
+      if ($it eq 'M') {
+        if ($rright > $rlen || $qright > $qlen) {
+          print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
+          last;
+        }
+        push @mismatch, align_get_mismatch(substr($ref, $pref, $num), substr($qry, $pqry, $num), $pref);
+        $pref += $num; $pqry += $num;
+      }
+      elsif ($it eq 'I')                { $pqry += $num; }
+      elsif ($it eq 'D' || $it eq 'N')  { $pref += $num; }
+      elsif ($it eq 'S')                { $pqry += $num; }
+      elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
+    }
+    return join ':', @mismatch;
+  }
 }
 
 
