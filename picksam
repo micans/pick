@@ -113,6 +113,10 @@ my $PSTORE_PIVOT_VALUE   = undef;
 my $Nprotect      = 0;
 my $Nprotect_discard = 0;
 
+my $Nsam_refmiss = 0;
+my $Nsam_qrymiss = 0;
+my $Nsam_cigarerr = 0;
+
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
 my %PNAN =                  # Protect against division by zero etc. Defaults exist and can be overridden.
@@ -1257,13 +1261,17 @@ $::Groupi = 2;    # index within group.
     {  $sam_ref_sequence = $sam_refdictname ? ($::dict{$sam_refdictname}{$sam_cache[1]} || '') : '';
        my $pair = "$sam_cache[0] $sam_cache[1]";
        if (!$sam_ref_sequence) {
-         print STDERR "-- [$.] No reference sequence for $pair\n";
+         print STDERR "-- [$.] No reference sequence for $pair\n" if $L_verbose >= 2;
+         $Nsam_refmiss++;
        }
-       elsif (!$sam_cache[3]) {
-         print STDERR "-- [$.] No query sequence for $pair\n";
+       if (!$sam_cache[3]) {
+         print STDERR "-- [$.] No query sequence for $pair\n" if $L_verbose >= 2;
+         $Nsam_qrymiss++;
        }
        elsif ((my $l1 = length($sam_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
-         print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n";
+         print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n" if $L_verbose >= 2;
+         $sam_ref_sequence = '';    # this will abort analysis in align_get_mismatch
+         $Nsam_cigarerr++;
        }
     }
   }
@@ -1445,6 +1453,10 @@ print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $L_verbose >= 
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $L_verbose >= 1;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
+
+print STDERR "-- $Nsam_refmiss times a reference sequence was not found\n" if $Nsam_refmiss;
+print STDERR "-- $Nsam_qrymiss times a query sequence was not available\n" if $Nsam_qrymiss;
+print STDERR "-- $Nsam_cigarerr times a cigar string did not match the query sequence\n" if $Nsam_cigarerr;
 
 my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup;
