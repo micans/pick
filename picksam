@@ -116,6 +116,8 @@ my $Nprotect_discard = 0;
 my $Nsam_refmiss = 0;
 my $Nsam_qrymiss = 0;
 my $Nsam_cigarerr = 0;
+my $Nsam_lenmiss = 0;
+my $Nsam_lenclash = 0;
 
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
@@ -267,9 +269,24 @@ my %cp_opdefinitions =
 
 sub sam_reflen {
   my $x = $::dict{seqlen}{$::Flink->[2]};
-  if (!defined($x)) {
-    $x=$::dictnotfound{seqlen};
-    print STDERR "No length for $::Flink->[2]\n";
+  my $y = undef;
+  if (length($sam_refdictname)) {
+    my $s = $::dict{$sam_refdictname}{$::Flink->[2]};
+    $y = length($s) if defined($s);
+  }
+  if (defined($x) && defined($y)) {
+    if ($x != $y) {
+      print STDERR "-- [$.] WARNING header/fasta length disagreement $x/$y -- picking header/$x\n";
+      $Nsam_lenclash++;
+    }
+  }
+  elsif (defined($y)) {  # ... and thus !defined($x)
+    $x = $y;
+  }
+  elsif (!defined($x)) {
+    $x = $::dictnotfound{seqlen};
+    print STDERR "-- [$.] No length for $::Flink->[2]\n" if $L_verbose >= 2;
+    $Nsam_lenmiss++;
   }
   return $x;
 }
@@ -512,6 +529,9 @@ sub read_fadict {
    $::dict{$name}{$id} = $seq if defined($id);
    my $n = keys %{$::dict{$name}};
 print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
+   if (length($sam_refdictname)) {
+     print STDERR "WARNING --- multiple fasta dictionaries, I'm using $name for SAM reference lookups ---\n";
+   }
    $sam_refdictname = $name;     # experimental/fragile
 }
 
@@ -762,6 +782,7 @@ EOH
         $B_headless = 1;
         $OFFSET_OMEGA = 12;
         $::dictnotfound{seqlen} = 0;
+        $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      else {
@@ -1457,6 +1478,8 @@ print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_disca
 
 print STDERR "-- $Nsam_refmiss times a reference sequence was not found\n" if $Nsam_refmiss;
 print STDERR "-- $Nsam_qrymiss times a query sequence was not available\n" if $Nsam_qrymiss;
+print STDERR "-- $Nsam_lenmiss times a reference sequence length lookup failed\n" if $Nsam_lenmiss;
+print STDERR "-- $Nsam_lenclash times a reference sequence difference between SAM header and fasta file $sam_refdictname\n" if $Nsam_lenclash;
 print STDERR "-- $Nsam_cigarerr times a cigar string did not match the query sequence\n" if $Nsam_cigarerr;
 
 my $B_header = 1 - $B_headless;
