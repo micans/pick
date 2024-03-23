@@ -286,10 +286,14 @@ my %cp_samdefs = (
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "-\trefend\tLast base in reference covered by alignment\tsam" ],
      reflen    => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
 
-     alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels)\tsam" ],
+     alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
      alnposx   => [ 0, sub { push @::STACK, &getalnposx }, "-\talnposx\tMismatch positions\tsam" ],
+
+     aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
+     aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\taliging string betwee reference and query\tsam" ],
+     aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_qry\talignment string for query\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
@@ -872,7 +876,7 @@ sub parse_compute {
             unless $oplist[-2][0] == $TYPE_SCALAR;
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
-      elsif ($what =~ 'alnposx') {
+      elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/) {
          $I_AM_SAM |= 2;
       }
                            # N stack required, code.
@@ -1312,6 +1316,23 @@ $::Groupi = 2;    # index within group.
     }
   }
 
+  sub align_get_matchregion {
+    my ($sref, $sqry, $posref) = @_;
+    my $aln= "";
+    my $ls = length($sref);
+    my $lt = length($sqry);
+    return "" unless $ls == $lt;
+
+    my $pos = $ls;
+  
+    while ($pos--) {
+      my $sbase = chop $sref; my $tbase = chop $sqry;
+      my $p = $posref + $pos + 1;
+      $aln .= ($sbase eq $tbase) ? '|' : 'x';
+    }
+    return reverse($aln);
+  }
+
   sub align_get_mismatch {
     my ($sref, $sqry, $posref) = @_;
     my @mm = ();
@@ -1328,6 +1349,72 @@ $::Groupi = 2;    # index within group.
     return reverse(@mm);
   }
 
+
+  sub get_aln_strings {
+
+    my $part = shift;
+    die "get_aln_strings need 1, 2, or 3" unless $part == 1 || $part == 2 || $part == 3;
+
+    if (defined($::LINECACHE{SAM_ALN})) {
+      return $::LINECACHE{SAM_ALN}[$part-1];
+    }
+
+    my $qry = $sam_cache[3];
+    my $ref = $sam_ref_sequence;
+    my $pair = "$::Flink->[0] $::Flink->[2]";
+
+    return "" unless length($qry) && length($ref);
+
+    $qry =~ tr/acgtu/ACGTT/;
+    $ref =~ tr/acgtu/ACGTT/;
+
+    my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
+    my ($pqry, $sqry, $eqry) = (0, 0, 0);             # position query, start query, end query
+
+    my $pref = $::Flink->[3]-1;
+
+    my ($rlen, $qlen) = (length($ref), length($qry));
+
+    while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
+      my ($num, $it) = ($1, $2);
+
+      my $rright = $pref + $num;
+      my $qright = $pqry + $num;
+
+      if ($it eq 'M') {
+        if ($rright > $rlen || $qright > $qlen) {
+          print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
+          last;
+        }
+        my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
+        $aln_aln .= align_get_matchregion($subref, $subqry, $pref);
+        $aln_ref .= $subref;
+        $aln_qry .= $subqry;
+        $pref += $num; $pqry += $num;
+      }
+      elsif ($it eq 'I') {
+        $aln_ref .= '=' x $num;
+        $aln_aln .= 'i' x $num;
+        $aln_qry .= substr($qry, $pqry, $num);
+        $pqry += $num;
+      }
+      elsif ($it eq 'D' || $it eq 'N')  {
+        $aln_qry .= '-' x $num;
+        $aln_aln .= 'd' x $num;
+        $aln_ref .= substr($ref, $pref, $num);
+        $pref += $num;
+      }
+      elsif ($it eq 'S') {
+        # fixme noteme: under some circumstances include this case and extend strings?
+        $pqry += $num;
+      }
+      elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
+    }
+    $::LINECACHE{SAM_ALN} = [ $aln_ref, $aln_aln, $aln_qry ];
+    return $::LINECACHE{SAM_ALN}[$part-1];
+  }
+
+
   sub getalnposx {
 
     my $qry = $sam_cache[3];
@@ -1340,9 +1427,6 @@ $::Groupi = 2;    # index within group.
     $ref =~ tr/acgtu/ACGTT/;
 
     my ($pqry, $sqry, $eqry) = (0, 0, 0);             # position query, start query, end query
-
-    my ($nsoft_start, $nsoft_end) = (0, 0);
-    my ($nhard_start, $nhard_end) = (0, 0);
 
     my $pref = $::Flink->[3]-1;
 
