@@ -277,6 +277,7 @@ sub sam_reflen {
 
 my %cp_samdefs = (
      refcov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MDN=X', 'sum') }, "-\trefcov\tSpan of reference covered by alignment\tsam" ],
+     refcovsplice    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MD=X', 'sum') }, "-\trefcov\tAmount of reference covered by alignment\tsam" ],
      refstart  => [ 0, sub { push @::STACK, $::Flink->[3] }, "-\trefstart\tField 4 from sam format\tsam" ],
      refend    => [ 0, sub { push @::STACK, $::Flink->[3] + acigar($::Flink->[5], 'MDN=X', 'sum') - 1 }, "-\trefend\tLast base in reference covered by alignment\tsam" ],
      reflen    => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
@@ -1328,7 +1329,7 @@ $::Groupi = 2;    # index within group.
         $pref += $num; $pqry += $num;
       }
       elsif ($it eq 'I')                { push @mismatch, "i=$pref,n=$num"; $pqry += $num; }
-      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, "d=$pref,n=$num"; $pref += $num; }
+      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, ($it eq 'D' ? 'd' : 's') . "=$pref,n=$num"; $pref += $num; }
       elsif ($it eq 'S')                { $pqry += $num; }
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
