@@ -267,23 +267,10 @@ my %cp_opdefinitions =
 
    );
 
+
 sub sam_reflen {
   my $x = $::dict{seqlen}{$::Flink->[2]};
-  my $y = undef;
-  if (length($sam_refdictname)) {
-    my $s = $::dict{$sam_refdictname}{$::Flink->[2]};
-    $y = length($s) if defined($s);
-  }
-  if (defined($x) && defined($y)) {
-    if ($x != $y) {
-      print STDERR "-- [$.] WARNING header/fasta length disagreement $x/$y -- picking header/$x\n";
-      $Nsam_lenclash++;
-    }
-  }
-  elsif (defined($y)) {  # ... and thus !defined($x)
-    $x = $y;
-  }
-  elsif (!defined($x)) {
+  if (!defined($x)) {
     $x = $::dictnotfound{seqlen};
     print STDERR "-- [$.] No length for $::Flink->[2]\n" if $L_verbose >= 2;
     $Nsam_lenmiss++;
@@ -783,6 +770,7 @@ EOH
         $OFFSET_OMEGA = 12;
         $::dictnotfound{seqlen} = 0;
         $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
+        $I_AM_SAM |= 1;
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      else {
@@ -1269,7 +1257,23 @@ $::Groupi = 2;    # index within group.
   my @sam_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
 
-  sub sam_setup_sequences {
+  sub sam_setup_reflendict {
+    if (length($sam_refdictname)) {
+      for my $r (sort keys %{$::dict{$sam_refdictname}}) {
+        my $lfasta = length($::dict{$sam_refdictname}{$r});
+        if (!defined($::dict{seqlen}{$r})) {
+           print STDERR "-- [$.] setting sequence length for $r to $lfasta\n" if $L_verbose >= 2;
+           $::dict{seqlen}{$r} = $lfasta;
+        }
+        elsif ((my $lsamh = $::dict{seqlen}{$r}) != $lfasta) {
+          print STDERR "-- [$.] WARNING header/fasta length disagreement $lsamh/$lfasta -- picking header/$lsamh\n";
+          $Nsam_lenclash++;
+        }
+      }
+    }
+  }
+
+  sub sam_setup_aln_sequences {
     @sam_cache_prev = @sam_cache;
     @sam_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
     if ($sam_cache[3] eq '*') {
@@ -1413,6 +1417,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
          print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
       }
     }
+    &sam_setup_reflendict if $I_AM_SAM;
     $::Nrows++;
     next unless $B_headless;
   }
@@ -1422,7 +1427,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
     $::Nrows++;
   }
 
-  sam_setup_sequences if $I_AM_SAM & 2;
+  sam_setup_aln_sequences if $I_AM_SAM & 2;
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
 
@@ -1491,5 +1496,4 @@ if ($N_expect >= 0 && $N_expect != $Nkeep) {
 }
 
 demux_tally() if $index_demux >= 0;
-
 
