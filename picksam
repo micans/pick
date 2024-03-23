@@ -1260,18 +1260,25 @@ $::Groupi = 2;    # index within group.
 
   sub sam_setup_reflendict {
     if (length($sam_refdictname)) {
-      print STDERR "-- Comparing fasta sequences with header information if present\n";
+      print STDERR "-- Comparing fasta sequence lengths with header information if present\n";
+      my $nheader = keys %{$::dict{seqlen}};
+      my $nfasta  = keys %{$::dict{$sam_refdictname}};
+      my $nshared = 0;
       for my $r (sort keys %{$::dict{$sam_refdictname}}) {
         my $lfasta = length($::dict{$sam_refdictname}{$r});
         if (!defined($::dict{seqlen}{$r})) {
            print STDERR "-- [$.] setting sequence length for $r to $lfasta\n" if $L_verbose >= 2;
            $::dict{seqlen}{$r} = $lfasta;
         }
-        elsif ((my $lsamh = $::dict{seqlen}{$r}) != $lfasta) {
-          print STDERR "-- [$.] WARNING header/fasta length disagreement $lsamh/$lfasta -- picking header/$lsamh\n";
-          $Nsam_lenclash++;
+        else {
+          $nshared++;
+          if ((my $lsamh = $::dict{seqlen}{$r}) != $lfasta) {
+            print STDERR "-- [$.] WARNING header/fasta length disagreement $lsamh/$lfasta -- picking header/$lsamh\n";
+            $Nsam_lenclash++;
+          }
         }
       }
+      print STDERR "-- Header/Fasta/Shared/Conflict $nheader/$nfasta/$nshared/$Nsam_lenclash\n";
     }
     $I_AM_SAM ^= 4;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
