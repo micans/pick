@@ -1259,6 +1259,7 @@ $::Groupi = 2;    # index within group.
 
   sub sam_setup_reflendict {
     if (length($sam_refdictname)) {
+      print STDERR "-- Comparing fasta sequences with header information if present\n";
       for my $r (sort keys %{$::dict{$sam_refdictname}}) {
         my $lfasta = length($::dict{$sam_refdictname}{$r});
         if (!defined($::dict{seqlen}{$r})) {
@@ -1271,6 +1272,7 @@ $::Groupi = 2;    # index within group.
         }
       }
     }
+    $I_AM_SAM ^= 4;
   }
 
   sub sam_setup_aln_sequences {
@@ -1376,6 +1378,7 @@ while (<>) {
        $Nignr++;
        if (($F_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {         # get sequence lengths from SAM header.
          $::dict{seqlen}{$1} = $2;
+         $I_AM_SAM |= 4;
        }
        next;
     }
@@ -1417,7 +1420,6 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
          print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
       }
     }
-    &sam_setup_reflendict if $I_AM_SAM;
     $::Nrows++;
     next unless $B_headless;
   }
@@ -1427,6 +1429,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
     $::Nrows++;
   }
 
+  sam_setup_reflendict    if $I_AM_SAM & 4;
   sam_setup_aln_sequences if $I_AM_SAM & 2;
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
