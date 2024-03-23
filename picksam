@@ -1246,7 +1246,8 @@ sub do_cache {
 
  $::Nrows = 0;    # includes header.
 $::Ngroup = 0;    # skipped because first in group: --group
-my $Nignr = 0;    # skipped based on pattern; e.g. pick -/^#
+my $Nskip = 0;    # skipped based on pattern; e.g. pick -/^#
+my $Npthr = 0;    # skipped and passed through
 my $Ndisc = 0;    # skipped because @ criteria not met
 my $Nkeep = 0;
 
@@ -1272,7 +1273,7 @@ $::Groupi = 2;    # index within group.
         }
       }
     }
-    $I_AM_SAM ^= 4;
+    $I_AM_SAM ^= 4;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
   sub sam_setup_aln_sequences {
@@ -1374,8 +1375,8 @@ while (<>) {
     my $hit1 = ($F_ignore & 1) && /$PAT_PASS/  ? 1 : 0;
     my $hit2 = ($F_ignore & 2) && /$PAT_PURGE/ ? 1 : 0;
     if ($hit1 || $hit2) {
-       print "$_" if $hit1;
-       $Nignr++;
+       if ($hit1) { print "$_"; $Npthr++; }
+       $Nskip++;
        if (($F_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {         # get sequence lengths from SAM header.
          $::dict{seqlen}{$1} = $2;
          $I_AM_SAM |= 4;
@@ -1479,7 +1480,8 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
 print "$Nkeep\n" if $B_count;
 
-print STDERR "-- $Nignr ignored lines in input\n" if $F_ignore && $L_verbose >= 1;
+if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
+else           { print STDERR "-- $Nskip skipped lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $L_verbose >= 1;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
