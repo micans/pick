@@ -774,7 +774,7 @@ EOH
         $OFFSET_OMEGA = 12;
         $::dictnotfound{seqlen} = 0;
         $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
-        $I_AM_SAM |= 1;
+        $I_AM_SAM |= 5;                      # 1: i-am-sam. 4: check sequence lengths between sam header and fasta.
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      else {
@@ -1400,7 +1400,7 @@ $::Groupi = 2;    # index within group.
       }
       elsif ($it eq 'D' || $it eq 'N')  {
         $aln_qry .= '-' x $num;
-        $aln_aln .= 'd' x $num;
+        $aln_aln .= lc($it) x $num;
         $aln_ref .= substr($ref, $pref, $num);
         $pref += $num;
       }
@@ -1470,7 +1470,6 @@ while (<>) {
        $Nskip++;
        if (($F_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {         # get sequence lengths from SAM header.
          $::dict{seqlen}{$1} = $2;
-         $I_AM_SAM |= 4;
        }
        next;
     }
@@ -1521,8 +1520,8 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
     $::Nrows++;
   }
 
-  sam_setup_reflendict    if $I_AM_SAM & 4;
-  sam_setup_aln_sequences if $I_AM_SAM & 2;
+  sam_setup_reflendict    if $I_AM_SAM & 4;        # Done only once.
+  sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line.
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
 

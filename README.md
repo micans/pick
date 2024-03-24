@@ -591,8 +591,8 @@ See below for more information about SAM and CIGAR support.
 ## SAM and CIGAR support
 
 
-Use `--sam` or `--sam-h` if the input is SAM format. This will set the options `-k` (headerless input) and `-O11`
-(overflow columns collated in column 11) and make the sequence lengths available in the `seqlen`
+Use `--sam` or `--sam-h` if the input is SAM format. This will set the options `-k` (headerless input) and `-O12`
+(overflow columns collated in column 12) and make the sequence lengths available in the `seqlen`
 dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-h`.
 It is possible to load sequences to combine (and excise subsequences from) with SAM input by
 [using either `--fasta-dict-NAME` or `--fastq-dict-NAME`](#map-column-values-using-a-dictionary). With this
@@ -985,7 +985,7 @@ pick --group=gene intron_start::^exon_end,pload,incr intron_end::exon_start,decr
 ## Option processing
 
 Single-letter options can be combined or specified separately. The offset for `-O` (ragged input), optional offset for `-A`
-(insertion of new columns) and `-E` expected result count are accommodated, so e.g. `-kA2O11` will be understood by pick.
+(insertion of new columns) and `-E` expected result count are accommodated, so e.g. `-kA2O12` will be understood by pick.
 The option for purging lines with a certain pattern `/<pat>` and the option for passing through
 lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#`.
 
@@ -998,7 +998,7 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-H` summary of pick syntax.
 
 -  `--sam` / `--sam-h` Expect sam input, pass through sam header (`--sam-h`).  
-   These options effectively set `-k -O11`, `-/^@` (`--sam`) or `-//^@` (`--sam-h`) and
+   These options effectively set `-k -O12`, `-/^@` (`--sam`) or `-//^@` (`--sam-h`) and
    additionally store sequence lengths in the `seqlen` dictionary if the input contains a sam header.
 
 -  `-h` do not print header
@@ -1013,7 +1013,7 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
   
 -  `-A` print all input columns (selecting by colspec applies, -`T` accepted)
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
--  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O11`), merge all columns at/after position `<N>`
+-  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O12`), merge all columns at/after position `<N>`
 -  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
 -  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
 -  `-Z` as `-P`, discard rows that have items that need protecting
