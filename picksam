@@ -783,8 +783,8 @@ EOH
      next;
   }
 
-  if ($options =~ s/\/\/(.*)$//)    { $F_ignore |= 1; $PAT_PASS  = $1; }   # urldecode $PAT_PASS?
-  if ($options =~ s/\/([^\/].*)$//) { $F_ignore |= 2; $PAT_PURGE = $1; }   # urldecode $PAT_PURGE?
+  if ($options =~ s/\/\/(.*)$//)    { $F_ignore |= 1; $PAT_PASS  = urldecode($1); }       # @urldecode -//PAT
+  if ($options =~ s/\/([^\/].*)$//) { $F_ignore |= 2; $PAT_PURGE = urldecode($1); }       # @urldecode -/PAT
 
   if ($options =~ s/O(\d+)//) {
      $OFFSET_OMEGA = $1 + 0;
