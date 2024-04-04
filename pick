@@ -160,6 +160,7 @@ my %cp_opdefinitions =
      meanall   => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = @::STACK ? ($x/@::STACK) : (0.0) }, "*\tmean(Stack)\tMean of all entries in stack\tarithmetic/devour" ],
      hmeanall  => [ 0, sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
      gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
+     rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
@@ -292,7 +293,7 @@ my %cp_samdefs = (
      alnposx   => [ 0, sub { push @::STACK, &getalnposx }, "-\talnposx\tMismatch positions\tsam" ],
 
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
-     aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\taliging string betwee reference and query\tsam" ],
+     aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
      aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_qry\talignment string for query\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],

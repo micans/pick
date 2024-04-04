@@ -1137,6 +1137,8 @@ ed          x p s       x =~ s/p/s/         Substitute pattern p by s in x [stri
 edg         x p s       x =~ s/p/s/g        Globally substitute pattern p by s in x [string/regex]
 exp         x           e**x                Exponential function applied to x [math]
 exp10       x           10^x                10 to the power of x [math]
+fasta       i s         fasta format        ID and sequence in FASTA format [sam]
+fastq       i s         fastq format        ID and sequence in FASTQ format [sam]
 floor       x           floor(x)            The floor of x [math]
 frac        x y N       x/y                 Division, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 get         x r         r-match-of-x        If x matches regex r take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
@@ -1200,10 +1202,18 @@ zp          x N         x'                  x left zero-padded to width of N [ou
 
 These are additionally available if `--sam` is supplied:
 
+
+
 ```
 Operator    Consumed    Produced            Description
 --------------------------------------------------------------------------------
-alnmatch    -           refmatch            Amount of reference/query matched by alignment (ignoring indels) [sam]
+aln_aln     -           aln_aln             Alignment string between reference and query [sam]
+aln_qry     -           aln_qry             Alignment string for query [sam]
+aln_ref     -           aln_ref             Alignment string for reference [sam]
+alnedit     -           alnedit             Edit distance excluding clipping [sam]
+alnmatch    -           alnmatch            Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
+alnmatchx   -           alnmatchx           Number of base mismatches [sam]
+alnposx     -           alnposx             Mismatch positions [sam]
 cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
 cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
 cgqrycov    c           qrycov              Count of query bases covered by cigar string c (MI=X events) [string/sam]
@@ -1212,8 +1222,6 @@ cgqrylen    c           qrylen              Length of query (MIS=X events) in ci
 cgqrystart  c           qrystart            First base considered aligned in query for cigar string c [string/sam]
 cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
 cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
-fasta       i s         fasta format        ID and sequence in FASTA format [sam]
-fastq       i s         fastq format        ID and sequence in FASTQ format [sam]
 qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
 qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]
 qrycov      -           qrycov              Span of query covered by alignment [sam]
