@@ -7,11 +7,14 @@ Entire scripts can be replaced by concise command line invocations.
 Pick allows database-style queries (*select*) and filters (*where*)
 on a single text file or stream using its column names (or indexes if no names are present).
 Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
-Additionally output can be demuxed into different files.
+Output can be demuxed into different files and dictionaries can be loaded to map data.
 
 `pick` is **robust** and **intuitive** by supporting column names as handles.
 It is **lightweight** as it processes data per-line without the need to load the table into memory.
 It is **expressive** in that short command lines are sufficient to get at the data.
+
+Additionally pick has **extensive support for SAM format** such as printing alignments and
+outputting alignment-derived quantities like coverage and base mismatch information.
 
 > [!NOTE]
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
@@ -609,6 +612,14 @@ for operators such as `qryclipl`):
    rightclip::SEQ,qryclipr,dup,neg,xch,substr \
 ```
 
+The following shorthands can be used to specify SAM format and a fasta file to be loaded,
+where the sequences will be stored in the dictionary called `SAMFA`.
+
+```
+   --sam/FILENAME                # short for     --sam --fa-dict-SAMFA=FILENAME
+   --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA=FILENAME
+```
+
 When using either of `--sam` or `--sam-h` pick makes several new operators available that compute certain alignment-related
 offsets and widths. The following table lists these shorthand operators, along with
 a more verbose and obtuse/obsolete pick equivalent using older operators (still available).
@@ -618,8 +629,27 @@ can be combined in various ways.
 With these operators pick can be used to efficiently filter alignments, for example
 removing those that do not start near expected primer sites (see below). Other applications
 include the computation and extraction of quantities for quality control.
+The first set of operators expect a sequence dictionary to be loaded that matches the SAM reference identifiers.
+The second set of operators does not need this information, but `reflen` does expect sequence length information
+to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
+
 
 ```
+SAM operators requiring sequences to be loaded (see above)
+---------------------------------------
+aln_aln             alignment string between reference and query [sam]
+aln_qry             alignment string for query [sam]
+aln_ref             alignment string for reference [sam]
+alnedit             Edit distance excluding clipping [sam]
+alnmatch            Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
+alnmatchx           Number of base mismatches [sam]
+alnposx             Mismatch positions [sam]
+```
+
+
+```
+Other SAM operators 
+---------------------------------------
 using --sam         without using --sam or --sam-h
    or --sam-h
 ---------------------------------------

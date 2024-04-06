@@ -522,9 +522,12 @@ sub read_fadict {
    my $n = keys %{$::dict{$name}};
 print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
    if (length($sam_refdictname)) {
-     print STDERR "WARNING --- multiple fasta dictionaries, I'm using $name for SAM reference lookups ---\n";
+     print STDERR "WARNING --- multiple fasta dictionaries, I'm using $sam_refdictname for SAM reference lookups ---\n";
    }
-   $sam_refdictname = $name;     # experimental/fragile
+   else {
+      $sam_refdictname = $name;     # experimental/fragile
+      print STDERR "--- Sequences for SAM reference lookup loaded from $fname in dictionary $sam_refdictname\n" if $L_verbose >= 0;
+   }
 }
 
 sub read_fqdict {
@@ -768,9 +771,13 @@ EOH
        exit 0;
        }
      }
-     elsif ($options =~ /^sam(-h)?$/) {
+     elsif ($options =~ /^sam(-h)?(\/(\S+))?$/) {
         if (defined($1)) { $F_ignore |= 5; $PAT_PASS  = '^@'; }
         else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
+        if (defined($2)) {
+          my $fname = $3;
+          read_fadict('SAMFA', $fname);
+        }
         $B_headless = 1;
         $OFFSET_OMEGA = 12;
         $::dictnotfound{seqlen} = 0;
@@ -810,6 +817,7 @@ EOH
   ($B_protect, $B_protect_discard) = (1,1) if $options =~ s/Z//;
   $B_select_and   = 0 if $options =~ s/o//;
   $L_verbose += length($1)  if $options =~ s/(v+)//;
+  $L_verbose -= length($1)  if $options =~ s/(q+)//;
   $B_ko           = 1 if $options =~ s/U//;
   $B_excise       = 1 if $options =~ s/x//;
   $B_add_row_column =1 if $options =~ s/R//;
