@@ -301,6 +301,10 @@ my %cp_samdefs = (
      qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MISH=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
      qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MISH=X', 'sum') }, "-\tqrylen\tLength of query sequence\tsam" ],
 
+     qry_trail5p  => [ 0, sub { push @::STACK, &get_qry_part(0); }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
+     qry_matched  => [ 0, sub { push @::STACK, &get_qry_part(1); }, "-\tqry_matched\t3' matched query sequence in reference orientation\tsam" ],
+     qry_trail3p  => [ 0, sub { push @::STACK, &get_qry_part(2); }, "-\tqry_trail3p\t3' unaligned query sequence in reference orientation\tsam" ],
+
      refclipl  => [ 0, sub { push @::STACK, $::Flink->[3] -1 }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
      refclipr  => [ 0, sub { push @::STACK, &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum')}, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
 
@@ -526,7 +530,7 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
    }
    else {
       $sam_refdictname = $name;     # experimental/fragile
-      print STDERR "--- Sequences for SAM reference lookup loaded from $fname in dictionary $sam_refdictname\n" if $L_verbose >= 0;
+      print STDERR "-- Sequences for SAM reference lookup loaded from $fname in dictionary $sam_refdictname\n" if $L_verbose >= 0;
    }
 }
 
@@ -885,7 +889,7 @@ sub parse_compute {
             unless $oplist[-2][0] == $TYPE_SCALAR;
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
-      elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/) {
+      elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/ || $what =~ /^qry_(trail3p|trail5p|matched)/) {
          $I_AM_SAM |= 2;
       }
                            # N stack required, code.
@@ -1267,7 +1271,7 @@ my $Nkeep = 0;
 $::Groupi = 2;    # index within group.
 
 
-{ my @sam_cache = ("no-readname", "no-refname", -1, '');
+{ my @sam_cache = ("no-readname", "no-refname", -1, '');       # Read name, refname, strand, read sequence
   my @sam_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
 
@@ -1299,6 +1303,7 @@ $::Groupi = 2;    # index within group.
   sub sam_setup_aln_sequences {
     @sam_cache_prev = @sam_cache;
     @sam_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
+                                                     # checkme strandcheck: not sure if this strand flipping works.
     if ($sam_cache[3] eq '*') {
       if ($sam_cache[0] eq $sam_cache_prev[0]) {     # same read name.
         $sam_cache[3] = $sam_cache[2] != $sam_cache_prev[2] ? rc($sam_cache_prev[3]) : $sam_cache_prev[3];
@@ -1423,6 +1428,24 @@ $::Groupi = 2;    # index within group.
     return $::LINECACHE{SAM_ALN}[$part-1];
   }
 
+  sub get_qry_part {
+    my $part = shift;
+    return $sam_cache[4+$part] if defined($sam_cache[4+$part]);
+    my $qry = $sam_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
+    my $qrylen = length($qry);
+    if (!$qrylen) {
+       @sam_cache[4..6] = ('', '', '');
+       return '';
+    }
+    my $NL = 0; $NL = $1 if $::Flink->[5] =~ /^(\d+)S/;
+    my $NR = 0; $NR = $1 if $::Flink->[5] =~ /(\d+)S$/;
+    @sam_cache[4..6] =
+    ( substr($qry, 0,             $NL                 )
+    , substr($qry, $NL,           $qrylen - $NL - $NR )
+    , substr($qry, $qrylen - $NR, $NR                 )
+    ) ;
+    return $sam_cache[4+$part];
+  }
 
   sub getalnposx {
 

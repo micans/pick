@@ -1,6 +1,9 @@
 
 # Unix table column and row manipulation using column names
 
+## Sam alignment format poly-wrangler
+
+
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
 Entire scripts can be replaced by concise command line invocations.
 
@@ -62,7 +65,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Ragged input](#ragged-input)  
-[SAM and CIGAR support](#sam-and-cigar-support)  
+[SAM support](#sam-support)  
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
@@ -587,21 +590,28 @@ will be added (and output e.g. if `-A` is used).
 
 _For SAM input just use either_ `--sam` _or_ `--sam-h` (the latter will output the SAM header if present).
 
-See below for more information about SAM and CIGAR support.
+See below for more information about SAM support.
 
 
 
-## SAM and CIGAR support
+## SAM support
 
 
 Use `--sam` or `--sam-h` if the input is SAM format. This will set the options `-k` (headerless input) and `-O12`
 (overflow columns collated in column 12) and make the sequence lengths available in the `seqlen`
 dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-h`.
-It is possible to load sequences to combine (and excise subsequences from) with SAM input by
-[using either `--fasta-dict-NAME` or `--fastq-dict-NAME`](#map-column-values-using-a-dictionary). With this
-(where `NAME` can be freely chosen) a sequence can be retrieved from the read name field (column 1 in SAM format) with
+
+The following shorthands can be used to specify SAM format and a fasta file to be loaded,
+where the sequences will be stored in the dictionary called `SAMFA`.
+
 ```
-::1^NAME,map
+   --sam/FILENAME                # short for     --sam --fa-dict-SAMFA=FILENAME
+   --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA=FILENAME
+```
+
+With this a sequence can be retrieved from the read name field (column 1 in SAM format) with
+```
+::1^SAMFA,map
 ```
 To obtain the left- and right-clipped (non-aligned) sequences as well as the matched part from the read (see below
 for operators such as `qryclipl`):
@@ -610,14 +620,6 @@ for operators such as `qryclipl`):
    leftclip::SEQ^0,qryclipl,substr \
    matchedpart::SEQ,qryclipl,qrycov,substr \
    rightclip::SEQ,qryclipr,dup,neg,xch,substr \
-```
-
-The following shorthands can be used to specify SAM format and a fasta file to be loaded,
-where the sequences will be stored in the dictionary called `SAMFA`.
-
-```
-   --sam/FILENAME                # short for     --sam --fa-dict-SAMFA=FILENAME
-   --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA=FILENAME
 ```
 
 When using either of `--sam` or `--sam-h` pick makes several new operators available that compute certain alignment-related
@@ -667,7 +669,7 @@ The output is a concatenation (separated by `:`) of items of the following types
 x=3,c=TC                # A mismatch at position 3, base change T to C
 i=65,n=1,s=T            # An insertion at position 65 of size 1, sequence T
 d=79,n=1,s=ATTA         # A deletion at position 79 of size 4, sequence ATTA
-e=144,n=108             # An 'expecterd' deletion (intron/splice) event at position 144 of size 108
+e=144,n=108             # An 'expected' deletion (intron/splice) event at position 144 of size 108
 ```
 
 
