@@ -621,16 +621,19 @@ where the sequences will be stored in the dictionary called `SAMFA`.
 ```
 
 When using either of `--sam` or `--sam-h` pick makes several new operators available that compute certain alignment-related
-offsets and widths. The following table lists these shorthand operators, along with
-a more verbose and obtuse/obsolete pick equivalent using older operators (still available).
+quantities, offsets and widths, listed in the two tables below.
 Shown below are simple computes with just a single operator used. Obviously these
 can be combined in various ways.
 
 With these operators pick can be used to efficiently filter alignments, for example
 removing those that do not start near expected primer sites (see below). Other applications
 include the computation and extraction of quantities for quality control.
-The first set of operators expect a sequence dictionary to be loaded that matches the SAM reference identifiers.
-The second set of operators does not need this information, but `reflen` does expect sequence length information
+
+The first set of operators expect a sequence dictionary to be present that matches the SAM reference identifiers.
+These operators do not need to be supplied with the name of that dictionary: **the first fasta dictionary that is
+specified is taken to contain the sequences matching the SAM input**.
+
+The second set of operators does not need sequences, but `reflen` does expect sequence length information
 to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
 
 
@@ -640,10 +643,18 @@ SAM operators requiring sequences to be loaded (see above)
 aln_aln             alignment string between reference and query [sam]
 aln_qry             alignment string for query [sam]
 aln_ref             alignment string for reference [sam]
-alnedit             Edit distance excluding clipping [sam]
+alnedit             Edit distance excluding clipping - obtained from NM field [sam]
 alnmatch            Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
 alnmatchx           Number of base mismatches [sam]
 alnposx             Mismatch positions [sam]
+```
+
+**Example 1**  
+Below creates an intermediate tab-separated table with fields `edit-distance`, `reference ID`, `query ID` followed by three alignment strings;
+it then sorts them by edit-distance and outputs them as paragraphs, resulting in correctly displayed alignments, sorted
+from fewest edits to most edits.
+```
+cat some.sam | pick --sam/some.fa ::,alnedit:1:3,aln_ref,aln_aln,aln_qry^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall > some.align
 ```
 
 
