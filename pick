@@ -290,7 +290,7 @@ my %cp_samdefs = (
      alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
-     alnposx   => [ 0, sub { push @::STACK, &getalnposx }, "-\talnposx\tMismatch positions\tsam" ],
+     alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
 
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
@@ -1426,6 +1426,7 @@ $::Groupi = 2;    # index within group.
 
   sub getalnposx {
 
+    my $indel_report_limit = shift;
     my $qry = $sam_cache[3];
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
@@ -1456,8 +1457,14 @@ $::Groupi = 2;    # index within group.
         push @mismatch, align_get_mismatch(substr($ref, $pref, $num), substr($qry, $pqry, $num), $pref);
         $pref += $num; $pqry += $num;
       }
-      elsif ($it eq 'I')                { push @mismatch, "i=$pref,n=$num"; $pqry += $num; }
-      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, ($it eq 'D' ? 'd' : 's') . "=$pref,n=$num"; $pref += $num; }
+      elsif ($it eq 'I')                { push @mismatch, "i=$pref,n=$num";
+                                          $mismatch[-1] .= ',s=' . substr($qry, $pqry, $num) if !$indel_report_limit || $num <= $indel_report_limit;
+                                          $pqry += $num;
+                                        }
+      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, ($it eq 'D' ? 'd' : 'e') . "=$pref,n=$num";
+                                          $mismatch[-1] .= ',s=' . substr($qry, $pref, $num) if !$indel_report_limit || $num <= $indel_report_limit;
+                                          $pref += $num;
+                                        }
       elsif ($it eq 'S')                { $pqry += $num; }
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
