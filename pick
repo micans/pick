@@ -1462,7 +1462,7 @@ $::Groupi = 2;    # index within group.
                                           $pqry += $num;
                                         }
       elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, ($it eq 'D' ? 'd' : 'e') . "=$pref,n=$num";
-                                          $mismatch[-1] .= ',s=' . substr($qry, $pref, $num) if !$indel_report_limit || $num <= $indel_report_limit;
+                                          $mismatch[-1] .= ',s=' . substr($ref, $pref, $num) if !$indel_report_limit || $num <= $indel_report_limit;
                                           $pref += $num;
                                         }
       elsif ($it eq 'S')                { $pqry += $num; }

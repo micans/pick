@@ -657,6 +657,19 @@ from fewest edits to most edits.
 cat some.sam | pick --sam/some.fa ::,alnedit:1:3,aln_ref,aln_aln,aln_qry^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall > some.align
 ```
 
+**Example 2**  
+```
+cat some.sam | pick --sam/some.fa ::^10,alnposx
+```
+This outputs a description of all edit events, where indel sequences are reported up to a length of 10.
+The output is a concatenation (separated by `:`) of items of the following types:
+```
+x=3,c=TC                # A mismatch at position 3, base change T to C
+i=65,n=1,s=T            # An insertion at position 65 of size 1, sequence T
+d=79,n=1,s=ATTA         # A deletion at position 79 of size 4, sequence ATTA
+e=144,n=108             # An 'expecterd' deletion (intron/splice) event at position 144 of size 108
+```
+
 
 ```
 Other SAM operators 
