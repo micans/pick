@@ -82,36 +82,38 @@ while (<>) {
       my $bp = $map{lc $&};
       $seq .= $bp if defined($bp);
    }
-   $seq =~ s/\<([ACGT]+)\>/rc($1)/ge;
+   while ($seq =~ s/\<([ACGT]+)\>/rc($1)/ge) {
+      pos($seq) = 0;
+   }
    $seq =~ s/\{([ACGT]+)\}/muck($1)/ge;
    print ">$name\n$seq\n";
 }
 
 
 __DATA__
-FOX	the quick brown fox jumps over a lazy dog
-FAX	the quick brown foxes jump over lazy dogs
+F1	the quick brown fox jumps over a lazy dog
+F2	the quick brown foxes jump over lazy dogs
 
-NYMPH	waltz, bad nymph, for quick jigs vex
-NIMPH	waltzing nymphs for sick fig mex
+N1	waltz, bad nymph, for quick jigs vex
+N2	waltzing nymphs for sick fig mex
 
-GLIB	glib jocks quiz nymph to vex dwarf
-GLOB	glad jacks swizz hymn to text swarms
+G1	glib jocks quiz nymph to vex dwarf
+G2	glad jacks swizz hymn to text swarms
 
-SPHINX	sphinx of black quartz, judge my vow
-SPHYNX	wondrous sphinxes of blasted quarry, fudge now my cake
+S1	sphinx of black quartz, judge my vow
+S2	wondrous sphinxes of blasted quarry, fudge now my cake
 
-ZEBRA	how quickly daft jumping zebras vex
-ZEBRO	quick raft jumping zebra excels
+Z1	how quickly daft jumping zebras vex
+Z2	quick raft jumping zebra excels
 
-WIZARD	the five boxing wizards jump quickly
-WAZARD	see the fine box ink gizzards fill
+W1	the five boxing wizards jump quickly
+W2	see the fine box ink gizzards fill
 
-JACKDAW	jackdaws love my big sphinx of quartz
-JECKDAW	hacksaws loath a big binge of quarry material
+J1	jackdaws love my big sphinx of quartz
+J2	hacksaws loath a big binge of quarry material
 
-BOX	pack my box with five dozen liquor jugs
-BAX	pick my lox with four dozen liuqor rugs
+B1	pack my box with five dozen liquor jugs
+B2	pick my lox with four dozen liuqor rugs
 
 SEA1	All streams flow into the sea, yet the sea is never full
 SEA2	To the place the streams come from, there they return again.
