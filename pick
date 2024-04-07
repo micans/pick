@@ -115,6 +115,7 @@ my $Nprotect_discard = 0;
 
 my $Nsam_refmiss = 0;
 my $Nsam_qrymiss = 0;
+my $Nsam_qryunmapped = 0;
 my $Nsam_cigarerr = 0;
 my $Nsam_lenmiss = 0;
 my $Nsam_lenclash = 0;
@@ -1322,6 +1323,11 @@ $::Groupi = 2;    # index within group.
          print STDERR "-- [$.] No query sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_qrymiss++;
        }
+       elsif ($::Flink->[5] eq '*') {
+         $Nsam_qryunmapped++;
+         $sam_ref_sequence = '';       # fixme check whether this catches all cases, or how to arrange it so that
+                                       # a single check catches all cases.
+       }
        elsif ((my $l1 = length($sam_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
          print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n" if $L_verbose >= 2;
          $sam_ref_sequence = '';    # this will abort analysis in align_get_mismatch
@@ -1617,6 +1623,7 @@ print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_disca
 
 print STDERR "-- $Nsam_refmiss times a reference sequence was not found\n" if $Nsam_refmiss;
 print STDERR "-- $Nsam_qrymiss times a query sequence was not available\n" if $Nsam_qrymiss;
+print STDERR "-- $Nsam_qryunmapped times a query sequence was unmapped\n" if $Nsam_qryunmapped;
 print STDERR "-- $Nsam_lenmiss times a reference sequence length lookup failed\n" if $Nsam_lenmiss;
 print STDERR "-- $Nsam_lenclash times a reference sequence difference between SAM header and fasta file $sam_refdictname\n" if $Nsam_lenclash;
 print STDERR "-- $Nsam_cigarerr times a cigar string did not match the query sequence\n" if $Nsam_cigarerr;
