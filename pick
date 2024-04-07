@@ -1301,6 +1301,8 @@ $::Groupi = 2;    # index within group.
     $I_AM_SAM ^= 4;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
+                        # fixme do not attempt to lookup '*' reference (unmapped query),
+                        # improve structure.
   sub sam_setup_aln_sequences {
     @sam_cache_prev = @sam_cache;
     @sam_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
@@ -1323,10 +1325,10 @@ $::Groupi = 2;    # index within group.
          print STDERR "-- [$.] No query sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_qrymiss++;
        }
-       elsif ($::Flink->[5] eq '*') {
+       elsif ($::Flink->[5] eq '*') {  # and/or [2] eq '*' and/or [1] & 4 ..
          $Nsam_qryunmapped++;
-         $sam_ref_sequence = '';       # fixme check whether this catches all cases, or how to arrange it so that
-                                       # a single check catches all cases.
+         $sam_ref_sequence = '';       # .. fixme check whether this catches all cases, or how to arrange it so that
+                                       # a single check catches all cases and the implementation logic is clear.
        }
        elsif ((my $l1 = length($sam_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
          print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n" if $L_verbose >= 2;
