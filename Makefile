@@ -4,7 +4,7 @@
 .PHONY: vger v
 
 vger:
-	./versify
+	utils/versify
 
 v:
 	diff riskybusiness.txt pick || true
