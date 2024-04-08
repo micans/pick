@@ -1304,7 +1304,7 @@ $::Groupi = 2;    # index within group.
                         # fixme do not attempt to lookup '*' reference (unmapped query),
                         # improve structure.
   sub sam_setup_aln_sequences {
-    @sam_cache_prev = @sam_cache;
+    @sam_cache_prev = @sam_cache[0..3];              # no danger of using 4..6, but still.
     @sam_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
                                                      # checkme strandcheck: not sure if this strand flipping works.
     if ($sam_cache[3] eq '*') {
@@ -1415,14 +1415,14 @@ $::Groupi = 2;    # index within group.
         $pref += $num; $pqry += $num;
       }
       elsif ($it eq 'I') {
-        $aln_ref .= '=' x $num;
-        $aln_aln .= 'i' x $num;
+        $aln_ref .= '-' x $num;
+        $aln_aln .= '-' x $num;
         $aln_qry .= substr($qry, $pqry, $num);
         $pqry += $num;
       }
       elsif ($it eq 'D' || $it eq 'N')  {
         $aln_qry .= '-' x $num;
-        $aln_aln .= lc($it) x $num;
+        $aln_aln .= ($it eq 'D' ? '-' : '=') x $num;
         $aln_ref .= substr($ref, $pref, $num);
         $pref += $num;
       }
