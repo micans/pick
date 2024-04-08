@@ -305,6 +305,7 @@ my %cp_samdefs = (
      qry_trail5p  => [ 0, sub { push @::STACK, &get_qry_part(0); }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
      qry_matched  => [ 0, sub { push @::STACK, &get_qry_part(1); }, "-\tqry_matched\t3' matched query sequence in reference orientation\tsam" ],
      qry_trail3p  => [ 0, sub { push @::STACK, &get_qry_part(2); }, "-\tqry_trail3p\t3' unaligned query sequence in reference orientation\tsam" ],
+     qry_seq      => [ 0, sub { push @::STACK, &get_qry_part(-1);}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
 
      refclipl  => [ 0, sub { push @::STACK, $::Flink->[3] -1 }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
      refclipr  => [ 0, sub { push @::STACK, &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum')}, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
@@ -1438,8 +1439,9 @@ $::Groupi = 2;    # index within group.
 
   sub get_qry_part {
     my $part = shift;
-    return $sam_cache[4+$part] if defined($sam_cache[4+$part]);
     my $qry = $sam_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
+    return $qry if $part == -1;
+    return $sam_cache[4+$part] if defined($sam_cache[4+$part]);
     my $qrylen = length($qry);
     if (!$qrylen) {
        @sam_cache[4..6] = ('', '', '');
