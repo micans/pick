@@ -609,23 +609,11 @@ where the sequences will be stored in the dictionary called `SAMFA`.
    --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA=FILENAME
 ```
 
-With this a sequence can be retrieved from the read name field (column 1 in SAM format) with
+With this a reference sequence can be retrieved from the read name field (column 1 in SAM format) with
 ```
-::1^SAMFA,map
-```
-For demonstration purposes only, to obtain the left- and right-clipped
-(non-aligned) sequences as well as the matched part from the read (see below
-for operators such as `qryclipl`):
-```
-   SEQ:=1^SEQ,map \
-   leftclip::SEQ^0,qryclipl,substr \
-   matchedpart::SEQ,qryclipl,qrycov,substr \
-   rightclip::SEQ,qryclipr,dup,neg,xch,substr \
-```
-*However*, these sequences can also be obtained by using primitives:
-```
-pick --sam/FILENAME ::,qry_trail3p ::,qry_matched ::,qry_trail5p
-```
+::3^SAMFA,map
+
+Many operators listed below will automatically retrieve the reference sequence.
 
 When using either of `--sam` or `--sam-h` pick makes several new operators available that compute certain alignment-related
 quantities, offsets and widths, listed in the two tables below.

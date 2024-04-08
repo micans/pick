@@ -1,0 +1,13 @@
+name	info1	info2
+Ann	ant	8
+Bob	beagle	9
+Charlie	cat	10
+Dan	dog	11
+Esme	eagle	12
+Fred	feegle	13
+Gillian	gazelle	14
+Harriet	harrier	15
+Inky	inky	16
+John	jaguar	17
+Kelly	koe	18
+Lucy	liu	19
