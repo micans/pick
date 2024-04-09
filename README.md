@@ -596,52 +596,66 @@ See below for more information about SAM support.
 
 ## SAM support
 
+SAM support has seen a lot of recent development. This documentation section is not yet neatly structured
+nor crystallised.
 
-Use `--sam` or `--sam-h` if the input is SAM format. This will set the options `-k` (headerless input) and `-O12`
-(overflow columns collated in column 12) and make the sequence lengths available in the `seqlen`
-dictionary (if the sam header is found). If the output should still contain the SAM header, use `--sam-h`.
-
-The following shorthands can be used to specify SAM format and a fasta file to be loaded,
-where the sequences will be stored in the dictionary called `SAMFA`.
-
+Use `--sam` or `--sam-h` if the input is SAM format.
+If the output should still contain the SAM header use `--sam-h` and use `samtool view -h` to ensure
+pick is in a position to do so.
+The following shorthands can be used to specify SAM format and a reference fasta file to be loaded.
+The sequences will be stored in the dictionary called `SAMFA`.
 ```
    --sam/FILENAME                # short for     --sam --fa-dict-SAMFA=FILENAME
    --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA=FILENAME
 ```
 
-With this a reference sequence can be retrieved from the read name field (column 1 in SAM format) with
+Either of these options will
+- set the options `-k` (headerless input) and `-O12` (overflow columns collated in column 12)
+- make the sequence lengths available in the `seqlen` dictionary (if the sam header is found)
+- make the reference sequences available to operators (if provided as a fasta dictionary)
+- make the query sequence available to operators (in the reference orientation)
+
+If sequence lengths are found in the header they will be compared to the fasta
+sequences (if present) and a summary is written to diagnostic output.  With
+this a reference sequence can be retrieved from the reference field (column 3
+in SAM format) with
 ```
 ::3^SAMFA,map
+```
 
-Many operators listed below will automatically retrieve the reference sequence.
+In most cases operators that require the reference sequence will automatically load it.
+These operators do not need to be supplied with the name of the sequence dictionary: **the first fasta dictionary that is
+specified is taken to contain the sequences matching the SAM input**.
 
-When using either of `--sam` or `--sam-h` pick makes several new operators available that compute certain alignment-related
-quantities, offsets and widths, listed in the two tables below.
-Shown below are simple computes with just a single operator used. Obviously these
-can be combined in various ways.
+When using either of `--sam` or `--sam-h` pick makes several new operators
+available that compute certain alignment-related quantities, offsets and
+widths, listed in the two tables below.
 
 With these operators pick can be used to efficiently filter alignments, for example
 removing those that do not start near expected primer sites (see below). Other applications
 include the computation and extraction of quantities for quality control.
 
-The first set of operators expect a sequence dictionary to be present that matches the SAM reference identifiers.
-These operators do not need to be supplied with the name of that dictionary: **the first fasta dictionary that is
-specified is taken to contain the sequences matching the SAM input**.
 
-The second set of operators does not need sequences, but `reflen` does expect sequence length information
-to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
-
-
+SAM operators requiring reference sequences to be loaded (see above)
 ```
-SAM operators requiring sequences to be loaded (see above)
 ---------------------------------------
-aln_aln             alignment string between reference and query [sam]
-aln_qry             alignment string for query [sam]
-aln_ref             alignment string for reference [sam]
-alnedit             Edit distance excluding clipping - obtained from NM field [sam]
-alnmatch            Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
-alnmatchx           Number of base mismatches [sam]
-alnposx             Mismatch positions [sam]
+aln_aln      -      alignment string between reference and query
+aln_qry      -      alignment string for query
+aln_ref      -      alignment string for reference
+
+alnedit      -      Edit distance excluding clipping - obtained from NM field
+alnmatch     -      Amount of reference/query matched by alignment (ignoring indels and mismatches)
+alnmatchx    -      Number of base mismatches
+alnposx      -      Mismatch positions
+```
+
+SAM operators on the query sequence
+```
+---------------------------------------
+qry_seq      -      query sequence in reference orientation
+qry_matched  -      matched query sequence in reference orientation
+qry_trail3p  -      3' unaligned query sequence in reference orientation
+qry_trail5p  -      5' unaligned query sequence in reference orientation
 ```
 
 **Example 1**  
@@ -665,9 +679,11 @@ d=79,n=1,s=ATTA         # A deletion at position 79 of size 4, sequence ATTA
 e=144,n=108             # An 'expected' deletion (intron/splice) event at position 144 of size 108
 ```
 
+The following set of operators does not need sequences, but `reflen` does expect sequence length information
+to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
 
-```
 Other SAM operators 
+```
 ---------------------------------------
 using --sam         without using --sam or --sam-h
    or --sam-h
@@ -682,10 +698,10 @@ re::,refend         re::4:6,cgrefcov,add     reference end, 1-based, inclusive
 re::,refcov         rc::6,cgrefcov           amount of bases covered by alignment in reference
 rl::,reflen         rl::3^seqlen,map         reference length
 
-qcl::,qryclipl      (omitted)                Number of 5p trailing query bases [sam]
-qcr::,qryclipr      (omitted)                Number of 3p trailing query bases [sam]
-rcl::,refclipl      (omitted)                Number of 5p trailing reference bases [sam]
-rcr::,refclipr      (omitted)                Number of 3p trailing reference bases [sam]
+qcl::,qryclipl      NA                       Number of 5p trailing query bases [sam]
+qcr::,qryclipr      NA                       Number of 3p trailing query bases [sam]
+rcl::,refclipl      NA                       Number of 5p trailing reference bases [sam]
+rcr::,refclipr      NA                       Number of 3p trailing reference bases [sam]
 ```
 
 Make sure to use `samtools view -h` to include header information so that `reflen` is available.

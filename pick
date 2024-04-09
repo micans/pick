@@ -303,7 +303,7 @@ my %cp_samdefs = (
      qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MISH=X', 'sum') }, "-\tqrylen\tLength of query sequence\tsam" ],
 
      qry_trail5p  => [ 0, sub { push @::STACK, &get_qry_part(0); }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
-     qry_matched  => [ 0, sub { push @::STACK, &get_qry_part(1); }, "-\tqry_matched\t3' matched query sequence in reference orientation\tsam" ],
+     qry_matched  => [ 0, sub { push @::STACK, &get_qry_part(1); }, "-\tqry_matched\tmatched query sequence in reference orientation\tsam" ],
      qry_trail3p  => [ 0, sub { push @::STACK, &get_qry_part(2); }, "-\tqry_trail3p\t3' unaligned query sequence in reference orientation\tsam" ],
      qry_seq      => [ 0, sub { push @::STACK, &get_qry_part(-1);}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
 
