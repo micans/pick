@@ -71,7 +71,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[SAM support: operators to retrieve query sequence parts](#sam-support-operators-to-retrieve-query-sequence-parts)  
 &emsp;&emsp;[SAM support: examples](#sam-support-examples)  
 &emsp;&emsp;[SAM support: operators returning offsets and lengths](#sam-support-operators-returning-offsets-and-lengths)  
-&emsp;&emsp;[SAM support: cigar string operators](#sam-support-cigar string operators)  
+&emsp;&emsp;[SAM support: cigar string operators](#sam-support-cigar-string-operators)  
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
