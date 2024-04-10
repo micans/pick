@@ -66,7 +66,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-support)  
-&emsp;&emsp;[Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences)
+&emsp;&emsp;[Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences)  
 &emsp;&emsp;[Operators to output alignments](#operators-to-output-alignments)  
 &emsp;&emsp;[Operators to retrieve mismatch and indel positions and sequences](#operators-to-retrieve-mismatch-and-indel-positions-and-sequences)  
 &emsp;&emsp;[Operators to retrieve query sequence parts](#operators-to-retrieve-query-sequence-parts)  
