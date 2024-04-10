@@ -27,8 +27,8 @@ outputting alignment-derived quantities like coverage and base mismatch informat
 >  
 > Pick embodies, comparatively, an extremely minimalist approach with a different and
 > greatly limited focus in the same problem space.  Within its narrow focus on
-> column manipulation and row selection it is very concise, has extensive
-> support for SAM format, and has miscellaneous features such as simultaneous
+> column manipulation and row selection it is very concise, has ** extensive
+> support for SAM format and alignment-related queries**, and has miscellaneous features such as simultaneous
 > transformations of multiple columns, demultiplexing rows to different files, and mapping values using dictionaries.
 > Think of it as one of these weirdly evolved deep-sea creatures (one that is pretty).
 
@@ -66,6 +66,12 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Ragged input](#ragged-input)  
 [SAM support](#sam-support)  
+&emsp;&emsp;[SAM support: operators to output alignments](#sam-support-operators-to-output-alignments)  
+&emsp;&emsp;[SAM support: operators to retrieve mismatch and indel positions and sequences](#sam support-operators-to-retrieve-mismatch-and-indel-positions-and-sequences)  
+&emsp;&emsp;[SAM support: operators to retrieve query sequence parts](#sam-support-operators-to-retrieve-query-sequence-parts)  
+&emsp;&emsp;[SAM support: examples](#sam-support-examples)  
+&emsp;&emsp;[SAM support: operators returning offsets and lengths](#sam support-operators-returning-offsets-and-lengths)  
+&emsp;&emsp;[SAM support: cigar string operators](#sam support: cigar string operators)  
 [Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
@@ -593,11 +599,12 @@ _For SAM input just use either_ `--sam` _or_ `--sam-h` (the latter will output t
 See below for more information about SAM support.
 
 
-
 ## SAM support
 
 SAM support has seen a lot of recent development. This documentation section is not yet neatly structured
 nor crystallised.
+
+### Activating SAM support and loading reference sequences
 
 Use `--sam` or `--sam-h` if the input is SAM format.
 If the output should still contain the SAM header use `--sam-h` and use `samtool view -h` to ensure
@@ -624,8 +631,8 @@ in SAM format) with
 ```
 
 In most cases operators that require the reference sequence will automatically load it.
-These operators do not need to be supplied with the name of the sequence dictionary: **the first fasta dictionary that is
-specified is taken to contain the sequences matching the SAM input**.
+These operators do not need to be supplied with the name of the sequence dictionary:
+**the first fasta dictionary that is specified is taken to contain the sequences matching the SAM input**.
 
 When using either of `--sam` or `--sam-h` pick makes several new operators
 available that compute certain alignment-related quantities, offsets and
@@ -635,28 +642,38 @@ With these operators pick can be used to efficiently filter alignments, for exam
 removing those that do not start near expected primer sites (see below). Other applications
 include the computation and extraction of quantities for quality control.
 
+### SAM support: operators to output alignments
 
-SAM operators requiring reference sequences to be loaded (see above)
 ```
+(require the reference sequences to be loaded - see above)
 ---------------------------------------
 aln_aln      -      alignment string between reference and query
 aln_qry      -      alignment string for query
 aln_ref      -      alignment string for reference
+```
 
+### SAM support: operators to retrieve mismatch and indel positions and sequences
+
+```
+(require the reference sequences to be loaded - see above)
+---------------------------------------
 alnedit      -      Edit distance excluding clipping - obtained from NM field
 alnmatch     -      Amount of reference/query matched by alignment (ignoring indels and mismatches)
 alnmatchx    -      Number of base mismatches
-alnposx      -      Mismatch positions
+alnposx     <num>   Mismatch positions+change and indel sequence reported up to a length of <num>
 ```
 
-SAM operators on the query sequence
+### SAM support: operators to retrieve query sequence parts **in reference orientattion**
 ```
+(require the reference sequences to be loaded - see above)
 ---------------------------------------
 qry_seq      -      query sequence in reference orientation
 qry_matched  -      matched query sequence in reference orientation
 qry_trail3p  -      3' unaligned query sequence in reference orientation
 qry_trail5p  -      5' unaligned query sequence in reference orientation
 ```
+
+### SAM support: examples
 
 **Example 1**  
 Below creates an intermediate tab-separated table with fields `edit-distance`, `reference ID`, `query ID` followed by three alignment strings;
@@ -679,10 +696,11 @@ d=79,n=1,s=ATTA         # A deletion at position 79 of size 4, sequence ATTA
 e=144,n=108             # An 'expected' deletion (intron/splice) event at position 144 of size 108
 ```
 
+### SAM support: operators returning offsets and lengths
+
 The following set of operators does not need sequences, but `reflen` does expect sequence length information
 to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
 
-Other SAM operators 
 ```
 ---------------------------------------
 using --sam         without using --sam or --sam-h
@@ -715,8 +733,15 @@ mark3p=1234    # your value here
 samtools view -h <bamfile> | pick --sam-h -A delta5p:=,refstart^$mark5p,sub delta3p:=^$mark3p,refend,sub @delta5p/le/20 @delta3p/le/20
 ```
 
-Pick has a few other/older operators that support parsing of SAM columns. For now this pertains specifically to the CIGAR
-string in the sixth column. Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
+
+### SAM support: cigar string operators
+
+Pick has a few older operators that support parsing of SAM columns.
+For now this pertains specifically to the CIGAR string in the sixth column.
+In most cases one of the higher-level
+operators from the preceding sections can be used for more succinct and clear instruction.
+
+Below `<cigaritems>` is a user-defined subset of `MINDSHP=X`, the different
 alignment types supported by CIGAR strings
 (respectively *alignment match*, *insertion in reference*, *deletion from reference*, *skip from reference*,
 *soft-clip*, *hard-clip*, *padding*, *sequence match*, *sequence mismatch*).
