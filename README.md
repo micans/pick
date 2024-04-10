@@ -663,7 +663,10 @@ alnmatchx    -      Number of base mismatches
 alnposx     <num>   Mismatch positions+change and indel sequence reported up to a length of <num>
 ```
 
-### SAM support: operators to retrieve query sequence parts **in reference orientattion**
+### SAM support: operators to retrieve query sequence parts
+
+The retrieved sequences are in **in reference orientation**.
+
 ```
 (require the reference sequences to be loaded - see above)
 ---------------------------------------
