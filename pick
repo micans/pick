@@ -211,7 +211,7 @@ my %cp_opdefinitions =
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
      del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
      delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
-     npat      => [ 2, sub { $::STACK[-2] = ($::STACK[-2] =~ s/$::STACK[-1]//g) }, "x r\tnc\tCount occurrences of (regular expression) r in x\tstring/regex" ],
+     npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x r\tnc\tCount occurrences of (regular expression) r in x\tstring/regex" ],
      map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1];
                               my $dict = $::dict{$d};
                               my $m = defined($dict) ? $dict->{$x} : undef;
