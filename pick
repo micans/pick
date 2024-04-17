@@ -189,10 +189,6 @@ my %cp_opdefinitions =
      sn        => [ 2, sub { $::STACK[-2] = sprintf("%.*e", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x in scientific notation with N decimal digits\tmath/format/precision" ],
      zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx'\tx left zero-padded to width of N\toutput/string/format" ],
 
-     get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
-                                         ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x r\tr-match-of-x\tIf x matches regex r take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
-     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring" ],
-
      fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tformat/bio" ],
      fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tformat/bio" ],
 
@@ -207,11 +203,15 @@ my %cp_opdefinitions =
 
      pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate" ],
 
+
+     get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
+                                         ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
+     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/regex" ],
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
      del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
      delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
-     npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x r\tnc\tCount occurrences of (regular expression) r in x\tstring/regex" ],
+     npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnc\tCount occurrences of pattern p in x\tstring/regex" ],
      map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1];
                               my $dict = $::dict{$d};
                               my $m = defined($dict) ? $dict->{$x} : undef;
