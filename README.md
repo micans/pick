@@ -629,8 +629,33 @@ See below for more information about SAM format support.
 
 ## SAM format support
 
-SAM support has seen a lot of recent development. This documentation section is not yet neatly structured
-nor crystallised.
+SAM support has seen a lot of recent development. This documentation section is not yet fully crystallised.
+
+Pick follows a streaming paradigm but has provisions for caching where SAM format requires it,
+namely the query sequence field (column 10). If the sequence is needed (because you invoke a pick operator
+that needs it) then this requires that input is sorted or collated by read name and additionally
+that within the group of records/alignments for each read the primary alignment is sorted first.
+Currently samtools does not guarantee this;
+future versions will [since this was raised in an issue (March 2024) and then addressed](https://github.com/samtools/samtools/issues/2010).
+
+An intermediate solution for now is to pipe the output of `samtools view` to `sort -k 1,1 -k 2,2n` before piping it to `pick`.
+If interest is only in the primary alignment no sorting is necessary and you can use
+
+```
+samtools view -F 2308
+```
+
+Remember that bit 256 indicates a secondary alignment and bit 2048 indicates a supplementary alignment. It should be possible
+to view such aligments and retrieve alignemnt-related quantities wit pick (see below for possibilities) by using
+
+```
+samtools view -F 4 | sort -k 1,1 -k 2,2,n
+```
+
+Finally, bit 4 indicates an unmapped read. If you invoke an operator that requires the reference sequence then `pick`
+will assign the empty string to the reference sequence. For understandable output it is best not to cross these streams.
+
+
 
 ### Activating SAM support and loading reference sequences
 
