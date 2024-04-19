@@ -212,20 +212,10 @@ my %cp_opdefinitions =
      del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
      delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
      npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnc\tCount occurrences of pattern p in x\tstring/regex" ],
-     map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1];
-                              my $dict = $::dict{$d};
-                              my $m = defined($dict) ? $dict->{$x} : undef;
-                              if (defined($m)) { $::STACK[-2] = $m; }
-                              elsif (defined($::dictnotfound{$d})) { $::STACK[-2] = $::dictnotfound{$d} }
-                           },
+     map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; my $m = defined($dict) ? $dict->{$x} : undef; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
                            "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
                   ],
-     tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1];
-                              my $dict = $::dict{$d}{$k};
-                              my $m = defined($dict) ? $dict->{$x} : undef;
-                              if (defined($m)) { $::STACK[-3] = $m; }
-                              elsif (defined($::dictnotfound{$d})) { $::STACK[-3] = $::dictnotfound{$d} }
-                           },
+     tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; my $m = defined($dict) ? $dict->{$x} : undef; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
@@ -532,7 +522,8 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
      print STDERR "WARNING --- multiple fasta dictionaries, I'm using $sam_refdictname for SAM reference lookups ---\n";
    }
    else {
-      $sam_refdictname = $name;     # experimental/fragile
+      $sam_refdictname = $name;                    # experimental/fragile
+      $::dictnotfound{$name} = '__EXIT__';         # for now no option to be permissive.
       print STDERR "-- Sequences for SAM reference lookup loaded from $fname in dictionary $sam_refdictname\n" if $L_verbose >= 0;
    }
 }
@@ -615,6 +606,14 @@ sub parse_dict {
    }
    my $n = keys %{$::dict{$name}};
 print STDERR "-- dictionary $name has $n keys after parsing string\n" if $L_verbose >= 1;
+}
+
+sub dict_not_found {
+   my ($d, $val) = @_;
+   my $NF = $::dictnotfound{$d};
+   return $val unless defined($NF);
+   die "Lookup for $val in dictionary $d failed" if $NF eq '__EXIT__';
+   return $NF;
 }
 
 while (@::spec && $::spec[0] =~ /^-/) {

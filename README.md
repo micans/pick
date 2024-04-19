@@ -27,10 +27,12 @@ outputting alignment-derived quantities like coverage and base mismatch informat
 >  
 > Pick embodies, comparatively, an extremely minimalist approach with a different and
 > greatly limited focus in the same problem space.  Within its narrow focus on
-> column manipulation and row selection it is very concise, has ** extensive
-> support for SAM format and alignment-related queries**, and has miscellaneous features such as simultaneous
-> transformations of multiple columns, demultiplexing rows to different files, and mapping values using dictionaries.
-> Think of it as one of these weirdly evolved deep-sea creatures (one that is pretty).
+> column manipulation and row selection it is very concise,
+> has **extensive support for SAM format and alignment-related queries**,
+> and has miscellaneous features such as simultaneous transformations of
+> multiple columns, demultiplexing rows to different files, and mapping values
+> using dictionaries.  Think of it as one of these weirdly evolved deep-sea
+> creatures (one that is pretty).
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
