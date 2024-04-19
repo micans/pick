@@ -1,11 +1,4 @@
 
-  -  a mode that exits of dictionary lookup fails.
-     Especialy needed for sam support.
-     maybe if dictnotfound yields __EXIT__ -> exit.
-     (1) miniscule sentinel issue;
-     (2) how to specify. Extra / modifier tied to dictionary? simply --fdict-MAP/__EXIT__ .
-     (3) reverse SAM support: default strict, flag to allow permissive.
-
   /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
      during compilation perhaps use hashes to increase legibility.
 
