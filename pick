@@ -508,7 +508,7 @@ print STDERR "-- table dictionary $name has $n keys for $k columns after reading
 }
 
 sub read_fadict {
-   my ($name, $fname) = @_;
+   my ($name, $fname, $NF) = @_;
    open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
    my ($id, $seq) = (undef, "");
    while(<D>) {
@@ -517,13 +517,13 @@ sub read_fadict {
    } close(D);
    $::dict{$name}{$id} = $seq if defined($id);
    my $n = keys %{$::dict{$name}};
+   $::dictnotfound{$name} = $NF;
 print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
    if (length($sam_refdictname)) {
      print STDERR "WARNING --- multiple fasta dictionaries, I'm using $sam_refdictname for SAM reference lookups ---\n";
    }
    else {
       $sam_refdictname = $name;                    # experimental/fragile
-      $::dictnotfound{$name} = '__EXIT__';         # for now no option to be permissive.
       print STDERR "-- Sequences for SAM reference lookup loaded from $fname in dictionary $sam_refdictname\n" if $L_verbose >= 0;
    }
 }
@@ -716,10 +716,10 @@ EOH
   elsif ($options =~ s/^--//) {
      if ($options =~ /^(f|fastq-|fasta-|table-)dict-(\w+)(\/(.*?))?=(.+)$/) {
        read_dict($2, $5) if $1 eq 'f';
-       read_fadict($2, $5) if $1 eq 'fasta-';
+       read_fadict($2, $5, length($3) ? $4 : '__EXIT__') if $1 eq 'fasta-';
        read_fqdict($2, $5) if $1 eq 'fastq-';
        read_tbdict($2, $5) if $1 eq 'table-';
-       $::dictnotfound{$2} = $4 if length($3);
+       $::dictnotfound{$2} = $4 if length($3);        # for read_fadict this happens twice. tidy up sometime.
      }
      elsif ($options =~ /^cdict-(\w+)(\/(.*?))?=(.+)$/) {
        parse_dict($1, $4);
@@ -1316,7 +1316,7 @@ $::Groupi = 2;    # index within group.
         $sam_cache[3] = '';
       }
     }
-    {  $sam_ref_sequence = $sam_refdictname ? ($::dict{$sam_refdictname}{$sam_cache[1]} || '') : '';
+    {  $sam_ref_sequence = $sam_refdictname ? ($::dict{$sam_refdictname}{$sam_cache[1]} || dict_not_found($sam_refdictname, $sam_cache[1])) : '';
        my $pair = "$sam_cache[0] $sam_cache[1]";
        if (!$sam_ref_sequence) {
          print STDERR "-- [$.] No reference sequence for $pair\n" if $L_verbose >= 2;

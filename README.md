@@ -568,6 +568,11 @@ Beta  4
 FOONOTFOUND 8
 ```
 
+**For all fasta dictionaries if no not-found string is specified it will be set to `__EXIT__` and pick
+will thus exit with an error if a sequence cannot be found** (see the section below). This behaviour can be made permissive
+by explictly specifying a `not-found` value.
+
+
 ### Exiting when a column value cannot be mapped
 
 By default `pick` leaves a value unchanged if it cannot be mapped. As shown above a `not-found`
