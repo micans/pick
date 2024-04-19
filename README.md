@@ -568,7 +568,27 @@ Beta  4
 FOONOTFOUND 8
 ```
 
-You could grep that value, or use pick itself to select or filter such columns, e.g. below
+### Exiting when a column value cannot be mapped
+
+By default `pick` leaves a value unchanged if it cannot be mapped. As shown above a `not-found`
+value can be specified (for any of the dictionary loading options) using e.g.
+
+```
+--fdict-NAME/MiSSING=somefilename
+```
+
+Pick can be instructed to exit with an error by using the special value `__EXIT__`. Thus
+
+```
+--fdict-NAME/__EXIT__=somefilename
+```
+
+will cause `pick` to fail if a column value is mapped with dictionary `NAME` and the value
+is not present as a key in the dictionary (loaded from file `somefilename`).
+
+
+
+Other uses of the `not-found` syntax are to select or filter columns, e.g. below
 shows an idiomatic way to find rows where a column value is not part of a limited set
 of prescribed values.
 
