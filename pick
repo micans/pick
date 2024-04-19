@@ -516,6 +516,7 @@ sub read_fadict {
       else           { chomp; $seq .= $_; }
    } close(D);
    $::dict{$name}{$id} = $seq if defined($id);
+   $::dict{$name}{'*'} = "";      # noteme: (1) SAM format unmapped reads have ref '*' (2) pick uses '' in other fail scenarios, but the entirety needs design/documenting.
    my $n = keys %{$::dict{$name}};
    $::dictnotfound{$name} = $NF;
 print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
