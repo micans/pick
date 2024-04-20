@@ -631,6 +631,10 @@ See below for more information about SAM format support.
 
 SAM support has seen a lot of recent development. This documentation section is not yet fully crystallised.
 
+SAM support is currently entirely focused on single-end reads. Aspects of paired-end alignment that do not depend
+on the paired-end / single-end dichotomy may be perfectly amenable to pick processing but none of it
+has been tested by me.
+
 Pick follows a streaming paradigm but has provisions for caching where SAM format requires it,
 namely the query sequence field (column 10). If the sequence is needed (because you invoke a pick operator
 that needs it) then this requires that input is sorted or collated by read name and additionally
