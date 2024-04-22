@@ -75,7 +75,6 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Examples](#examples)  
 &emsp;&emsp;[Operators returning offsets and lengths](#operators-returning-offsets-and-lengths)  
 &emsp;&emsp;[Cigar string operators](#cigar-string-operators)  
-[Unique or counted values](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
@@ -636,8 +635,10 @@ on the paired-end / single-end dichotomy may be perfectly amenable to pick proce
 has been tested by me.
 
 Pick follows a streaming paradigm but has provisions for caching where SAM format requires it,
-namely the query sequence field (column 10). If the sequence is needed (because you invoke a pick operator
-that needs it) then this requires that input is sorted or collated by read name and additionally
+namely the query sequence field (column 10).
+*Pick will ensure that the query sequence is made available in the reference orientation.*
+To this end (if you invoke a pick operator
+that needs the query sequence) it is necessary that input is sorted or collated by read name and additionally
 that within the group of records/alignments for each read the primary alignment is sorted first.
 Currently samtools does not guarantee this;
 future versions will [since this was raised in an issue (March 2024) and then addressed](https://github.com/samtools/samtools/issues/2010).
@@ -650,7 +651,7 @@ samtools view -F 2308
 ```
 
 Remember that bit 256 indicates a secondary alignment and bit 2048 indicates a supplementary alignment. It should be possible
-to view such aligments and retrieve alignemnt-related quantities wit pick (see below for possibilities) by using
+to view such alignments and retrieve alignment-related quantities wit pick (see below for possibilities) by using
 
 ```
 samtools view -F 4 | sort -k 1,1 -k 2,2,n
@@ -1159,7 +1160,8 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 -  `-i` in-place: `<HANDLE>::<COMPUTE>` replaces `<HANDLE>` if it exists
 -  `-/<pat>`  skip lines matching `<pat>`; use e.g. `-/^#` for commented lines, `-/^@` for sam files
 -  `-//<pat>` pass through lines matching <pat> (allows perl regular expressions, e.g. `^ $ . [] * ? (|)` work.
--  `-v` verbose
+-  `-v` verbose; this ups the level so `-vv` and `-vvv` will make pick even more verbose
+-  `-q` quiet; this does the opposite of `-v`.
   
 -  `-A` print all input columns (selecting by colspec applies, -`T` accepted)
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
@@ -1233,7 +1235,7 @@ Stack devourers: `addall gmeanall hmeanall joinall maxall meanall minall mulall`
 
 Dictionary: `map`
 
-Formating: `binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec`
+Formatting: `binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec`
 
 Input: `binto hexto lineno md5 octto rowno r0wno urldc urlec`
 
