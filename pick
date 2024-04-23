@@ -783,7 +783,7 @@ EOH
         else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
         if (defined($2)) {
           my $fname = $3;
-          read_fadict('SAMFA', $fname);
+          read_fadict('SAMFA', $fname, '__EXIT__');
         }
         $B_headless = 1;
         $OFFSET_OMEGA = 12;
