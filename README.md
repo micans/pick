@@ -79,6 +79,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
+&emsp;&emsp;[Maps can be useful to update (subsets of) data](#maps-can-be-useful-to-update-subsets-of-data)  
 &emsp;&emsp;[Maps can be useful to select or filter out data](#maps-can-be-useful-to-select-or-filter-out-data)  
 &emsp;&emsp;[Creating fasta and fastq files](#creating-fasta-and-fastq-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
@@ -670,8 +671,8 @@ pick is in a position to do so.
 The following shorthands can be used to specify SAM format and a reference fasta file to be loaded.
 The sequences will be stored in the dictionary called `SAMFA`.
 ```
-   --sam/FILENAME                # short for     --sam --fa-dict-SAMFA=FILENAME
-   --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA=FILENAME
+   --sam/FILENAME                # short for     --sam --fa-dict-SAMFA/__EXIT__=FILENAME
+   --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA/__EXIT__=FILENAME
 ```
 
 Either of these options will
@@ -679,6 +680,10 @@ Either of these options will
 - make the sequence lengths available in the `seqlen` dictionary (if the sam header is found)
 - make the reference sequences available to operators (if provided as a fasta dictionary)
 - make the query sequence available to operators (in the reference orientation)
+
+If a fasta file is specified then any reference ID that can not be retrieved from the fasta file
+will cause pick to exit with an error. This can be avoided, if necessary, by using the longer form,
+e.g. `--sam --fa-dict-SAMFA/=FILENAME` where the default `not-found` value is set to the empty string.
 
 If sequence lengths are found in the header they will be compared to the fasta
 sequences (if present) and a summary is written to diagnostic output.  With
@@ -952,6 +957,14 @@ These will be URL-decoded:
 - In selection filters `@<name><op><:name|constant>` both `<name>` and `<:name|constant>`.
 - In `--cdict-NAME/default=k1:v1,k2:v2` all keys (`k1` etc) and values (`v1` etc).
 
+### Maps can be useful to update (subsets of) data
+
+The following idiom updates (a subset of) rows in file `data.txt` using the mapping found in file `update.txt`.
+The mapping dictionary `not-found` value is set to the empty string.
+If no mapping exists the original value is reinstated via the `uie` (use if empty) operator.
+```
+pick -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < data.txt
+```
 
 ### Maps can be useful to select or filter out data
 
