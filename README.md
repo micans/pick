@@ -742,7 +742,32 @@ it then sorts them by edit-distance and outputs them as paragraphs, resulting in
 from fewest edits to most edits.
 ```
 cat some.sam | pick --sam/some.fa ::,alnedit:1:3,aln_ref,aln_aln,aln_qry^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall > some.align
+
+...
+
+7
+z1xb1-read5
+Z2W2rc
+CTAGGGCGTTATTGCGCA--GTTTGTGGCTCC-TCAAATCTCGT-CCGACATGTCATCACA
+||||||||||||||||||--||||||||||||-|||||---|||-||||||||||||||||
+CTAGGGCGTTATTGCGCAGTGTTTGTGGCTCCATCAAA---CGTCCCGACATGTCATCACA
+
+
+8
+f1Xs1-read2
+G1S1rc
+AGGGCGTGCCGAGCTTC-C-TCCGATATTCATCGACATCCTTCA----AAGCTATTTGATTG
+|||||||||||||||||-|-|||--|||||||||||||||||||----||||||||||||||
+AGGGCGTGCCGAGCTTCACGTCC--TATTCATCGACATCCTTCATTGCAAGCTATTTGATTG
+
+...
 ```
+The script [utils/samordermatches.sh](utils/samordermatches.sh) wraps the above functionality. It is invoked as
+```
+cat some.sam | samordermatches.sh some.fa > some.align
+```
+and can easily be modified to change output format or add filtering modes.
+
 
 **Example 2**  
 ```

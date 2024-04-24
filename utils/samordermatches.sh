@@ -22,5 +22,5 @@ if [[ ! -z "$indel" ]]; then
   AT_indel="@ninsdel/le/$indel"
 fi
 
-pick --sam/"$FASTA" ninsdel:=6^ID,cgsum "$AT_indel" ::,alnedit:1:3,aln_ref,aln_aln,aln_qry^^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall
+pick --sam/"$FASTA" ninsdel:=6^ID,cgsum $AT_indel ::,alnedit:1:3,aln_ref,aln_aln,aln_qry^^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall
 
