@@ -965,6 +965,8 @@ If no mapping exists the original value is reinstated via the `uie` (use if empt
 ```
 pick -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < data.txt
 ```
+This example can be run in the `test` directory in this repository.
+
 
 ### Maps can be useful to select or filter out data
 
