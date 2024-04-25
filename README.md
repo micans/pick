@@ -76,6 +76,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Operators returning offsets and lengths](#operators-returning-offsets-and-lengths)  
 &emsp;&emsp;[Cigar string operators](#cigar-string-operators)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
+&emsp;&emsp;[Splitting a table into smaller tables for parallel processing](#splitting-a-table-into-smaller-tables-for-parallel processing)  
+&emsp;&emsp;[Combining demuxing and deselecting](#combining-demuxing-and-deselecting)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
@@ -885,6 +887,9 @@ _Pick will recognise file names ending in_ `.gz` _or_ `.gzip` _and in that case 
 The next example splits the input into chunks of size `1000`, retaining the header for each,
 with output names defined in the `S` column as `split<N>.txt`, where `<N>` are zero-padded batch numbers.
 
+
+### Splitting a table into smaller tables for parallel processing
+
 ```
 pick -A --demux=S S:=^split,r0wno^1000,idiv^4,zp^.txt < data.txt
 File           Written  Filtered
@@ -901,6 +906,9 @@ over the `<NAME>` column across all input rows, regardless of whether a row is d
 Hence, in the presence of selection, demux files may contain zero data rows.
 Demux output files have or do not have a header line in line with the `-k` and `-h` options,
 just like normal output.
+
+
+### Combining demuxing and deselecting
 
 
 A separate and compatible forking mechanism exists that allows sending of any de-selected row (i.e. one that
