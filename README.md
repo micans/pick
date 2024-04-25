@@ -76,7 +76,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Operators returning offsets and lengths](#operators-returning-offsets-and-lengths)  
 &emsp;&emsp;[Cigar string operators](#cigar-string-operators)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
-&emsp;&emsp;[Splitting a table into smaller tables for parallel processing](#splitting-a-table-into-smaller-tables-for-parallel processing)  
+&emsp;&emsp;[Splitting a table into smaller tables for parallel processing](#splitting-a-table-into-smaller-tables-for-parallel-processing)  
 &emsp;&emsp;[Combining demuxing and deselecting](#combining-demuxing-and-deselecting)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
