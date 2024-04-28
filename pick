@@ -133,6 +133,47 @@ my %PNAN =                  # Protect against division by zero etc. Defaults exi
 for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
 
 
+{ my %aatocodon =
+  ( '*' => [qw ( TAA TAG TGA ) ]
+  , A => [qw ( GCT GCC GCA GCG ) ]
+  , C => [qw ( TGT TGC ) ]
+  , D => [qw ( GAT GAC ) ]
+  , E => [qw ( GAA GAG ) ]
+  , F => [qw ( TTT TTC ) ]
+  , G => [qw ( GGT GGC GGA GGG ) ]
+  , H => [qw ( CAT CAC ) ]
+  , I => [qw ( ATT ATC ATA ) ]
+  , K => [qw ( AAA AAG ) ]
+  , L => [qw ( TTA TTG CTT CTC CTA CTG ) ]
+  , M => [qw ( ATG ) ]
+  , N => [qw ( AAT AAC ) ]
+  , P => [qw ( CCT CCC CCA CCG ) ]
+  , Q => [qw ( CAA CAG ) ]
+  , R => [qw ( CGT CGC CGA CGG AGA AGG ) ]
+  , S => [qw ( TCT TCC TCA TCG AGT AGC ) ]
+  , T => [qw ( ACT ACC ACA ACG ) ]
+  , V => [qw ( GTT GTC GTA GTG ) ]
+  , W => [qw ( TGG ) ]
+  , Y => [qw ( TAT TAC ) ]
+  );
+  my %codontoaa = (); for my $aa (keys %aatocodon) { $codontoaa{$_} = $aa for @{$aatocodon{$aa} } }
+  sub translate {
+    my $codons = uc(shift);
+    my $frame  = shift;
+    return "" if length($codons) <= length($frame);
+    $codons = substr($codons, $frame) if $frame;
+    my $ret = "";
+    while ($codons =~ /(...)/g) {
+      my $aa = $codontoaa{$1};
+      $ret .= defined($aa) ? $aa : '?';
+    }
+    $ret .= '{' . substr($codons, length($ret)*3) . '}' if 3*length($ret) != length($codons);
+       # fixme, above should be user-definable. Not sure what's useful here.
+    return $ret;
+  }
+}
+
+
 sub hmeanall {
    my $ret = 0.0;
    if ($B_protect && grep { $_ == 0 } @::STACK) { $Nprotect++; }
@@ -229,6 +270,7 @@ my %cp_opdefinitions =
      binto     => [ 1, sub { $::STACK[-1] = oct("0b$::STACK[-1]") }, "x\tx'\tRead binary representation x\tinput/format" ],
      hexto     => [ 1, sub { $::STACK[-1] = hex($::STACK[-1]) }, "x\tx'\tRead hex representation x\tinput/format" ],
      octto     => [ 1, sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
+     dnatl     => [ 2, sub { $::STACK[-2] = translate($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format" ],
      urldc     => [ 1, sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
      urlec     => [ 1, sub { $::STACK[-1] = urlencode($::STACK[-1]) }, "x\turlec(x)\tUrl encoding of x\tstring/format/input/output" ],
      incr      => [ 1, sub { $::STACK[-1]++ }, "x\tx++\tx incremented by one\tarithmetic" ],
