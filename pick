@@ -157,7 +157,7 @@ for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
   , Y => [qw ( TAT TAC ) ]
   );
   my %codontoaa = (); for my $aa (keys %aatocodon) { $codontoaa{$_} = $aa for @{$aatocodon{$aa} } }
-  sub translate {
+  sub dna_tl {
     my $codons = uc(shift);
     my $frame  = shift;
     return "" if length($codons) <= length($frame);
@@ -173,6 +173,14 @@ for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
   }
 }
 
+sub strpair {
+   my ($x, $y) = @_;
+   my $ret = "";
+   for (my $i=0; $i<length($x) && $i<length($y); $i++) {
+      $ret .= substr($x, $i, 1) eq substr($y, $i, 1) ? '|' : 'x';
+   }
+   return $ret;
+}
 
 sub hmeanall {
    my $ret = 0.0;
@@ -270,8 +278,9 @@ my %cp_opdefinitions =
      binto     => [ 1, sub { $::STACK[-1] = oct("0b$::STACK[-1]") }, "x\tx'\tRead binary representation x\tinput/format" ],
      hexto     => [ 1, sub { $::STACK[-1] = hex($::STACK[-1]) }, "x\tx'\tRead hex representation x\tinput/format" ],
      octto     => [ 1, sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
-     dnatl     => [ 2, sub { $::STACK[-2] = translate($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format/bio" ],
-     dnagc     => [ 1, sub { my $gc = sprintf("%.0f", 100 * ($::STACK[-1] =~ tr|GCgc|GCgc|) / length($::STACK[-1])); $::STACK[-1] = $gc; }, "x\tgc(x)'\tPercentage GC content of x\tbio" ],
+     dnatl     => [ 2, sub { $::STACK[-2] = dna_tl($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format/bio" ],
+     dnagc     => [ 1, sub { my $gc = sprintf("%.0f", 100 * ($::STACK[-1] =~ tr|GCgc|GCgc|) / length($::STACK[-1])); $::STACK[-1] = $gc; }, "x\tgc(x)\tPercentage GC content of x\tbio" ],
+    _strpair   => [ 2, sub { $::STACK[-2] = strpair($::STACK[-2], $::STACK[-1]); }, "x y\tpair(x,y)\tPairwise character identity\tstring/EXPERIMENTAL" ],
      urldc     => [ 1, sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
      urlec     => [ 1, sub { $::STACK[-1] = urlencode($::STACK[-1]) }, "x\turlec(x)\tUrl encoding of x\tstring/format/input/output" ],
      incr      => [ 1, sub { $::STACK[-1]++ }, "x\tx++\tx incremented by one\tarithmetic" ],
