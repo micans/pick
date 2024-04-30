@@ -66,6 +66,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Examples of computing new columns](#examples-of-computing-new-columns)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
+[Operators for testing and choice](#operators-for-testing-and-choice)
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-format-support)  
 &emsp;&emsp;[Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences)  
@@ -614,6 +615,47 @@ c    8
 ```
 
 Use `--fdict-dictNAME/STRING=FILENAME` if you want to read the dictionary values from file instead.
+
+
+## Operators for testing and choice
+
+
+The `test` operator computes a test on two values and yields 1 if the test succeeds and 0 if the test fails.
+It takes three arguments: The two values to compare and a constant value that must be a one of the
+comparison operators below - these are [the same as can be used for row filtering](#pick-columns-and-filter-or-select-rows).
+
+```
+    = /=                            string identy select, avoid
+    ~ /~                            string (Perl) regular expression select, avoid
+    ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
+    /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
+    /ep/ /om/                       numerical proximity (additive, multiplicative)
+    /all/ /any/ /none/              bit selection
+```
+
+Below is a test whether the value in column `foo` is greater than the value in column `bar`:
+
+```
+::foo:bar^/gt/,test
+```
+
+The next example replaces each entry in a table with the truth value whether the original
+value was positive or not:
+
+```
+pick -Ai '.*'::__^0^/gt/,test < data.txt
+```
+
+
+The `ifelse` operator takes three argument. The first argument is tested. If it looks like a number
+the test is whether it is nonzero. Otherwise the test fails only if the first argument is the empty string.
+If the test succeeds `ifelse` yields the second argument, otherwise it yields the third argument.
+
+
+The `uie` (use if empty) operator takes two arguments. It yields the first argument unless it is
+the empty string, in which case it yields the second argument. This can be useful in conjunction with
+a dictionary mapping where the default value is set to the empty string.
+
 
 
 ## Ragged input
