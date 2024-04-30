@@ -418,7 +418,6 @@ my %sel_opdefinitions = (
 # fixme: this can be done at compile time: comparison can be required to be a constant.
 #
 sub do_test {
-   die "No such test: $_[2]" unless defined($sel_opdefinitions{$_[2]});
    return $sel_opdefinitions{$_[2]}[1]->($_[0], $_[1]) ? 1 : 0;
 }
 
@@ -968,6 +967,11 @@ sub parse_compute {
       }
       elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/ || $what =~ /^qry_(trail3p|trail5p|matched)/) {
          $I_AM_SAM |= 2;
+      }
+      elsif ($what eq 'test') {
+         die "Operator 'test' requires three operands" unless @oplist > 3;
+         die "Operator 'test' requires third operand to be a known test (you supplied $oplist[-2][1])"
+            unless $oplist[-2][0] == $TYPE_SCALAR && defined($sel_opdefinitions{$oplist[-2][1]});
       }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
