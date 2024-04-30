@@ -252,7 +252,7 @@ my %cp_opdefinitions =
      cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
      pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate" ],
-
+                                                                     # see /pload_validate/
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
                                          ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
@@ -415,7 +415,7 @@ my %sel_opdefinitions = (
 );
 
 
-# fixme: this can be done at compile time: comparison can be required to be a constant.
+# Noteme: see /test_validate/ -- compile-time check for the opdefinition lookup below.
 #
 sub do_test {
    return $sel_opdefinitions{$_[2]}[1]->($_[0], $_[1]) ? 1 : 0;
@@ -851,6 +851,7 @@ EOH
        exit 0;
        }
      }
+                           # see /sam_activate/ for compile-time activation sam_setup_aln_sequences
      elsif ($options =~ /^sam(-h)?(\/(\S+))?$/) {
         if (defined($1)) { $F_ignore |= 5; $PAT_PASS  = '^@'; }
         else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
@@ -958,6 +959,7 @@ sub parse_compute {
     if ($type == $TYPE_OPATOR) {
       my $opdef = $cp_opdefinitions{$what};
       die "[$what] is not an operator I know" unless defined($opdef);
+                                             # /pload_validate/
       if ($what eq 'pload') {
          die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
          die "Operator 'pload' requires operand" unless @oplist > 1;
@@ -965,10 +967,11 @@ sub parse_compute {
             unless $oplist[-2][0] == $TYPE_SCALAR;
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
+                                             # /sam_activate/
       elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/ || $what =~ /^qry_(trail3p|trail5p|matched)/) {
          $I_AM_SAM |= 2;
       }
-      elsif ($what eq 'test') {
+      elsif ($what eq 'test') {              # /test_validate/
          die "Operator 'test' requires three operands" unless @oplist > 3;
          die "Operator 'test' requires third operand to be a known test (you supplied $oplist[-2][1])"
             unless $oplist[-2][0] == $TYPE_SCALAR && defined($sel_opdefinitions{$oplist[-2][1]});
@@ -1649,7 +1652,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
   }
 
   sam_setup_reflendict    if $I_AM_SAM & 4;        # Done only once.
-  sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line.
+  sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line; /sam_activate/
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
 
