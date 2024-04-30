@@ -26,6 +26,7 @@ my $v_v_v = "648830e05efe4e1a2ddcbfd112dcedb56aac2bd4::24-115";
 use strict;
 use warnings;
 use Digest::MD5 qw(md5_hex);
+use Scalar::Util qw(looks_like_number);
 use IO::File;
 use POSIX;
 
@@ -272,6 +273,9 @@ my %cp_opdefinitions =
      pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
      frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
 
+     test      => [ 3, sub { $::STACK[-3] = do_test(@::STACK[-3,-2,-1]); }, "x y T\ttest T applied to x y\tbrach/test" ],
+     ifelse    => [ 3, sub { $::STACK[-3] = do_ifelse(@::STACK[-3,-2,-1]); }, "B x y\tIf B put x else put y\tbranch/test" ],
+
      tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
      tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
      tooct     => [ 1, sub { $::STACK[-1] = sprintf("%o", $::STACK[-1]) }, "x\tx'\tOctal representation of x\tformat"  ],
@@ -409,6 +413,24 @@ my %sel_opdefinitions = (
   '/none/'     => [ 60, sub { ! (abs(int($_[0])) & abs(int($_[1]))) } ]
 
 );
+
+
+# fixme: this can be done at compile time: comparison can be required to be a constant.
+#
+sub do_test {
+   die "No such test: $_[2]" unless defined($sel_opdefinitions{$_[2]});
+   return $sel_opdefinitions{$_[2]}[1]->($_[0], $_[1]) ? 1 : 0;
+}
+
+sub do_ifelse {
+  if (looks_like_number($_[0])) {
+    return $_[0] != 0.0 ? $_[1] : $_[2];
+  }
+  else {
+    return length($_[0]) ? $_[1] : $_[2];
+  }
+}
+
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
 my $opsections  = 'arithmetic bio bitop devour dictionary format input math output precision regex sam stack state string';

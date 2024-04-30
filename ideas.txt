@@ -1,4 +1,6 @@
 
+  ?  functionality to accumulate over columns, e.g. to count different clauses.
+
   ?  mode that outputs once criteria are true, ends outputting once false. (use: splitting without producing all files at once)
      ->  pick -A @batch=3 batch:=,r0wno^1000,idiv < data.txt
 
