@@ -49,6 +49,7 @@ runpick: data.txt
 	$(p) -h --table-dict-I/huh=info.txt ::name^I^info1,tmap ::name^I^info2,tmap ::fib2 < $< > o.tbdict.test
 	$(p) -i '.*'::__^'(?i)(142857|[aeoiy02468])',npat < $< > o.npat.test
 	$(p) -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < $< > o.update.test
+	$(p) -Ai '.*'::__^1^~,test < $< > o.testallcells.test
 
 
 %.ref : %.test
