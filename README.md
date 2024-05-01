@@ -528,6 +528,7 @@ Dictionaries can be specified in different ways:
 ```
 --fdict-NAME=/path/to/dictfile      (key,value) = (col1, col2) (rows with two fields)
                                                or (col1, 1)    (rows with one field)
+--kdict-NAME=/path/to/dictfile      (key,value) = (col1, 1)     only ever use col1
 
 --cdict-NAME=foo:bar,zut:tim        comma-separated key:value pairs
 --cdict-NAME=foo,zut                comma-separated keys, all set to value 1
