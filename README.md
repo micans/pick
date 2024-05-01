@@ -66,7 +66,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Examples of computing new columns](#examples-of-computing-new-columns)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
-[Operators for testing and choice](#operators-for-testing-and-choice)
+[Operators for testing and choice](#operators-for-testing-and-choice)  
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-format-support)  
 &emsp;&emsp;[Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences)  
