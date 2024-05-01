@@ -79,6 +79,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 &emsp;&emsp;[Splitting a table into smaller tables for parallel processing](#splitting-a-table-into-smaller-tables-for-parallel-processing)  
 &emsp;&emsp;[Combining demuxing and deselecting](#combining-demuxing-and-deselecting)  
+&emsp;&emsp;[Taking a single indexed batch from a table](#taking-a-single-indexed-batch-from-a-table)  
 [Retrieving unique values and asserting the number of rows found](#retrieving-unique-values-and-asserting-the-number-of-rows-found)  
 [Miscellaneous](#miscellaneous)  
 &emsp;&emsp;[Escaping special characters](#escaping-special-characters)  
@@ -646,6 +647,10 @@ value was positive or not:
 pick -Ai '.*'::__^0^/gt/,test < data.txt
 ```
 
+Currently the epsilon and order-of-magnitude tests `/ep/` and `/om/`
+are hardwired to their default values of `1.0001` and `2`, unlike their row selection counterparts
+that allow an optional band argument.
+
 
 The `ifelse` operator takes three argument. The first argument is tested. If it looks like a number
 the test is whether it is nonzero. Otherwise the test fails only if the first argument is the empty string.
@@ -962,6 +967,16 @@ does not satisfy the `@` selection criteria) to a specified file name. This is a
 
 These two mechanisms can be used simultaneously. Similar to demuxing, a file name ending in `.gz` or `.gzip`
 causes the file to be compressed using `gzip`.
+
+
+### Taking a single indexed batch from a table
+
+If a parallel task receives an index `K`, a batchsize `N`, and the location of a master table `T`
+then one way of coordinating batches between different tasks is the following:
+
+```
+pick -A @batch=$K batch:=,r0wno^$N,idiv < $T
+```
 
 
 ## Retrieving unique values and asserting the number of rows found

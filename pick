@@ -1080,7 +1080,7 @@ print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_
    return ($duplicate, \@matches);
 }
 
-sub wrangle_header {
+sub compile_time {
 
   if ($::HEADER[0] eq '')   { $::HEADER[0] = '_'; }
   elsif ($B_add_row_column) { unshift @::HEADER, '_'; }
@@ -1620,7 +1620,7 @@ while (<>) {
       die "New names [@::nameslist] and data names [@::HEADER] differ in cardinality" if scalar @::nameslist != scalar @::HEADER;
       @::HEADER = @::nameslist;
     }
-    wrangle_header();
+    compile_time();
     if ($B_posthoc_names) {
       die "New names [@::nameslist] and output offsets [@::output_os] differ in cardinality" if scalar @::nameslist != scalar @::output_os;
       @::OUTPUT_HEADER = @::nameslist;

@@ -1,10 +1,9 @@
 
   -  can more checks be moved to compile time?
 
-  ?  functionality to accumulate over columns, e.g. to count different clauses.
+  ?  testx with additional argument for /om/ and /ep/
 
-  ?  mode that outputs once criteria are true, ends outputting once false. (use: splitting without producing all files at once)
-     ->  pick -A @batch=3 batch:=,r0wno^1000,idiv < data.txt
+  ?  functionality to accumulate over columns, e.g. to count different clauses.
 
   /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
      during compilation perhaps use hashes to increase legibility.
