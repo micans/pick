@@ -18,6 +18,8 @@ It is **expressive** in that short command lines are sufficient to get at the da
 
 Additionally pick has **extensive support for SAM format** such as printing alignments and
 outputting alignment-derived quantities like coverage and base mismatch information.
+A reference FASTA file can be specified, which is then used by pick to automatically slot in reference
+sequences where needed.
 
 > [!NOTE]
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
@@ -93,6 +95,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Option processing](#option-processing)  
 [Pick options](#pick-options)  
 [Pick operators](#pick-operators)  
+[Pick philosophy](#pick-philosophy)  
 [Implementation notes](#implementation-notes)
 
 
@@ -1486,6 +1489,18 @@ refend      -           refend              Last base in reference covered by al
 reflen      -           reflen              Length of reference sequence (requires samtools view -h) [sam]
 refstart    -           refstart            Field 4 from sam format [sam]
 ```
+
+
+## Pick philosophy
+
+Pick enables `map` and `grep` (i.e. `filter`) type transformations of data tables, on the command line.
+The main things I care about are stream (per-line) processing, the usage of column names as variables,
+its interface (the domain-specific language), and the way computes are structured and executed.
+The interface language was designed to be highly succinct, with a syntax that avoids shell special characters.
+Computes embrace a minimalist stack approach, with only three different compute units (constants, variables, and operators).
+These elements combine to allow data transformations of large streamed data
+tables with the ethos of functional programming, specified in a succint manner.
+
 
 ## Implementation notes
 
