@@ -1041,29 +1041,22 @@ In some cases an external list has been computed that contains identifiers
 for which the rows should be deleted or retained. This is generically done like this:
 
 ```
-pick  -A --fdict-DEL/___=delete-file.txt DEL:=myid^DEL,map @DEL=___ < data.txt > reduced-data.txt
+pick  -A --kdict-DEL/keep=delete-file.txt action:=myid^DEL,map @action=keep < data.txt > reduced-data.txt
 ```
 
-Here a temporary column `DEL` is computed that contains the value in the `myid` column mapped
+Here a temporary column `action` is computed that contains the value in the `myid` column mapped
 using the keys in the file `delete-file.txt`. If the value is not to be deleted it is set to the
-default value `___`. Finally those rows are chosen where `DEL` has that value `___`.
-Of note is that `DEL` is used here in two ways, once as the name of the map, and once as the name
-of a column - these are entirely different namespaces. The following is equivalent:
+default value `keep`. Finally those rows are chosen where `action` has that value `keep`.
+
+Although the values `DEL` and `keep` are never seen in the output, it is useful to choose these
+strings such that the command line is self-explanatory.
+Note that for `--kdict` pick will set the value for each key to be deleted to `1`. It is necessary
+to set the `not-found` value to something different, in this case `keep`.
+
+The `pick` invocation if keys need to be retained is very similar, changing `action` to avoid `delete` values.
 
 ```
-pick  -A --fdict-DELMAP/___=delete-file.txt DELCOL:=myid^DELMAP,map @DELCOL=___ < data.txt > reduced-data.txt
-```
-
-In any case, `DEL` or `DELMAP` and `DELCOL` are never seen in the output, the string used
-should be chosen to make the command line more legible. Similarly, the string `___` can be chosen
-by the user. It should not be among the values assigned to the keys in `delete-file.txt`, noting
-that the default value used by pick is `1`.
-
-The `pick` invocation if keys need to be retained is very similar, only in this case we keep
-those rows where the mapped value is *not* the same as the default (not found) value.
-
-```
-pick  -A --fdict-KEEP/___=keep-file.txt KEEP:=myid^KEEP,map @KEEP/=___ < data.txt > reduced-data.txt
+pick  -A --kdict-KEEP/delete=keep-file.txt action:=myid^KEEP,map @action/=delete < data.txt > reduced-data.txt
 ```
 
 [More information about maps.](#map-column-values-using-a-dictionary)

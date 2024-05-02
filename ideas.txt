@@ -1,9 +1,10 @@
 
   -  can more checks be moved to compile time?
 
-  ?  testx with additional argument for /om/ and /ep/
+  ?  val,_setta to set extra argument for /ep/ and /om/
 
-  ?  functionality to accumulate over columns, e.g. to count different clauses.
+  ?  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
+     --sum='list|regex' but again, datamash
 
   /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
      during compilation perhaps use hashes to increase legibility.

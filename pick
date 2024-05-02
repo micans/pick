@@ -416,7 +416,11 @@ my %sel_opdefinitions = (
 
 
 # Noteme: see /test_validate/ -- compile-time check for the opdefinition lookup below.
-#
+# TODO:
+#    _set_ep _set_om operators to allow setting of band.
+#        then recognise '\/(ep|om)\/', pass band straight to interval_mul interval_plus
+#    compile time: conceivably could already ploink the code reference in place.
+
 sub do_test {
    return $sel_opdefinitions{$_[2]}[1]->($_[0], $_[1]) ? 1 : 0;
 }
@@ -1149,7 +1153,8 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
 
   @::output_nm = sort { $a <=> $b } keys %{{ map { ($_, 1) } @::output_nm }} if $B_ko;
 
-  $::plain_handle{$_} = 1 for @::output_nm;
+  $::plain_handle{$_} = 1 for @::output_nm;           # handles without compute
+                                                      # but ::spec case pushes onto @::output_nm -- fixme/docme
 
 local $" = ',';
 print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
