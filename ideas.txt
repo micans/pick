@@ -1,4 +1,6 @@
 
+  ?  ^name,tee -> store in name, leave on stack
+
   -  can more checks be moved to compile time?
 
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
