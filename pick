@@ -230,9 +230,12 @@ my %cp_opdefinitions =
 
      mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
      pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
+     ipow      => [ 2, sub { my $y = $::STACK[-2]; $::STACK[-2] *= $y while --$::STACK[-1] > 0; }, "x y\tx**y\tx raised to power y ensuring integer artithmetic\tarithmetic" ],
      and       => [ 2, sub { $::STACK[-2] &= int($::STACK[-1]) }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
      or        => [ 2, sub { $::STACK[-2] |= int($::STACK[-1]) }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
      xor       => [ 2, sub { $::STACK[-2] ^= int($::STACK[-1]) }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
+     lsh       => [ 2, sub { $::STACK[-2] <<= int($::STACK[-1]) }, "x y\tx << y\tShift x left by y\tbitop"  ],
+     rsh       => [ 2, sub { $::STACK[-2] >>= int($::STACK[-1]) }, "x y\tx >> y\tShift x right by y\tbitop"  ],
      max       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] }, "x y\tmax(x,y)\tMaximum of x and y\tarithmetic" ],
      min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
      dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
@@ -311,6 +314,7 @@ my %cp_opdefinitions =
      neg       => [ 1, sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
      ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
      floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
+     round     => [ 1, sub { $::STACK[-1] = sprintf("%.0f", $::STACK[-1]) }, "x\tround(x)\tThe integer nearest to x\tmath" ],
      int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
      F0        => [ 0, sub { push @::STACK, $::Flink->[0] }, "-\tF[0]\tFirst input column\tdemo" ],
 
