@@ -345,6 +345,7 @@ my %cp_samdefs = (
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
      alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
+     _sam_rbt  => [ 2, sub { &ref_bounded_tally($::STACK[-2], $::STACK[-1]) }, "x y\t-\tPut read tallies in _rbt_[MIDNS] registers\tEXPERIMENTAL/sam" ],
 
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
@@ -980,7 +981,7 @@ sub parse_compute {
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
                                              # /sam_activate/
-      elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/ || $what =~ /^qry_(trail3p|trail5p|matched)/) {
+      elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/ || $what =~ /^qry_(trail3p|trail5p|matched)/ || $what eq '_sam_rbt') {
          $I_AM_SAM |= 2;
       }
       elsif ($what eq 'test') {              # /test_validate/
@@ -1369,6 +1370,7 @@ $::Groupi = 2;    # index within group.
 
 
 { my @sam_cache = ("no-readname", "no-refname", -1, '');       # Read name, refname, strand, read sequence
+                                   # ^ fixme: more maintainable to stick this in LINECACHE.
   my @sam_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
 
@@ -1487,7 +1489,7 @@ $::Groupi = 2;    # index within group.
     $ref =~ tr/acgtu/ACGTT/;
 
     my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
-    my ($pqry, $sqry, $eqry) = (0, 0, 0);             # position query, start query, end query
+    my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
 
     my $pref = $::Flink->[3]-1;
 
@@ -1552,6 +1554,65 @@ $::Groupi = 2;    # index within group.
     return $sam_cache[4+$part];
   }
 
+    # Given inclusive bounds in the reference, compute MDI in the bound region
+    # Conceivably this could be done by recomputing the CIGAR string and alignment offsets,
+    # but we cannot reuse code easily since a lot is cached and assumes those to be immutable.
+    #
+    # fixme/todo: reasoned semantics for where insertions and soft clips are placed/counted.
+    #
+  sub ref_bounded_tally {
+    
+    my ($ref_x, $ref_y) = @_;
+    my $qry = $sam_cache[3];
+    my $ref = $sam_ref_sequence;
+    my $pair = "$::Flink->[0] $::Flink->[2]";
+
+    return "" unless length($qry) && length($ref);
+
+    $qry =~ tr/acgtu/ACGTT/;     # fixme: ensure this is done at the cache level, remove here and in siblings.
+    $ref =~ tr/acgtu/ACGTT/;
+
+    my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
+    my $pref = $::Flink->[3]-1;
+
+    my ($rlen, $qlen) = (length($ref), length($qry));
+    my ($M, $D, $E, $I, $S) = (0, 0, 0, 0, 0);
+
+    while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
+      my ($num, $it) = ($1, $2);
+
+      my $rright = $pref + $num;
+      my $qright = $pqry + $num;
+
+      my $project_x = $pref;
+      my $project_y = $it eq 'M' || $it eq 'D' || $it eq 'N' ? $pref + $num : $project_x;
+      my $num_in_bounds = 0;
+      if ($project_x <= $ref_y && $project_y >= $ref_x) {   # overlap exists.
+         $num_in_bounds = ($ref_y - $ref_x) + ($project_y - $project_x) - max($ref_y, $project_y) + min($ref_x, $project_x);
+         # Above: intersection = sum of the the two intervals minus their union.
+      }
+
+      if ($it eq 'M') {
+        if ($rright > $rlen || $qright > $qlen) {
+          print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
+          last;
+        }
+        $pref += $num; $pqry += $num;
+        $M += $num_in_bounds;
+      }
+      elsif ($it eq 'I')                { $pqry += $num; $I += $num_in_bounds; }
+      elsif ($it eq 'D')                { $pref += $num; $D += $num_in_bounds; }
+      elsif ($it eq 'N')                { $pref += $num; $E += $num_in_bounds; }
+      elsif ($it eq 'S')                { $pqry += $num; $S += $num_in_bounds; }
+      elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
+    }
+    $::LINECACHE{__REG__}{_rbt_M} = $M;
+    $::LINECACHE{__REG__}{_rbt_D} = $D;
+    $::LINECACHE{__REG__}{_rbt_E} = $E;
+    $::LINECACHE{__REG__}{_rbt_I} = $I;
+    $::LINECACHE{__REG__}{_rbt_S} = $S;
+  }
+
   sub getalnposx {
 
     my $indel_report_limit = shift;
@@ -1564,7 +1625,7 @@ $::Groupi = 2;    # index within group.
     $qry =~ tr/acgtu/ACGTT/;
     $ref =~ tr/acgtu/ACGTT/;
 
-    my ($pqry, $sqry, $eqry) = (0, 0, 0);             # position query, start query, end query
+    my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
 
     my $pref = $::Flink->[3]-1;
 
