@@ -27,6 +27,7 @@ use strict;
 use warnings;
 use Digest::MD5 qw(md5_hex);
 use Scalar::Util qw(looks_like_number);
+use List::Util qw(min max);
 use IO::File;
 use POSIX;
 
@@ -345,7 +346,7 @@ my %cp_samdefs = (
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
      alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
-     _sam_rbt  => [ 2, sub { &ref_bounded_tally($::STACK[-2], $::STACK[-1]) }, "x y\t-\tPut read tallies in _rbt_[MIDNS] registers\tEXPERIMENTAL/sam" ],
+     _sam_rbt  => [ 0, sub { stacky('_sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in _rbt_[MIDNS] registers\tEXPERIMENTAL/sam" ],
 
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
