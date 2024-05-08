@@ -261,7 +261,7 @@ my %cp_opdefinitions =
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
                                          ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
-     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/regex" ],
+     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/branch/test" ],
      ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
      del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
@@ -297,7 +297,7 @@ my %cp_opdefinitions =
      uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
      lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tlc(x)\tLower case of x\tstring" ],
      rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
-     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tcrypto"  ],
+     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tstring"  ],
      md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
      len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
      rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],

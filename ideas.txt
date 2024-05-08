@@ -1,12 +1,10 @@
 
-  ?  ^name,tee -> store in name, leave on stack
-
   -  can more checks be moved to compile time?
 
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
-     For /any/ etc we need abs(int()), do depending on perl needs deep dive.
+     For /any/ etc we need abs(int()), so depending on perl needs deep dive.
 
-  ?  val,_setta to set extra argument for /ep/ and /om/
+  ?  val,_setta to set extra argument for /ep/ and /om/ with ,test
 
   ?  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
      --sum='list|regex' but again, datamash

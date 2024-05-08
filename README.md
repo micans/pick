@@ -538,12 +538,12 @@ Dictionaries can be specified in different ways:
 
 --fasta-dict-NAME=/path/to/fastafile   read ID->sequence mapping from fasta file
 --fastq-dict-NAME=/path/to/fastqfile   read ID->sequence mapping from fastq file
---table-dict-NAME=/path/to/tablefile   read ID->column->item mapping from table file
+--table-dict-NAME=/path/to/tablefile   read ID->column->item mapping from table file with row names
 ```
 
 `NAME` is the name of the dictionary. Multiple dictionaries can be imported.
 A dictionary is specified by its name for use with the `map` operator or `tmap` operator for table dictionaries.
-A table dictionary uses the row names in the file as key,
+**A table dictionary uses the row names in the file as key,**
 and associates for each row name its column values by using the column name as key.
 `map` needs two keys; the first is the item to look up, the second is the `NAME` of the dictionary to use.
 `tmap` needs a third key; the name of the column.
