@@ -1591,6 +1591,7 @@ $::Groupi = 2;    # index within group.
       if ($project_x <= $ref_y && $project_y >= $ref_x) {   # overlap exists.
          $num_in_bounds = ($ref_y - $ref_x + 1) + ($project_y - $project_x + 1) - (max($ref_y, $project_y) - min($ref_x, $project_x) + 1);
          # Above: intersection = sum of the the two intervals minus their union.
+         $num_in_bounds = $num if $it eq 'I';
       }
 
       if ($it eq 'M') {
