@@ -1563,7 +1563,7 @@ $::Groupi = 2;    # index within group.
     #
   sub ref_bounded_tally {
     
-    my ($ref_x, $ref_y) = @_;
+    my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
     my $qry = $sam_cache[3];
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
@@ -1586,10 +1586,10 @@ $::Groupi = 2;    # index within group.
       my $qright = $pqry + $num;
 
       my $project_x = $pref;
-      my $project_y = $it eq 'M' || $it eq 'D' || $it eq 'N' ? $pref + $num : $project_x;
+      my $project_y = $it eq 'M' || $it eq 'D' || $it eq 'N' ? $pref + $num - 1 : $project_x;
       my $num_in_bounds = 0;
       if ($project_x <= $ref_y && $project_y >= $ref_x) {   # overlap exists.
-         $num_in_bounds = ($ref_y - $ref_x) + ($project_y - $project_x) - max($ref_y, $project_y) + min($ref_x, $project_x);
+         $num_in_bounds = ($ref_y - $ref_x + 1) + ($project_y - $project_x + 1) - (max($ref_y, $project_y) - min($ref_x, $project_x) + 1);
          # Above: intersection = sum of the the two intervals minus their union.
       }
 
