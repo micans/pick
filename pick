@@ -1379,7 +1379,7 @@ $::Groupi = 2;    # index within group.
     if (length($sam_refdictname)) {
       print STDERR "-- Comparing fasta sequence lengths with header information if present\n";
       my $nheader = keys %{$::dict{seqlen}};
-      my $nfasta  = keys %{$::dict{$sam_refdictname}};
+      my $nfasta  = (keys %{$::dict{$sam_refdictname}}) - 1;        # '*' has been added by pick, compensate for this.
       my $nshared = 0;
       for my $r (sort keys %{$::dict{$sam_refdictname}}) {
         my $lfasta = length($::dict{$sam_refdictname}{$r});
