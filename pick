@@ -282,6 +282,7 @@ my %cp_opdefinitions =
      test      => [ 3, sub { $::STACK[-3] = do_test(@::STACK[-3,-2,-1]); }, "x y T\tB\ttest T applied to x y\tbranch/test" ],
      ifelse    => [ 3, sub { $::STACK[-3] = do_ifelse(@::STACK[-3,-2,-1]); }, "B x y\tx or y\tIf B put x else put y\tbranch/test" ],
 
+     todna     => [ 1, sub { $::STACK[-1] =~ tr|uU|tT|; $::STACK[-1] =~ tr|bdefh-mo-su-z|n|; $::STACK[-1] =~ tr|BDEFH-MO-SU-Z|N|; $::STACK[-1] =~ tr|acgntACGNT|N|c; }, "x\tx'\tPreserve case, translate uU to tT, nN for non-DNA\tformat" ],
      tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
      tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
      tooct     => [ 1, sub { $::STACK[-1] = sprintf("%o", $::STACK[-1]) }, "x\tx'\tOctal representation of x\tformat"  ],

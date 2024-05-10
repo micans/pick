@@ -324,6 +324,13 @@ The following is an example of a computation:
 
 is an expression that indicates the column named `foo`, the number 144 and the `add` operator.
 The result of it is the sum of the value in the `foo` column and 144.
+
+Advantages of this notation are (1) whitespace is not needed (often avoiding
+the need to quote computations) (2) the separation of types means there is no
+list of reserved words (operators can be added freely) and (3) the stack syntax avoids
+the need for grouping syntax such as braces or parentheses, again aiding brevity
+and reducing the need to quote.
+
 Each computation needs a name. It can be thought of as a variable name. If the computation
 is output as a new column the name will be used as the column name. The two forms are below,
 where (1) `newname` will not be output as a new column (but is still available e.g. for other computations or comparison)
