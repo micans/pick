@@ -51,6 +51,27 @@ runpick: data.txt
 	$(p) -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < $< > o.update.test
 	$(p) -Ai '.*'::__^1^~,test < $< > o.testallcells.test
 	seq 1 1023 1000000 | ../pick -k foo::1^7,div^7,mul^1.23456789,add^1.23456789,sub^2,pow^0.5,pow,sqrt,sq,log2^2,xch,pow,round,incr,decr^537381,mod:1^537381,idiv^537381,mul,add,neg,neg,rot13,rot13,tobin,binto,tooct,octto,tohex,hexto^foo,save^1048575,xor^bar,save^1048575,xor,rowno^1023,mul,sub^1022,add ::^foo,fetch ::^bar,fetch > o.idempotent.test
+	seq 5 1 15 | $(p) -K \
+                     \
+     i::1             \
+    lt::1^7^/lt/,test \
+    le::1^7^/le/,test \
+    eq::1^7^/eq/,test \
+    ne::1^7^/ne/,test \
+    ge::1^7^/ge/,test \
+    gt::1^7^/gt/,test \
+                     \
+    LT::1^7^~lt~,test \
+    LE::1^7^~le~,test \
+    EQ::1^7^~eq~,test \
+    IS::1^7^=,test    \
+    ISNT::1^7^/=,test \
+    NE::1^7^~ne~,test \
+    GE::1^7^~ge~,test \
+    GT::1^7^~gt~,test \
+                     \
+    EP::1^7^/ep/,test \
+    OM::1^7^/om/,test > o.select.test
 
 
 %.ref : %.test
