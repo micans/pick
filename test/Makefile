@@ -60,6 +60,9 @@ runpick: data.txt
     ne::1^7^/ne/,test \
     ge::1^7^/ge/,test \
     gt::1^7^/gt/,test \
+  all::1^7^/all/,test \
+  any::1^7^/any/,test \
+ none::1^7^/none/,test\
                      \
     LT::1^7^~lt~,test \
     LE::1^7^~le~,test \
