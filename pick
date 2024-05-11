@@ -98,14 +98,14 @@ my $fh_other       = undef;
 my $name_demux     = undef;
 my $index_demux    = -1;
 
-$::EPSILON         = 0.0001;  # obvs the best default epsilon - 10,000 is a myriad.
-$::OOM             = 2;     # order of magnitude. Maybe sqrt(2) makes more sense.
+$::EPSILON         = 0.0001;     # obvs the best default epsilon - 10,000 is a myriad.
+$::OOM             = 2;          # order of magnitude. Maybe sqrt(2) makes more sense.
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
 
 my $PSTORE_DEFAULT = "00000000";
-my $PSTORE_LIST    = '';      # how annoying.
+my $PSTORE_LIST    = '';         # empty string yields empty list when split
 my $PSTORE_PIVOT_COLUMN  = undef;
 my $PSTORE_PIVOT_HANDLE  = undef;
 my $PSTORE_PIVOT_VALUE   = undef;
@@ -124,7 +124,7 @@ my $Nsam_lenclash = 0;
 
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
-my %PNAN =                  # Protect against division by zero etc. Defaults exist and can be overridden.
+my %PNAN =                  # Protect against division by zero etc. Defaults that can be overridden.
 (  PICK_LOG10_INF => -10000
 ,  PICK_LOG2_INF  => -10000
 ,  PICK_LOG_INF   => -10000
@@ -727,6 +727,7 @@ EOH
     my $filter = @::spec ? $::spec[0] : '.';
     $filter =~ s/,/|/g;
     print "\nSelect comparison operators:\n  @opsf\n\n";
+    exit 0 if $filter eq 'selection';
     printf "%-12s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
     print  '-' x 80 . "\n";
     for my $op (sort keys %cp_opdefinitions) {
@@ -1111,21 +1112,7 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   }
 
   for my $spec (@::spec) {
-    if ($spec =~ /^(.*?)(:[:=])(.*)/) {
-      my ($handle, $type, $compute) = (urldecode($1), $2, $3);    # @urldecode handle::
-      die "Compute cannot be empty\n" unless length($compute);
-      $handle = $DUMMY_NAME++ if $handle eq '';
-      my ($duplicate, $matches) = expand_list_range_and_regex($handle, 1);
-      $compute = ":$compute" unless $compute =~ /^[,:^]/;
-      for my $m (@$matches) {
-        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->{namein}/g;
-        my $parsed_compute = parse_compute($handle, $compute_m);
-        push @::compute, [$m->{nameout}, $parsed_compute];
-        push @::output_nm, $m->{namein} if $duplicate;            # fixme consider // duplicate combined with := assignment
-        push @::output_nm, $m->{nameout} if $type eq '::';        # ':=' is assignment without output.
-      }
-    }
-    elsif ($spec =~ /^@/) {
+    if ($spec =~ /^@/) {
       my ($handle, $op, $val, $arg) = (undef, undef, undef, undef);
                     #  = ~ /= /~
       if ($spec =~ /^@(.*?)(\/?[=~])(.*?)$/) {
@@ -1137,6 +1124,10 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
                     #    ( H )([ a1](      a2    )[ a3])( V)(  arg )
       elsif ($spec =~ /^@(.*?)([\/~](?:[a-z]{2,4})[\/~])(.*?)(\/.*?)?$/) {
         ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      # @urldecode @handle/../arg|handle/arg
+      }
+      else {
+         print STDERR "-- Selection invalid [$_]. I need @<name><op><:name|value>, see pick -l selection for <op>\n";
+         exit 1;
       }
       die "Unrecognised operator [$op]\n" unless defined($sel_opdefinitions{$op});
       if (defined($arg)) {
@@ -1151,6 +1142,20 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
       my $indirection = $val =~ s/^:// ? 1 : 0;
       push @::select, [$op, $indirection, $val, $handle, $arg];
                # NOTE. $arg for now only used by /ep/ and /om/ selection, ignored by the others.
+    }
+    elsif ($spec =~ /^(.*?)(:[:=])(.*)/) {
+      my ($handle, $type, $compute) = (urldecode($1), $2, $3);    # @urldecode handle::
+      die "Compute cannot be empty\n" unless length($compute);
+      $handle = $DUMMY_NAME++ if $handle eq '';
+      my ($duplicate, $matches) = expand_list_range_and_regex($handle, 1);
+      $compute = ":$compute" unless $compute =~ /^[,:^]/;
+      for my $m (@$matches) {
+        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->{namein}/g;
+        my $parsed_compute = parse_compute($handle, $compute_m);
+        push @::compute, [$m->{nameout}, $parsed_compute];
+        push @::output_nm, $m->{namein} if $duplicate;            # fixme consider // duplicate combined with := assignment
+        push @::output_nm, $m->{nameout} if $type eq '::';        # ':=' is assignment without output.
+      }
     }
     elsif ($B_headless && parse_range($spec)) {
       push @::output_nm, @::colindexes;
@@ -1186,7 +1191,7 @@ print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug
        push @::output_nm, @new_names;
     }
   }
-print STDERR "-- output column names after -i/-a treatment: @::output_nm\n" if $B_debug && ($B_excise || $B_printall);
+print STDERR "-- output column names after -i/-A treatment: @::output_nm\n" if $B_debug && ($B_excise || $B_printall);
 
   { my %names = (); my $i = 1;
     for (@::output_nm) { $names{$_} = $i++ unless defined($names{$_}) }
