@@ -44,8 +44,8 @@ runpick: data.txt
 	$(p) -hA --other=_.txt --demux=out @num4/=2 out:=num4^.txt    <  $<  ; cat {_,1,2,3,4}.txt > o.demux2.test
 	$(p) -Ai --demux=bucket bucket:=^ms:ms^7,mul,int^5,div,int^1,min^.txt < $<  ; cat ms[01].txt > o.demux3.test
 	yes | head -n 50 | $(p) -k --pstore/x:0,y:1 y::^x,pload x::y^y,pload,add > o.fibonacci.test
-	../preserve_header sort -k $$($(p) --idx-list num4 < $<) < $< | $(p) -v --group-first-ref=num4 name num4 ::^name,pload  > o.groupfirst.test
-	../preserve_header sort -k $$($(p) --idx-list num4 < $<) < $< | $(p) -v --group=num4 name num4 ::^name,pload  > o.group.test
+	../utils/preserve_header sort -k $$($(p) --idx-list num4 < $<) < $< | $(p) -v --group-first-ref=num4 name num4 ::^name,pload  > o.groupfirst.test
+	../utils/preserve_header sort -k $$($(p) --idx-list num4 < $<) < $< | $(p) -v --group=num4 name num4 ::^name,pload  > o.group.test
 	$(p) -h --table-dict-I/huh=info.txt ::name^I^info1,tmap ::name^I^info2,tmap ::fib2 < $< > o.tbdict.test
 	$(p) -i '.*'::__^'(?i)(142857|[aeoiy02468])',npat < $< > o.npat.test
 	$(p) -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < $< > o.update.test
