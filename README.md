@@ -317,11 +317,9 @@ These are
 Constant values and column handles are URL-decoded, hence the escape mechanism
 for including any of the characters `^:,%` in a constant value or column handle is to url-encode them.
 The following is an example of a computation:
-
 ```
 :foo^144,add
 ```
-
 is an expression that indicates the column named `foo`, the number 144 and the `add` operator.
 The result of it is the sum of the value in the `foo` column and 144.
 
@@ -342,14 +340,24 @@ and (2) `newname2` will be output.
 (2)   newname2::<compute>
 ```
 
+- It is possible to omit a new name if the output is not to contain column names and there is no need
+  to reuse the computation later. The part `::` or `:=` still has to be specified.
+- If the first element in `<compute>` is a column name, the leading `:` can be dropped.
+
+Below illustrates the two aspects above. The second `pick` invocation shows the computation/column names that
+are automatically generated if not specified and uses the full form `:foo` after the `::` name/compute separator.
+```
+> echo -e "foo\taa\n4\t5" | pick -h ::foo^144,add
+148
+
+> echo -e "foo\taa\n4\t5" | pick :::foo^144,add ::^wow
+PICKAAAAA  PICKAAAAB
+148        wow
+```
 
 ## Examples of computing new columns
 
-In the example below the `<compute>` part (with name `doodle`) is `yam:bob,sub^1,add`. It does not start with
-either a colon, caret or comma.
-**By default the first part is always assumed to be a column handle unless a constant value or operator is found**.
-
-This particular compute puts two column values on the stack (for columns `yam` and `bob`), then subtracts
+The following compute puts two column values on the stack (for columns `yam` and `bob`), then subtracts
 `bob` from `yam`, and adds 1 to the result. If the two columns denote inclusive bounds for an interval
 then this will give the interval length.
 
