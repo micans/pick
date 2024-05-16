@@ -374,6 +374,8 @@ my %cp_samdefs = (
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
 
+my %cp_sam_setup_seqs = map { ($_, 1) } qw(alnposx aln_ref aln_aln aln_qry qry_seq qry_trail3p qry_trail5p qry_matched _sam_rbt);
+
             # sub { } :
             # $_[0] is $F[$i]
             # $_[1] is VAL or :VAL
@@ -986,7 +988,7 @@ sub parse_compute {
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
                                              # /sam_activate/
-      elsif ($what =~ /^aln(posx|_ref|_aln|_qry)$/ || $what =~ /^qry_(trail3p|trail5p|matched)/ || $what eq '_sam_rbt') {
+      elsif (defined($cp_sam_setup_seqs{$what})) {
          $I_AM_SAM |= 2;
       }
       elsif ($what eq 'test') {              # /test_validate/

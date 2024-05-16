@@ -1,5 +1,5 @@
 
-# Unix table column and row manipulation using column names
+# Unix table column/row manipulation using column names
 
 ## Sam alignment format poly-wrangler
 
@@ -167,8 +167,10 @@ o+x-y                columns o+x to o+y
 - Selections can operate on computed columns and computed values that are not output (see further below).
 - Selections are performed only after all computations are finished. Hence it is currently not possible to perform a computation
   conditionally on a selection.
-- Selections can occur anywhere, even mixed in with column selections and computations. This will always be the case;
-  new syntax will be required should a pre-compute selection feature be added.
+- Selections can be placed anywhere, mixed in with column selections and computations as required.
+  This can be used to make pick invocations more self-documenting.
+  In some situations this is achieved by grouping selections together, in other situations
+  a selection is best placed next to the column name or computation to which it refers.
 
 
 Pick columns `foo` and `bar`, only taking rows where `tim` fields are larger than zero.
