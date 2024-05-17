@@ -741,6 +741,16 @@ EOH
       next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
       printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
     }
+    if ($filter eq 'regex') {
+      print <<EOT;
+
+Useful regex constructs:
+(?%3A...)        group a pattern without creating a backreference (URL-encoded :)
+patx\\Kpaty       exclude patx from the matched part
+patx(?=paty)     exclude paty from the matched part
+(?i)pat          make pat case insensitive
+EOT
+    }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
     else { print "\nAll operators in section(s) matching <$filter>\nSections: $opsections\n" }
     exit 0;
