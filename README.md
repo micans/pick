@@ -5,7 +5,20 @@
 
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
-Entire scripts can be replaced by concise command line invocations.
+Entire scripts can be replaced by concise command line invocations. Some examples:
+
+```
+pick foo bar                      < data.txt       # pick columns with names foo and bar (header included)
+
+pick -A @tim/gt/0 qat::foo^-:bar  < data.txt       # pick all columns where the tim value is positive, add new column qat
+
+pick -h ::end:start,sub^1,add     < data.txt       # compute new column with inclusive interval length, omit header
+
+pick -k ::3:4,sub^1,add           < data.txt       # as previous, in the absence of column headers
+
+pick -h ::foo^'(\d+)',get         < data.txt       # extract a sequence of digits from the foo values
+
+```
 
 Pick allows database-style queries (*select*) and filters (*where*)
 on a single text file or stream using its column names (or indexes if no names are present).

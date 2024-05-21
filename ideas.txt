@@ -1,6 +1,7 @@
 
-  ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/  /epd/ /omd/
-     (or negation syntax. @foo/not_gt/:bar)
+  ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/
+     (or negation syntax. @foo/not_gt/:bar . but ... @foo/le/:bar )
+     /eppe/ /ommo/ /epdis/ /omdis/
 
   -  can more checks be moved to compile time?
 
