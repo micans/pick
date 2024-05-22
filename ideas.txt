@@ -1,5 +1,5 @@
 
-  ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/
+  ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/ /sgn1eq/ /sgn1ne/
      (or negation syntax. @foo/not_gt/:bar . but ... @foo/le/:bar )
      /eppe/ /ommo/ /epdis/ /omdis/
 

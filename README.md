@@ -20,6 +20,12 @@ pick -h ::foo^'(\d+)',get         < data.txt       # extract a sequence of digit
 
 ```
 
+Pick is a standalone script that depends only on a standard perl installation - it should work on any standard Linux (or Unix) OS
+and all Mac OS releases with developer tools installed.
+```
+wget https://raw.githubusercontent.com/micans/pick/main/pick
+```
+
 Pick allows database-style queries (*select*) and filters (*where*)
 on a single text file or stream using its column names (or indexes if no names are present).
 Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
