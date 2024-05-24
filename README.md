@@ -1218,7 +1218,7 @@ Format each entry in scientific notation with five significant digits:
 pick -i '.*'::__^5,sn < data.txt
 ```
 
-Remove leadinig and trailing whitespace (`%5E` encodes beginning of line `^`, here needed as `^` indicates
+Remove leading and trailing whitespace (`%5E` url-encodes beginning of string `^`, here needed as `^` indicates
 a constant in pick computations):
 
 ```

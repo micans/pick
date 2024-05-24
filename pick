@@ -451,6 +451,19 @@ sub do_ifelse {
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
 my $opsections  = join ' ', sort keys %{{ map { ($_, 1) } map { split '/', (split "\t", $_->[2])[3] } values %cp_opdefinitions }};
 
+my $regexpointers = <<EOP;
+Useful perl regular expression features:
+   Use \\K (keep) to anchor a pattern but retain it with ed, edg, del, delg
+   :HANDLE^'patx\\Kpaty',delg will retain patx and only delete paty.
+   Use patx(?=paty) to anchor patx to paty without including paty in the matched part.
+   :HANDLE^'patx(?=paty)',get will just fetch patx.
+   (?%3A...) groups a pattern without creating a backreference (%3A url-encodes ':')
+   Use (?i)pat to make a pattern case insensitive.
+
+Regular expression examples:
+   - pick -i '.*'::__^'(%5E\\s+|\\s+\$)',delg        # remove trailing/leading whitespace in all cells
+EOP
+
 
 my $help_options=q{Options:
   -h do not print header
@@ -742,14 +755,7 @@ EOH
       printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
     }
     if ($filter eq 'regex') {
-      print <<EOT;
-
-Useful regex constructs:
-(?%3A...)        group a pattern without creating a backreference (URL-encoded :)
-patx\\Kpaty       exclude patx from the matched part
-patx(?=paty)     exclude paty from the matched part
-(?i)pat          make pat case insensitive
-EOT
+      print "\n$regexpointers";
     }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
     else { print "\nAll operators in section(s) matching <$filter>\nSections: $opsections\n" }
@@ -807,12 +813,7 @@ Form (5) as form 4, and selects the handle for output.
 Environment variables with default settings:
 $envsettings
 
-Useful perl regular expression features:
-   Use \\K (keep) to anchor a pattern but retain it with ed, edg, del, delg
-   :HANDLE^'patx\\Kpaty',delg will retain patx and only delete paty.
-   Use patx(?=paty) to anchor patx to paty without including paty in the matched part.
-   :HANDLE^'patx(?=paty)',get will just fetch patx.
-   Use (?i)pat to make a pattern case insensitive.
+$regexpointers
 EOH
   exit 0;
   }
