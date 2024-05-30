@@ -22,6 +22,7 @@ pick -h ::foo^'(\d+)',get         < data.txt       # extract a sequence of digit
 
 Pick is a standalone script that depends only on a standard perl installation - it should work on any standard Linux (or Unix) OS
 and all Mac OS releases with developer tools installed.
+
 ```
 wget https://raw.githubusercontent.com/micans/pick/main/pick
 ```
@@ -35,7 +36,10 @@ Output can be demuxed into different files and dictionaries can be loaded to map
 It is **lightweight** as it processes data per-line without the need to load the table into memory.
 It is **expressive** in that short command lines are sufficient to get at the data.
 
-Additionally pick has **extensive support for SAM format** such as printing alignments and
+Pick works very well as a pre-filter to [`datamash`](https://www.gnu.org/software/datamash/ -
+a tool that can compute statistics over columns, optionally grouped over a second (column) variable.
+
+Additionally `pick` has **extensive support for SAM format** such as printing alignments and
 outputting alignment-derived quantities like coverage and base mismatch information.
 A reference FASTA file can be specified, which is then used by pick to automatically slot in reference
 sequences where needed.

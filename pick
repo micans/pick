@@ -59,6 +59,7 @@ helphelp(0) unless @::spec;
 @::output_os  = ();         # names translated to offsets in @F (field array)
 @::compute = ();            # derived column specifications
 @::select  = ();            # row select specifications
+@::preselect  = ();         # row select specifications
 %::handle_map = ();         # map column names to offsets
 %::plain_handle = ();       # handles without any compute following.
 
@@ -66,8 +67,8 @@ my $PAT_PURGE      = '';    # ::/my style is somewhat intractable. :: tend to be
 my $PAT_PASS       = '';    # PURGE is removed before processing, PASS is passed through before processing.
 my $INSERT_OFFSET  = undef; # with -A, where to put extra columns (by default at the end).
 my $OFFSET_OMEGA   = -1;    # with -O<N>, accept overflow ragged columns from position <N> onwards.
-my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values.
-my $sam_refdictname   = "";    # experimental/fragile
+my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values. Bit flag variable.
+my $sam_refdictname   = "";    # The first dictionary specified. Either with --sam/fname or --fasta-dict=fname
 
 my $B_print_header = 1;     # B_oolean. Also accessed in subroutines.
 my $B_select_and   = 1;     # Require all selections to match (use -o for any)
@@ -1127,17 +1128,18 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   }
 
   for my $spec (@::spec) {
-    if ($spec =~ /^@/) {
+    if ($spec =~ s/^([@%])//) {
+      my $type = $1;
       my ($handle, $op, $val, $arg) = (undef, undef, undef, undef);
                     #  = ~ /= /~
-      if ($spec =~ /^@(.*?)(\/?[=~])(.*?)$/) {
+      if ($spec =~ /^(.*?)(\/?[=~])(.*?)$/) {
         ($handle, $op, $val) = (urldecode($1), $2, urldecode($3));      # @urldecode @handle/../arg|handle/arg
       }
                     #  H handle
                     #  a1a2a3, b, c, d different forms for op
                     #  V value or :handle
                     #    ( H )([ a1](      a2    )[ a3])( V)(  arg )
-      elsif ($spec =~ /^@(.*?)([\/~](?:[a-z]{2,4})[\/~])(.*?)(\/.*?)?$/) {
+      elsif ($spec =~ /^(.*?)([\/~](?:[a-z]{2,4})[\/~])(.*?)(\/.*?)?$/) {
         ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      # @urldecode @handle/../arg|handle/arg
       }
       else {
@@ -1155,7 +1157,8 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
       }
 print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] arg=[$arg]\n" if $B_debug;
       my $indirection = $val =~ s/^:// ? 1 : 0;
-      push @::select, [$op, $indirection, $val, $handle, $arg];
+      if ($type eq '@') { push    @::select, [$op, $indirection, $val, $handle, $arg]; }
+      else              { push @::preselect, [$op, $indirection, $val, $handle, $arg]; }
                # NOTE. $arg for now only used by /ep/ and /om/ selection, ignored by the others.
     }
     elsif ($spec =~ /^(.*?)(:[:=])(.*)/) {
@@ -1185,7 +1188,11 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
   @::output_nm = sort { $a <=> $b } keys %{{ map { ($_, 1) } @::output_nm }} if $B_ko;
 
   $::plain_handle{$_} = 1 for @::output_nm;           # handles without compute
-                                                      # but ::spec case pushes onto @::output_nm -- fixme/docme
+                                                      # but ::spec case pushes onto @::output_nm -- fixme/docme mq
+                                                      # - for excision below, we grep in @::HEADER (avoding those ::spec-pushed cases)
+                                                      # currently, this is the only use of plain_handle
+
+if ($B_debug) { for (@::output_nm) { print "PH $_\t$::plain_handle{$_}\n"; } }
 
 local $" = ',';
 print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
@@ -1292,6 +1299,7 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
 
   #
   ##  In select list replace names by offsets into field array.
+  ##  todo preselect: use plain_handle or inheader -> can pass references into subroutine.
   #
 
   for my $sel (@::select) {
@@ -1767,6 +1775,8 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 
   sam_setup_reflendict    if $I_AM_SAM & 4;        # Done only once.
   sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line; /sam_activate/
+
+  # insert preselect here.
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
 
