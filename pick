@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-@::INPUT_HEADER = ();
-
 # Pick version
 my $v_v_v = "648830e05efe4e1a2ddcbfd112dcedb56aac2bd4::24-115";
 
@@ -64,6 +62,7 @@ helphelp(0) unless @::spec;
 @::preselect  = ();         # row select specifications
 %::handle_map = ();         # map column names to offsets
 %::plain_handle = ();       # handles without any compute following.
+@::INPUT_HEADER = ();       # input header. @::HEADER exists, is intermediate and can have repeats; @::OUTPUT_HEADER is output header.
 
 my $PAT_PURGE      = '';    # ::/my style is somewhat intractable. :: tend to be thing accessed in subroutines.
 my $PAT_PASS       = '';    # PURGE is removed before processing, PASS is passed through before processing.
@@ -1165,7 +1164,7 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
   }
 
   for my $spec (@::spec) {
-    if ($spec =~ s/^([@%])//) {
+    if ($spec =~ s/^(\@{1,2})//) {
       my $type = $1;
       my ($handle, $op, $val, $arg) = (undef, undef, undef, undef);
                     #  = ~ /= /~
