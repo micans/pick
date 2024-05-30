@@ -1594,8 +1594,9 @@ $::Groupi = 2;    # index within group.
     $qry =~ tr/acgtu/ACGTT/;     # fixme: ensure this is done at the cache level, remove here and in siblings.
     $ref =~ tr/acgtu/ACGTT/;
 
-    my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
+    my ($pqry, $sqry) = (0, 0);             # position query, start query
     my $pref = $::Flink->[3]-1;
+    my ($qry_x_pos, $qry_y_pos) = (-1, -1); # the positions in query that match ($ref_x, $ref_y)
 
     my ($rlen, $qlen) = (length($ref), length($qry));
     my ($M, $D, $E, $I, $S) = (0, 0, 0, 0, 0);
@@ -1616,6 +1617,14 @@ $::Groupi = 2;    # index within group.
       }
 
       if ($it eq 'M') {
+        if ($num_in_bounds > 0) {
+          if ($qry_x_pos < 0) {
+            $qry_x_pos  = $pqry;
+            $qry_x_pos += $ref_x - $pref if $ref_x > $pref;
+          }
+          $qry_y_pos  = $pqry + $num - 1;                                           # update each time ...
+          $qry_y_pos -= ($pref + $num - 1 - $ref_y) if $ref_y < $pref + $num -1;    # don't know a priori which one is the last.
+        }
         if ($rright > $rlen || $qright > $qlen) {
           print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
@@ -1629,11 +1638,19 @@ $::Groupi = 2;    # index within group.
       elsif ($it eq 'S')                { $pqry += $num; $S += $num_in_bounds; }
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
+    if ($qry_x_pos < 0 || $qry_y_pos < 0) {
+      print STDERR "[$.] _sam_rbt one or both of x ($qry_x_pos) and y ($qry_y_pos) not pegged to read ($pair)\n";
+      $qry_x_pos = 0 if $qry_x_pos < 0;
+      $qry_y_pos = $qlen - 1;               # inclusive.
+    }
     $::LINECACHE{__REG__}{_rbt_M} = $M;
     $::LINECACHE{__REG__}{_rbt_D} = $D;
     $::LINECACHE{__REG__}{_rbt_E} = $E;
     $::LINECACHE{__REG__}{_rbt_I} = $I;
     $::LINECACHE{__REG__}{_rbt_S} = $S;
+    $::LINECACHE{__REG__}{_rbt_qry_x} = $qry_x_pos;
+    $::LINECACHE{__REG__}{_rbt_qry_y} = $qry_y_pos;
+    $::LINECACHE{__REG__}{_rbt_qry_xylen} = $qry_y_pos - $qry_x_pos + 1;
   }
 
   sub getalnposx {
