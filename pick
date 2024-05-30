@@ -1147,21 +1147,7 @@ print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg
 }
 
 
-sub compile_time {
-
-  if ($::HEADER[0] eq '')   { $::HEADER[0] = '_'; }
-  elsif ($B_add_row_column) { unshift @::HEADER, '_'; }
-
-  $::N = @::HEADER;
-  @::INPUT_HEADER = @::HEADER;
-  my %in_input_header = map { ($_, 1) } @::HEADER;
-
-  for (my $i=0; $i<@::HEADER; $i++) {
-    my $name = $::HEADER[$i];
-    die "Name $name defined more than once\n" if defined($::handle_map{$name}) && !$B_force;
-    $::handle_map{$name} = $i;
-print STDERR "-- map header name $name to offset $i\n" if $B_debug;
-  }
+sub compile_spec {
 
   for my $spec (@::spec) {
     if ($spec =~ s/^(\@{1,2})//) {
@@ -1220,51 +1206,9 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
       for my $m (@$matches) { push @::output_nm, $m->{namein}; }
     }
   }
+}
 
-  @::output_nm = sort { $a <=> $b } keys %{{ map { ($_, 1) } @::output_nm }} if $B_ko;
-
-  $::plain_handle{$_} = 1 for @::output_nm;           # handles without compute
-                                                      # but ::spec case pushes onto @::output_nm -- fixme/docme mq
-                                                      # - for excision below, we grep in @::HEADER (avoding those ::spec-pushed cases)
-                                                      # currently, this is the only use of plain_handle
-
-if ($B_debug) { for (@::output_nm) { print "PH $_\t$::plain_handle{$_}\n"; } }
-
-local $" = ',';
-print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
-  if ($B_excise || $B_printall) {
-    my @new_names = grep { !defined($in_input_header{$_}) } @::output_nm;
-    if ($B_excise) {
-       @::output_nm = grep { !defined($::plain_handle{$_}) } @::HEADER;
-    }
-    else {
-       @::output_nm = @::HEADER;
-    }
-    if (defined($INSERT_OFFSET)) {
-      $INSERT_OFFSET = @::output_nm if $INSERT_OFFSET > @::output_nm;
-      $INSERT_OFFSET = -1 * @::output_nm if $INSERT_OFFSET < -1 * @::output_nm;
-      splice @::output_nm, $INSERT_OFFSET, 0, @new_names;
-    }
-    else {
-       push @::output_nm, @new_names;
-    }
-  }
-print STDERR "-- output column names after -i/-A treatment: @::output_nm\n" if $B_debug && ($B_excise || $B_printall);
-
-  { my %names = (); my $i = 1;
-    for (@::output_nm) { $names{$_} = $i++ unless defined($names{$_}) }
-    if (keys %names < @::output_nm) {
-       my $job = $B_force ? 'leaving as specified' : 'will make unique';
-print STDERR "-- Identical output column names exist ($job)\n";
-       @::output_nm = sort { $names{$a} <=> $names{$b} } keys %names unless $B_force;
-    }
-  }
-
-  #
-  ##  Add derived column names to @::HEADER
-  ##  Expand regex specifications if found.
-  ##  In derived column specs replace names by offsets into field array.
-  #
+sub compile_compute {
 
   my %pload_references = ();
 
@@ -1310,6 +1254,79 @@ print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
 
   my @pload_notfound = grep { !defined($::handle_map{$_}) } keys %pload_references;
   die "'pload' argument(s) @pload_notfound not among the column names I know" if @pload_notfound;
+}
+
+
+sub compile_time {
+
+  if ($::HEADER[0] eq '')   { $::HEADER[0] = '_'; }
+  elsif ($B_add_row_column) { unshift @::HEADER, '_'; }
+
+  $::N = @::HEADER;
+  @::INPUT_HEADER = @::HEADER;
+  my %in_input_header = map { ($_, 1) } @::INPUT_HEADER;
+
+  for (my $i=0; $i<@::HEADER; $i++) {
+    my $name = $::HEADER[$i];
+    die "Name $name defined more than once\n" if defined($::handle_map{$name}) && !$B_force;
+    $::handle_map{$name} = $i;
+print STDERR "-- map header name $name to offset $i\n" if $B_debug;
+  }
+
+      # This populates
+      #     @::preselect
+      #     @::select
+      #     @::output_nm
+      #     @::compute
+  &compile_spec();
+
+  @::output_nm = sort { $a <=> $b } keys %{{ map { ($_, 1) } @::output_nm }} if $B_ko;
+
+  $::plain_handle{$_} = 1 for @::output_nm;           # handles without compute
+                                                      # but ::spec case pushes onto @::output_nm -- fixme/docme mq
+                                                      # - for excision below, we grep in @::HEADER (avoding those ::spec-pushed cases)
+                                                      # currently, this is the only use of plain_handle
+
+if ($B_debug) { for (@::output_nm) { print "PH $_\t$::plain_handle{$_}\n"; } }
+
+local $" = ',';
+print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
+  if ($B_excise || $B_printall) {
+    my @new_names = grep { !defined($in_input_header{$_}) } @::output_nm;
+    if ($B_excise) {
+       @::output_nm = grep { !defined($::plain_handle{$_}) } @::HEADER;
+    }
+    else {
+       @::output_nm = @::HEADER;
+    }
+    if (defined($INSERT_OFFSET)) {
+      $INSERT_OFFSET = @::output_nm if $INSERT_OFFSET > @::output_nm;
+      $INSERT_OFFSET = -1 * @::output_nm if $INSERT_OFFSET < -1 * @::output_nm;
+      splice @::output_nm, $INSERT_OFFSET, 0, @new_names;
+    }
+    else {
+       push @::output_nm, @new_names;
+    }
+  }
+print STDERR "-- output column names after -i/-A treatment: @::output_nm\n" if $B_debug && ($B_excise || $B_printall);
+
+  { my %names = (); my $i = 1;
+    for (@::output_nm) { $names{$_} = $i++ unless defined($names{$_}) }
+    if (keys %names < @::output_nm) {
+       my $job = $B_force ? 'leaving as specified' : 'will make unique';
+print STDERR "-- Identical output column names exist ($job)\n";
+       @::output_nm = sort { $names{$a} <=> $names{$b} } keys %names unless $B_force;
+    }
+  }
+
+  #
+  ##  Add derived column names to @::HEADER
+  ##  Expand regex specifications if found.
+  ##  In derived column specs replace names by offsets into field array.
+  #
+  #   Populate %::handle_map
+  #
+  &compile_compute();
 
   if (defined($PSTORE_PIVOT_HANDLE)) {
      $PSTORE_PIVOT_COLUMN = $::handle_map{$PSTORE_PIVOT_HANDLE};
