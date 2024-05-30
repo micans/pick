@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+@::INPUT_HEADER = ();
+
 # Pick version
 my $v_v_v = "648830e05efe4e1a2ddcbfd112dcedb56aac2bd4::24-115";
 
@@ -72,6 +74,7 @@ my $sam_refdictname   = "";    # The first dictionary specified. Either with --s
 
 my $B_print_header = 1;     # B_oolean. Also accessed in subroutines.
 my $B_select_and   = 1;     # Require all selections to match (use -o for any)
+my $B_preselect_and  = 1;   # Require all preselections to match (use -o for any)
 my $B_printall     = 0;     # Select all columns
 my $B_inplace      = 0;     # Allow derived column to redefine existing column name
 my $B_excise       = 0;     # print all except the plain column handles listed, cannot combine with $B_printall
@@ -929,6 +932,7 @@ EOH
   $B_protect      = 1 if $options =~ s/P//;
   ($B_protect, $B_protect_discard) = (1,1) if $options =~ s/Z//;
   $B_select_and   = 0 if $options =~ s/o//;
+  $B_preselect_and   = 0 if $options =~ s/s//;
   $L_verbose += length($1)  if $options =~ s/(v+)//;
   $L_verbose -= length($1)  if $options =~ s/(q+)//;
   $B_ko           = 1 if $options =~ s/U//;
@@ -1112,13 +1116,46 @@ print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_
    return ($duplicate, \@matches);
 }
 
+
+sub compile_select {
+
+  my ($caller, $select, $limit_handle) = @_;
+
+  for my $sel (@$select) {
+
+    my ($op, $indirection, $val, $name, $arg) = @$sel;
+
+       # fixme: better naming/documenting/coding-logic to follow tight linkt between @::HEADER and %::handle_map.
+       # the if-else here is not entirely satisfactory - handle_map{$name} lookup is not checked for preselect; this is OK but still.
+       #
+    if ($caller eq 'select') { die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name}); }
+    else                  { die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$name}); }
+
+    my $opdef = $sel_opdefinitions{$op};
+    die "The impossible happened ($op)\n" unless defined($opdef);
+    $sel->[0] = $opdef->[1];             # fixme overwrite inelegant
+
+    $sel->[3] = $::handle_map{$name};    # fixme overwrite inelegant
+    if ($indirection) {
+       if ($caller eq 'select') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
+       else                  { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$val}); }
+       $sel->[2] = $::handle_map{$val};  # fixme overwrite inelegant
+    }
+    { my ($code, $indirection, $val, $name, $arg) = @$sel;
+print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg --\n" if $B_debug; }
+
+  }
+}
+
+
 sub compile_time {
 
   if ($::HEADER[0] eq '')   { $::HEADER[0] = '_'; }
   elsif ($B_add_row_column) { unshift @::HEADER, '_'; }
 
   $::N = @::HEADER;
-  my %inheader = map { ($_, 1) } @::HEADER;
+  @::INPUT_HEADER = @::HEADER;
+  my %in_input_header = map { ($_, 1) } @::HEADER;
 
   for (my $i=0; $i<@::HEADER; $i++) {
     my $name = $::HEADER[$i];
@@ -1197,9 +1234,9 @@ if ($B_debug) { for (@::output_nm) { print "PH $_\t$::plain_handle{$_}\n"; } }
 local $" = ',';
 print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
   if ($B_excise || $B_printall) {
-    my @new_names = grep { !defined($inheader{$_}) } @::output_nm;
+    my @new_names = grep { !defined($in_input_header{$_}) } @::output_nm;
     if ($B_excise) {
-       @::output_nm = grep { !defined($::plain_handle{$_}) } @::HEADER
+       @::output_nm = grep { !defined($::plain_handle{$_}) } @::HEADER;
     }
     else {
        @::output_nm = @::HEADER;
@@ -1299,28 +1336,12 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
 
   #
   ##  In select list replace names by offsets into field array.
-  ##  todo preselect: use plain_handle or inheader -> can pass references into subroutine.
+  ##  todo preselect: use in_input_header -> can pass references into subroutine.
   #
 
-  for my $sel (@::select) {
+  &compile_select('select', \@::select, undef);
 
-    my ($op, $indirection, $val, $name, $arg) = @$sel;
-
-    die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
-
-    my $opdef = $sel_opdefinitions{$op};
-    die "The impossible happened ($op)\n" unless defined($opdef);
-    $sel->[0] = $opdef->[1];             # fixme overwrite inelegant
-
-    $sel->[3] = $::handle_map{$name};    # fixme overwrite inelegant
-    if ($indirection) {
-       die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val});
-       $sel->[2] = $::handle_map{$val};  # fixme overwrite inelegant
-    }
-    { my ($code, $indirection, $val, $name, $arg) = @$sel;
-print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg --\n" if $B_debug; }
-
-  }
+  &compile_select('preselect', \@::preselect, \%in_input_header);
 
   for (@::HEADER) {
     $_ = '' if $_ eq '_';
@@ -1394,6 +1415,7 @@ $::Ngroup = 0;    # skipped because first in group: --group
 my $Nskip = 0;    # skipped based on pattern; e.g. pick -/^#
 my $Npthr = 0;    # skipped and passed through
 my $Ndisc = 0;    # skipped because @ criteria not met
+my $Npredisc = 0; # skipped because % criteria not met
 my $Nkeep = 0;
 
 $::Groupi = 2;    # index within group.
@@ -1709,6 +1731,7 @@ $::Groupi = 2;    # index within group.
   }
 }
 
+LINE:
 
 while (<>) {
 
@@ -1776,7 +1799,18 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
   sam_setup_reflendict    if $I_AM_SAM & 4;        # Done only once.
   sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line; /sam_activate/
 
-  # insert preselect here.
+  {  my $nmatch = 0;
+     for my $sel (@::preselect) {
+       my ($op, $indirection, $val, $colid, $arg) = @$sel;
+       $val = $F[$val] if $indirection;
+# print STDERR "__ $F[$colid]\n";
+       $nmatch++ if $op->($F[$colid], $val, $arg);       # $arg currently only used for /ep/ and /om/
+     }
+     if (@::preselect && (($nmatch != @::preselect && $B_preselect_and) || ($nmatch == 0 && !$B_preselect_and))) {
+       $Ndisc++; $Npredisc++;
+       next LINE;
+     }
+  }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
 
