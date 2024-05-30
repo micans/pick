@@ -1,0 +1,38 @@
+
+Initial commit of scripts/data to *further* test aspects of SAM functionality, e.g.
+
+  - query sequence retrieval / requirement of name-ordered SAM input / test we exit or warn if footing is lost
+      - difference between --sam/fname.fa and --fasta-dict=fname.fa
+      - correct treatment of sequences/alignments that are secondary (256) or supplementary (2048)
+      - currently unmapped (4) reads lead to exit and require pre-filtering. Worth being gracious?
+  - improve documentation. Most things are one-based in SAM-land, but some are not (e.g. _sam_rbt_x)
+
+
+
+======
+
+Creation of reference.
+The first is F1 with other sequence surrounding it.
+The second is F2, reverse complemented, with other sequence surrounding it
+
+  echo -e "F1\tSEA1 F1 SEA2\nF2rc\tSEA3 <F2> SEA4" | ../utils/makedna.pl > ref.fa
+
+
+======
+
+Creation of reads, as below, all with left and right decoration
+{F1}      perturbed F1
+{F2}      perturbed F2
+{<F1>}    perturbed rc-ed F1
+{<F2>}    perturbed rc-ed F2
+
+  for i in {1..10}; do
+    echo -e "readF1-$i\tfoo bar zut {F1} doo wah tik\nreadF2-$i\tfoo bar zut {F2} doo wah tik\nreadF1-$i-rc\tfoo bar zut {<F1>} doo wah tik\nreadF2-$i-rc\tfoo bar zut {<F2>} doo wah tik" | ../utils/makedna.pl 0.04 0.04 0.04 5
+  done > qry.fa
+
+
+======
+
+cat qry.sam | pick --sam -A @2/none/4 |  ../utils/samdisplaymatches.sh ref.fa
+
+

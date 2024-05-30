@@ -3,6 +3,10 @@
 use warnings;
 use strict;
 
+# <SEQ> is reverse complemented.
+# {SEQ} is perturbed.
+
+
 my %map = (' ', qw(G e C t T a A o CT i CA n AA s C r TA h AT d AG l GG u GA c TG m GC f TT y AC w GT g CT p CA b AA v CC k TC x TA q AT j AG z CG));
 $map{'<'} = '<';
 $map{'>'} = '>';
