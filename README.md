@@ -186,15 +186,15 @@ o+x-y                columns o+x to o+y
 ## Pick columns and filter or select rows
 
 
-- Strings starting with `@` indicate a selection on one or two column values.
-- Selections can operate on computed columns and computed values that are not output (see further below).
-- Selections are performed only after all computations are finished. Hence it is currently not possible to perform a computation
-  conditionally on a selection.
+- Strings starting with `@` or `@@` indicate a selection on one or two column values.
+- `@` selections can operate on computed columns and computed values that are not output (see further below).
+- `@` selections are performed after all computations are finished and have access to all input columns and compute handles.
+- `@@` selections are peformed *before* any computation happens and have access to input columns only. A row that is
+  filtered this way will not trigger any computation.
 - Selections can be placed anywhere, mixed in with column selections and computations as required.
   This can be used to make pick invocations more self-documenting.
   In some situations this is achieved by grouping selections together, in other situations
   a selection is best placed next to the column name or computation to which it refers.
-
 
 Pick columns `foo` and `bar`, only taking rows where `tim` fields are larger than zero.
 multiple `@` selections are possible; default is `AND` of multiple clauses, use `-o` for `OR`.
@@ -211,6 +211,46 @@ pick foo bar @tim/gt/:zut < data.txt
 ```
 It is possible for `zut` to be [a newly computed value derived from other (existing or computed) columns](#examples-of-computing-new-columns).
 
+
+The examples so far and the examples further below use `@` rather than `@@`
+selections. The advantage of the latter form is that in some cases it can be be
+wasteful and/or difficult to compute new values if they should be thrown away
+anyway. One example is when a division is computed and rows where the
+denominator is zero should be discarded. The following sequence of examples
+shows the different ways `pick` can handle this situation:
+
+
+```
+   # example data:
+> echo -e "foo\tbar\n5\t8\n1\t0" | pick -A
+foo   bar
+5     8
+1     0
+
+   # divide by zero (crash - not handled)
+> echo -e "foo\tbar\n5\t8\n1\t0" | pick -h ::foo:bar,div
+0.625
+Illegal division by zero at pick line 221, <> line 3.
+
+   # selection happens after computation, so this does not help (crash again)
+> echo -e "foo\tbar\n5\t8\n1\t0" | pick -h ::foo:bar,div @bar/ne/0
+0.625
+Illegal division by zero at pick line 221, <> line 3.
+
+   # protect against divide by zero, included in output ('inf' in output)
+> echo -e "foo\tbar\n5\t8\n1\t0" | pick -hP ::foo:bar,div
+0.625
+inf
+-- 1 items needed not-a-number protection (0 rows discarded)
+
+   # protect against divide by zero, compute, exclude from output after compute (wasteful)
+> echo -e "foo\tbar\n5\t8\n1\t0" | pick -hP ::foo:bar,div @bar/ne/0
+0.625
+
+   # @@ pre-select -- BEFORE computation (clean)
+> echo -e "foo\tbar\n5\t8\n1\t0" | pick -h ::foo:bar,div @@bar/ne/0
+0.625
+```
 
 <details><summary>Further selection examples</summary>
 
@@ -504,8 +544,8 @@ introduced below, followed by more examples and explanation.
    be used to capture a single element to be used in renaming:
 ```
    > echo -e "col01\tcol02\tcol03\n3\t4\t5" | pick x_/'^col(\d{2})$'/::__^1,add
-   x_01	x_02	x_03
-   4	5	6
+   x_01  x_02  x_03
+   4     5     6
 ```
 
    It can be useful to have two version for each in a set of columns, for example
@@ -537,8 +577,8 @@ introduced below, followed by more examples and explanation.
 
 ```
 > echo -e "a\tb\tc\n3\t4\t5" | pick -i '.*'::__,sq '.*'/o:=__ oldsum::ao:bo:co,addall
-a	b	c	oldsum
-9	16	25	50
+a     b     c     oldsum
+9     16    25    50
 ```
 
 

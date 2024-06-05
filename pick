@@ -1257,7 +1257,7 @@ print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
 }
 
 
-sub compile_time {
+sub compile_command {
 
   if ($::HEADER[0] eq '')   { $::HEADER[0] = '_'; }
   elsif ($B_add_row_column) { unshift @::HEADER, '_'; }
@@ -1289,8 +1289,8 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
 
 if ($B_debug) { for (@::output_nm) { print "PH $_\t$::plain_handle{$_}\n"; } }
 
-local $" = ',';
-print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
+local $" = ','; print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
+
   if ($B_excise || $B_printall) {
     my @new_names = grep { !defined($in_input_header{$_}) } @::output_nm;
     if ($B_excise) {
@@ -1307,8 +1307,8 @@ print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug
     else {
        push @::output_nm, @new_names;
     }
-  }
 print STDERR "-- output column names after -i/-A treatment: @::output_nm\n" if $B_debug && ($B_excise || $B_printall);
+  }
 
   { my %names = (); my $i = 1;
     for (@::output_nm) { $names{$_} = $i++ unless defined($names{$_}) }
@@ -1325,7 +1325,7 @@ print STDERR "-- Identical output column names exist ($job)\n";
   ##  In derived column specs replace names by offsets into field array.
   #
   #   Populate %::handle_map
-  #
+
   &compile_compute();
 
   if (defined($PSTORE_PIVOT_HANDLE)) {
@@ -1781,7 +1781,9 @@ while (<>) {
       die "New names [@::nameslist] and data names [@::HEADER] differ in cardinality" if scalar @::nameslist != scalar @::HEADER;
       @::HEADER = @::nameslist;
     }
-    compile_time();
+
+    compile_command();
+
     if ($B_posthoc_names) {
       die "New names [@::nameslist] and output offsets [@::output_os] differ in cardinality" if scalar @::nameslist != scalar @::output_os;
       @::OUTPUT_HEADER = @::nameslist;
@@ -1803,7 +1805,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
          print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
       }
     }
-    $::Nrows++;
+    $::Nrows++;                  # operators ,rowno and ,r0wno compensate if header is present.
     next unless $B_headless;
   }
   else {
@@ -1815,24 +1817,23 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
   sam_setup_reflendict    if $I_AM_SAM & 4;        # Done only once.
   sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line; /sam_activate/
 
-  {  my $nmatch = 0;
-     for my $sel (@::preselect) {
-       my ($op, $indirection, $val, $colid, $arg) = @$sel;
-       $val = $F[$val] if $indirection;
-       $nmatch++ if $op->($F[$colid], $val, $arg);       # $arg currently only used for /ep/ and /om/
-     }
-     if (@::preselect && (($nmatch != @::preselect && $B_preselect_and) || ($nmatch == 0 && !$B_preselect_and))) {
-       $Ndisc++; $Npredisc++;
-       next LINE;
-     }
+  if (@::preselect) {
+    my $nmatch = 0;
+    for my $sel (@::preselect) {
+      my ($op, $indirection, $val, $colid, $arg) = @$sel;
+      $val = $F[$val] if $indirection;
+      $nmatch++ if $op->($F[$colid], $val, $arg);       # $arg currently only used for /ep/ and /om/
+    }
+    if (($nmatch != @::preselect && $B_preselect_and) || ($nmatch == 0 && !$B_preselect_and)) {
+      $Ndisc++; $Npredisc++;
+      next LINE;
+    }
   }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
 
   if ($B_pstore) {
-     if (do_cache) {
-       next;
-     }
+     next if do_cache;
   }
 
   my $nmatch = 0;
@@ -1873,11 +1874,12 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
 }
 
 print "$Nkeep\n" if $B_count;
+my $Npostdisc = $Ndisc - $Npredisc;
 
 if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 else           { print STDERR "-- $Nskip skipped lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
-print STDERR "-- $Npredisc rows have been discarded by pre-selection\n" if @::preselect && $L_verbose >= 0;
-print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if @::select && $L_verbose >= 0;
+print STDERR "-- $Npredisc/$Npostdisc rows have been pre/post-discarded\n" if @::preselect && $L_verbose >= 0;
+print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if (@::preselect || @::select) && $L_verbose >= 0;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
