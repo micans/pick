@@ -89,6 +89,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
 [Examples of computing new columns](#examples-of-computing-new-columns)  
+[Choosing/finding from pick's arsenal of operators](#choosing-and-finding-from picks-arsenal-of-operators)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Operators for testing and choice](#operators-for-testing-and-choice)  
@@ -486,6 +487,20 @@ If you just want columns `2` and `1` in that order it only needs
 pick -k 2 1 < data.txt
 ```
 
+## Choosing/finding from pick's arsenal of operators
+
+Pick has a lot of operators. You can list all of them (with a short description) by issuing
+```
+pick -l
+```
+At the end of that output pick gives a list of labels; currently these are
+`arithmetic bio bitop branch demo devour dictionary format input math output precision regex sam stack state string test`
+and `EXPERIMENTAL`. Most operators have been tagged by multiple labels.
+You can list all operators with a label with `pick -l TAG` (in fact, `TAG` is treated as a regular expression).
+Finally `--sam` makes available more operators that support querying SAM files. To list these use
+```
+pick --sam -l
+```
 
 ## Selecting and manipulating multiple columns with regular expressions, lists and ranges
 
