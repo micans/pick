@@ -1236,7 +1236,7 @@ sub compile_compute {
          push @expanded_compute, $comp;
       }
     }
-    my $prev_what = undef; # ugly/fixme; temporary to enforce pload compile-time check for column name presence.
+    my $prev_what = undef;    # ugly/fixme; temporary to enforce pload compile-time check for column name presence.
 
     for my $comp (@expanded_compute) {
       my ($type, $what) = @$comp;
@@ -1383,6 +1383,29 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
      for (keys %::pstore_init) { $::pstore_init{$_} = $PSTORE_DEFAULT unless defined($::pstore_init{$_}); }
      %::pstore_cache = %::pstore_init;
   }
+
+  if ($B_posthoc_names) {
+    die "New names [@::nameslist] and output offsets [@::output_os] differ in cardinality" if scalar @::nameslist != scalar @::output_os;
+    @::OUTPUT_HEADER = @::nameslist;
+  }
+  else {
+    @::OUTPUT_HEADER = map { $::HEADER[$_] } @::output_os;
+  }
+  if ($F_list) {
+    local $, = "\t";
+    if ($F_list & 1) { print map { $_ + 1        } @::output_os; print "\n"; }
+    if ($F_list & 2) { print map { $::HEADER[$_] } @::output_os; print "\n"; }
+print STDERR "-- List contains items from newly computed columns\n" if @::compute;
+    exit 0;
+  }
+  if ($B_print_header) {
+    local $, = "\t";
+    if ($index_demux < 0) { print @::OUTPUT_HEADER; print "\n" }
+    if ($fh_other) {
+       print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
+    }
+  }
+
 }
 
 
@@ -1773,7 +1796,7 @@ while (<>) {
        if (($F_ignore & 4) && /SN:(\S+)\s+LN:(\d+)/) {         # get sequence lengths from SAM header.
          $::dict{seqlen}{$1} = $2;
        }
-       next;
+       next LINE;
     }
   }
 
@@ -1794,29 +1817,8 @@ while (<>) {
 
     compile_command();
 
-    if ($B_posthoc_names) {
-      die "New names [@::nameslist] and output offsets [@::output_os] differ in cardinality" if scalar @::nameslist != scalar @::output_os;
-      @::OUTPUT_HEADER = @::nameslist;
-    }
-    else {
-      @::OUTPUT_HEADER = map { $::HEADER[$_] } @::output_os;
-    }
-    if ($F_list) {
-      local $, = "\t";
-      if ($F_list & 1) { print map { $_ + 1        } @::output_os; print "\n"; }
-      if ($F_list & 2) { print map { $::HEADER[$_] } @::output_os; print "\n"; }
-print STDERR "-- List contains items from newly computed columns\n" if @::compute;
-      exit 0;
-    }
-    if ($B_print_header) {
-      local $, = "\t";
-      if ($index_demux < 0) { print @::OUTPUT_HEADER; print "\n" }
-      if ($fh_other) {
-         print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
-      }
-    }
     $::Nrows++;                  # operators ,rowno and ,r0wno compensate if header is present.
-    next unless $B_headless;
+    next LINE unless $B_headless;
   }
   else {
     my $F = @F;
@@ -1843,7 +1845,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
   do_compute if @::compute;         # this pushes compute onto @F if present.
 
   if ($B_pstore) {
-     next if do_cache;
+     next LINE if do_cache;
   }
 
   my $nmatch = 0;
@@ -1858,7 +1860,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
     $Nprotect_discard++;
     print $fh_other $output if $fh_other;
     demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
-    next;
+    next LINE;
   }
   else {
      for my $sel (@::select) {
@@ -1870,14 +1872,14 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
        $Ndisc++;
        print $fh_other $output if $fh_other;
        demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
-       next;
+       next LINE;
      }
      else {
        $Nkeep++;
      }
   }
 
-  next if $B_count;      # $Nkeep is the only thing that interests us.
+  next LINE if $B_count;      # $Nkeep is the only thing that interests us.
 
   if ($index_demux >= 0) { demux_do_row($F[$index_demux], $output, 1); }
   else                   { print $output; }
