@@ -187,7 +187,7 @@ o+x-y                columns o+x to o+y
 ## Pick columns and filter or select rows
 
 
-- Strings starting with `@` or `@@` indicate a selection on one or two column values.
+- Strings starting with `@` or `@@` both indicate a selection on one or two column values.
 - `@` selections can operate on computed columns and computed values that are not output (see further below).
 - `@` selections are performed after all computations are finished and have access to all input columns and compute handles.
 - `@@` selections are peformed *before* any computation happens and have access to input columns only. A row that is
