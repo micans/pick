@@ -32,21 +32,21 @@ use IO::File;
 use POSIX;
 
 
-=for once
-    ____                                                                                       ____
-   | (  @@                                                                                   @@  ) |
+=for commanding tables
+    ___                                                                                         ___
+   )_(  @@                                                                                   @@  )_(
    |  \@@        Pick columns and select rows from tabular input, add derived columns         @@/  |
    |  @@                   Pick and select either by column name or index                      @@  |
    | @@ \                 Add new columns, update existing columns in-place                   / @@ |
-   | @@  )   Select with numerical and string comparison operators and regular expressions   (  @@ |
+   ( @@  )   Select with numerical and string comparison operators and regular expressions   (  @@ )
    |  @@/                Select on either existing columns or derived columns                 \@@  |
    |   @@             Compute derived columns with string and arithmetic operations           @@   |
-   |  / @@                             Add or change column names                            @@ \  |
-   |_(   @@                Select column names using regular expressions                    @@   )_|
-   |  \  @@           And more stuff that doesn't fit here. Read the README.md              @@  /  |
+   |__/ @@                             Add or change column names                            @@ \__|
+   )_(   @@                Select column names using regular expressions                    @@   )_(
+   |  \  @@           And-more-stuff-that-doesn't-fit-here. Read the README.md              @@  /  |
    |   \@@                          Requires tab separated input                             @@/   |
    |   @@  )                   See -H (EOH below) and -l (brief help)                      (  @@   |
-   |__@@ \/                                                                                 \/ @@__|
+   )__@@ \/_)                                                                             (_\/ @@__(
 
 =cut
 

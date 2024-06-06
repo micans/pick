@@ -8,6 +8,7 @@
      For /any/ etc we need abs(int()), so depending on perl needs deep dive.
 
   ?  val,_setta to set extra argument for /ep/ and /om/ with ,test
+     ^3^ep,setp
 
   ?  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
      --sum='list|regex' but again, datamash
