@@ -1890,8 +1890,8 @@ my $Npostdisc = $Ndisc - $Npredisc;
 
 if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 else           { print STDERR "-- $Nskip skipped lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
-print STDERR "-- $Npredisc/$Npostdisc rows have been pre/post-discarded\n" if @::preselect && $L_verbose >= 0;
-print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if (@::preselect || @::select) && $L_verbose >= 0;
+print STDERR "-- $Npredisc/$Npostdisc rows have been pre/post-discarded\n" if @::preselect && $L_verbose >= 1;
+print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if (@::preselect || @::select) && $L_verbose >= 1;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
 
