@@ -33,8 +33,8 @@ use POSIX;
 
 
 =for commanding tables
-   ____                                                                                         ____
-   )_(  @@                                                                                   @@  )_(
+    _______________________________________________________________________________________________
+   )_(  @@  )/                                                                           \(  @@  )_(
    |  \@@        Pick columns and select rows from tabular input, add derived columns         @@/  |
    |  @@                   Pick and select either by column name or index                      @@  |
    | @@ \                 Add new columns, update existing columns in-place                   / @@ |
@@ -44,9 +44,9 @@ use POSIX;
    |__/  @                             Add or change column names                            @  \__|
    )_(   @@                Select column names using regular expressions                    @@   )_(
    |  \  @@           And-more-stuff-that-doesn't-fit-here. Read the README.md              @@  /  |
-   |   \@@                          Requires tab separated input                             @@/   |
-   |   @@  )                   See -H (EOH below) and -l (brief help)                      (  @@   |
-   )__@@ \/_)                                                                             (_\/ @@__(
+   |   \@@                                                                                   @@/   |
+   |   @@  )                        Requires tab separated input                           (  @@   |
+   )__@@ \/_)__________        See -H (EOH below) and -l (brief help)           __________(_\/ @@__(
 
 =cut
 
