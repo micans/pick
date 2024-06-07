@@ -33,9 +33,12 @@ use POSIX;
 
 
 =for commanding tables
-    _______________________________________________________________________________________________
-   )_(  @@  )/                                                                           \(  @@  )_(
-   |  \@@        Pick columns and select rows from tabular input, add derived columns         @@/  |
+
+   _    __                                                                                   __    _
+  ( ,  /  \                                                                                 /  \  , )
+  \ __/_@__\_______________________________________________________________________________/__@_\__ /
+   )_(  @@  )                                                                            \(  @@  )_(
+   |  \@@  /     Pick columns and select rows from tabular input, add derived columns         @@/  |
    |  @@                   Pick and select either by column name or index                      @@  |
    | @@ \                 Add new columns, update existing columns in-place                   / @@ |
    ( @@  )   Select with numerical and string comparison operators and regular expressions   (  @@ )
@@ -43,10 +46,12 @@ use POSIX;
    |   /@             Compute derived columns with string and arithmetic operations           @\   |
    |__/  @                             Add or change column names                            @  \__|
    )_(   @@                Select column names using regular expressions                    @@   )_(
-   |  \  @@           And-more-stuff-that-doesn't-fit-here. Read the README.md              @@  /  |
+   |  \  @@           And-more-stuff-that-doesn't-fit-here. Read the README.md.             @@  /  |
    |   \@@                                                                                   @@/   |
    |   @@  )                        Requires tab separated input                           (  @@   |
    )__@@ \/_)__________        See -H (EOH below) and -l (brief help)           __________(_\/ @@__(
+  /  \ @  )                                                                                 (  @ /  \
+  (_' \__/                                                                                   \__/ '_)
 
 =cut
 
@@ -1545,7 +1550,7 @@ $::Groupi = 2;    # index within group.
     return "" unless $ls == $lt;
 
     my $pos = $ls;
-  
+
     while ($pos--) {
       my $sbase = chop $sref; my $tbase = chop $sqry;
       my $p = $posref + $pos + 1;
@@ -1662,7 +1667,7 @@ $::Groupi = 2;    # index within group.
     # fixme/todo: reasoned semantics for where insertions and soft clips are placed/counted.
     #
   sub ref_bounded_tally {
-    
+
     my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
     my $qry = $sam_cache[3];
     my $ref = $sam_ref_sequence;
