@@ -1392,7 +1392,7 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 -  `--idx-list`        Output list of selected indexes (on a single line).  
    `--name-list`       Output list of selected column name (on a single line).  
-   `--idx-map`         Output pairs of selected <index> <column name>, one per line.  
+   `--idx-map`         Output pairs of selected `<index> <column name>`, one per line.  
    Pick will exit after any of them is used.
 
 -  `--version` Output version number; outputs a corresponding git tag and date

@@ -1405,7 +1405,7 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
   }
   if ($F_list) {
     local $, = "\t";
-    if ($F_list & 4) { for (my $i=1;$i<=@::HEADER;$i++) { print "$i\t$::HEADER[$i-1]\n"; } }
+    if ($F_list & 4) { for (my $i=0;$i<@::output_os;$i++) { my $j = $::output_os[$i]+1; print "$j\t$::HEADER[$j-1]\n"; } }
     else {
        if ($F_list & 1) { print map { $_ + 1        } @::output_os; print "\n"; }
        if ($F_list & 2) { print map { $::HEADER[$_] } @::output_os; print "\n"; }
