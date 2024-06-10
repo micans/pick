@@ -569,8 +569,9 @@ my $help_options=q{Options:
 
                      Can be used to detect group boundaries in sorted data.
 
-  --idx-list         Output list of selected indexes       ⦊ can be combined, pick will exit after.
-  --name-list        Output list of selected column names  ⦊
+  --idx-list         Output list of selected indexes
+  --name-list        Output list of selected column names
+  --idx-map          Output the two lists above
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
@@ -739,7 +740,7 @@ sub dict_not_found {
    return $NF;
 }
 
-while (@::spec && $::spec[0] =~ /^-/) {
+while (@::spec && $::spec[0] =~ /^-/) {            # cline processing
 
   my $options = shift @::spec;
 
@@ -837,6 +838,9 @@ EOH
   }
 
   elsif ($options =~ s/^--//) {
+
+     last if $options eq '';
+
      if ($options =~ /^(k|f|fastq-|fasta-|table-)dict-(\w+)(\/(.*?))?=(.+)$/) {
        read_dict($2, $5, $1) if $1 eq 'f' || $1 eq 'k';
        read_fadict($2, $5, length($3) ? $4 : '__EXIT__') if $1 eq 'fasta-';
@@ -854,6 +858,9 @@ EOH
      }
      elsif ($options =~ /^(idx|name)-list$/) {
        $F_list |= $1 eq 'idx' ? 1 : 2;
+     }
+     elsif ($options =~ /^idx-map$/) {
+       $F_list |= 4;
      }
      elsif ($options =~ /^pstore(\/(.*?))?(\/(.*?))?$/) {
        $B_pstore = 1;
@@ -1398,8 +1405,11 @@ print STDERR "-- output columns @::output_os --\n" if $B_debug;
   }
   if ($F_list) {
     local $, = "\t";
-    if ($F_list & 1) { print map { $_ + 1        } @::output_os; print "\n"; }
-    if ($F_list & 2) { print map { $::HEADER[$_] } @::output_os; print "\n"; }
+    if ($F_list & 4) { for (my $i=1;$i<=@::HEADER;$i++) { print "$i\t$::HEADER[$i-1]\n"; } }
+    else {
+       if ($F_list & 1) { print map { $_ + 1        } @::output_os; print "\n"; }
+       if ($F_list & 2) { print map { $::HEADER[$_] } @::output_os; print "\n"; }
+    }
 print STDERR "-- List contains items from newly computed columns\n" if @::compute;
     exit 0;
   }
@@ -1916,4 +1926,8 @@ if ($N_expect >= 0 && $N_expect != $Nkeep) {
 }
 
 demux_tally() if $index_demux >= 0;
+
+if (@::preselect && !$B_select_and && !@::select) {
+   print STDERR "__ __ You've used -o with @@ preselection, did you want -s? __ __\n";
+}
 

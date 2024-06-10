@@ -198,7 +198,8 @@ o+x-y                columns o+x to o+y
   a selection is best placed next to the column name or computation to which it refers.
 
 Pick columns `foo` and `bar`, only taking rows where `tim` fields are larger than zero.
-multiple `@` selections are possible; default is `AND` of multiple clauses, use `-o` for `OR`.
+multiple `@` selections are possible; default is `AND` of multiple clauses, use `-o` for general selection `OR`
+and `-s` for pre-selection `OR`.
 `tim` can refer to a newly computed variable (see below).
 
 ```
@@ -1378,6 +1379,8 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
   
 -  `--inf=<str>` Set divide-by-zero result to `<str>`
   
+-  `--` This option is ignored, all further arguments are considered column names or regular expressions to retrieve column names.
+
 -  `--add-inames=<csv>`, `--inames=<csv>`  
     comma-separated values to use as column names instead of actual column names.
     The list must cover all columns in the input. Names that are used
@@ -1387,10 +1390,10 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 -  `--onames=<csv>` Override output column names to be taken from comma-separated values.
 
--  `--idx-list`        Output list of selected indexes.  
-   `--name-list`       Output list of selected column names.  
-   These can be combined. If combined, indexes will always come before names (transpose
-   the output to obtain an index-name mapping). Pick will exit if any of them is used.
+-  `--idx-list`        Output list of selected indexes (on a single line).  
+   `--name-list`       Output list of selected column name (on a single line).  
+   `--idx-map`         Output pairs of selected <index> <column name>, one per line.  
+   Pick will exit after any of them is used.
 
 -  `--version` Output version number; outputs a corresponding git tag and date
    tag. The aim is for this to be the git tag `x` of commit `x` that is prior
