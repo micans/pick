@@ -12,6 +12,8 @@ pick foo bar                      < data.txt       # pick columns with names foo
 
 pick -A @tim/gt/0 qat::foo^-:bar  < data.txt       # pick all columns where the tim value is positive, add new column qat
 
+pick -k 1 2 ::3:4,add             < data.txt       # no names, pick columns 1, 2 and the sum of 3 and 4
+
 pick -h ::end:start,sub^1,add     < data.txt       # compute new column with inclusive interval length, omit header
 
 pick -k ::3:4,sub^1,add           < data.txt       # as previous, in the absence of column headers
@@ -158,6 +160,8 @@ pick zut '^foo\d+$' '^bar_' < data.txt
 
 A pattern that contains any of `[({\*?^$`
 is assumed to be a regular expression rather than just a column name.
+This can be turned off (across all column names) with the `-F` (fixed) option. For per-column avoidance
+of interpretation as regular expression use url-encoding of its name.
 
 [Pick allows use of regular expressions selection in various places.](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Several pick column operators also use regular expressions.](#useful-regular-expression-features)
@@ -1352,7 +1356,8 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 -  `-h` do not print header
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.
--  `-o` OR multiple select criteria (default is AND)
+-  `-o` OR multiple **select** criteria. Applies only to **post**-computation select, default is AND.
+-  `-s` OR multiple **preselect** criteria. Applies only to **pre**-computation select, default is AND.
 -  `-x` take complement of selected input column(s) (works with `-i`)
 -  `-c` only output the count of rows that pass filtering
 -  `-i` in-place: `<HANDLE>::<COMPUTE>` replaces `<HANDLE>` if it exists
