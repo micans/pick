@@ -34,15 +34,15 @@ use POSIX;
 
 =for commanding tables
 
-   _    __                                                                                   __    _
-  ( ,  /  \                                                                                 /  \  , )
+  __    __                                                                                   __    __
+ ( ,'  /  \                                                                                 /  \  ', )
   \ __/_@__\_______________________________________________________________________________/__@_\__ /
-   )_(  @@  )                                                                            \(  @@  )_(
-   |  \@@  /     Pick columns and select rows from tabular input, add derived columns         @@/  |
-   |  @@                   Pick and select either by column name or index                      @@  |
-   | @@ \                 Add new columns, update existing columns in-place                   / @@ |
+   )_(  @@  )/                                                                           \(  @@  )_(
+   |  \@@   /    Pick columns and select rows from tabular input, add derived columns     \   @@/  |
+   |  @@   o               Pick and select either by column name or index                  o   @@  |
+   | @@ \ /               Add new columns, update existing columns in-place                 \ / @@ |
    ( @@  )   Select with numerical and string comparison operators and regular expressions   (  @@ )
-   |  @ /                Select on either existing columns or derived columns                 \ @  |
+   |  @@/                Select on either existing columns or derived columns                 \@@  |
    |   /@             Compute derived columns with string and arithmetic operations           @\   |
    |__/  @                             Add or change column names                            @  \__|
    )_(   @@                Select column names using regular expressions                    @@   )_(
@@ -50,8 +50,8 @@ use POSIX;
    |   \@@                                                                                   @@/   |
    |   @@  )                        Requires tab separated input                           (  @@   |
    )__@@ \/_)__________        See -H (EOH below) and -l (brief help)           __________(_\/ @@__(
-  /  \ @  )                                                                                 (  @ /  \
-  (_' \__/                                                                                   \__/ '_)
+  /_ \ @  )                                                                                 (  @ / _\
+ (__, \__/                                                                                   \__/ ,__)
 
 =cut
 
