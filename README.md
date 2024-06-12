@@ -38,7 +38,7 @@ Output can be demuxed into different files and dictionaries can be loaded to map
 It is **lightweight** as it processes data per-line without the need to load the table into memory.
 It is **expressive** in that short command lines are sufficient to get at the data.
 
-Pick works very well as a pre-filter to [`datamash`](https://www.gnu.org/software/datamash/ -
+Pick works very well as a pre-filter to [datamash](https://www.gnu.org/software/datamash/) -
 a tool that can compute statistics over columns, optionally grouped over a second (column) variable.
 
 Additionally `pick` has **extensive support for SAM format** such as printing alignments and
@@ -504,7 +504,7 @@ and `EXPERIMENTAL`. Most operators have been tagged by multiple labels.
 You can list all operators with a label with `pick -l TAG` (in fact, `TAG` is treated as a regular expression).
 Finally `--sam` makes available more operators that support querying SAM files. To list these use
 ```
-pick --sam -l
+pick --sam -l sam
 ```
 
 ## Selecting and manipulating multiple columns with regular expressions, lists and ranges

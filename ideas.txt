@@ -1,4 +1,7 @@
 
+  /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
+     during compilation perhaps use hashes to increase legibility.
+
   ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/ /sgn1eq/ /sgn1ne/
      /epd/ /omd/
 
@@ -8,11 +11,8 @@
   ?  val,_setta to set extra argument for /ep/ and /om/ with ,test
      ^3^ep,setp
 
-  ?  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
+  x  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
      --sum='list|regex' but again, datamash
-
-  /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
-     during compilation perhaps use hashes to increase legibility.
 
   ?  protect against log(-1) etc
   -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.
