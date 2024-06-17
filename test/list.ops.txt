@@ -1,0 +1,1112 @@
+
+
+   B::Deparse output for all pick operators (24-169)
+
+
+F0          -           F[0]                First input column [demo]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Flink->[0];
+}
+
+
+_sam_rbt    x y         -                   Put read tallies in _rbt_[MIDNS] registers (region-bound-tally) [EXPERIMENTAL/sam]
+{
+    use warnings;
+    use strict;
+    stacky('_sam_rbt', 2);
+    &ref_bounded_tally($main::STACK[-2], $main::STACK[-1]);
+    $#main::STACK -= 2;
+}
+
+
+_strpair    x y         pair(x,y)           Pairwise character identity [string/EXPERIMENTAL]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = strpair($main::STACK[-2], $main::STACK[-1]);
+}
+
+
+abs         x           abs(x)              Absolute value of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = abs $main::STACK[-1];
+}
+
+
+add         x y         x+y                 Add x and y, sum, addition [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] += $main::STACK[-1];
+}
+
+
+addall      *           sum(Stack)          Sum of all entries in stack [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    my $x = 0;
+    $x += $_ foreach (@main::STACK);
+    @main::STACK = $x;
+}
+
+
+aln_aln     -           aln_aln             alignment string between reference and query [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_aln_strings(2);
+}
+
+
+aln_qry     -           aln_qry             alignment string for query [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_aln_strings(3);
+}
+
+
+aln_ref     -           aln_ref             alignment string for reference [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_aln_strings(1);
+}
+
+
+alnedit     -           alnedit             Edit distance excluding clipping [sam]
+{
+    use warnings;
+    use strict;
+    my $nm = $main::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0;
+    push @main::STACK, $nm;
+}
+
+
+alnmatch    -           alnmatch            Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, acigar($main::Flink->[5], 'M=X', 'sum');
+}
+
+
+alnmatchx   -           alnmatchx           Number of base mismatches [sam]
+{
+    use warnings;
+    use strict;
+    my $nm = $main::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0;
+    push @main::STACK, $nm - acigar($main::Flink->[5], 'DI', 'sum');
+}
+
+
+alnposx     idsmn       alnposx             Mismatch positions; indel sequences reported up to length idsmn [sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = &getalnposx($main::STACK[-1]);
+}
+
+
+and         x y         x and y             Bitwise and between x and y [bitop]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] &= int $main::STACK[-1];
+}
+
+
+binto       x           x'                  Read binary representation x [input/format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = oct "0b$main::STACK[-1]";
+}
+
+
+cat         x y         xy                  Concatenation of x and y [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] .= $main::STACK[-1];
+}
+
+
+catall      *           Stack-joined        Stringified stack [string/devour]
+{
+    use warnings;
+    use strict;
+    my $x = join('', @main::STACK);
+    @main::STACK = $x;
+}
+
+
+ceil        x           ceil(x)             The ceil of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = ceil($main::STACK[-1]);
+}
+
+
+cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = acigar($main::STACK[-2], $main::STACK[-1], 'count');
+}
+
+
+cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = acigar($main::STACK[-2], $main::STACK[-1], 'max');
+}
+
+
+cgqrycov    c           qrycov              Count of query bases covered by cigar string c (MI=X events) [string/sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = acigar($main::STACK[-1], 'MI=X', 'sum');
+}
+
+
+cgqryend    c           qryend              Last base considered aligned in query for cigar string c [string/sam]
+{
+    use warnings;
+    use strict;
+    my $e = acigar($main::STACK[-1], 'MISH=X', 'sum');
+    $e -= $1 if $main::STACK[-1] =~ /(\d+)[SH]$/;
+    $main::STACK[-1] = $e;
+}
+
+
+cgqrylen    c           qrylen              Length of query (MIS=X events) in cigar string c [string/sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = acigar($main::STACK[-1], 'MISH=X', 'sum');
+}
+
+
+cgqrystart  c           qrystart            First base considered aligned in query for cigar string c [string/sam]
+{
+    use warnings;
+    use strict;
+    my $s = 1;
+    $s += $1 if $main::STACK[-1] =~ /^(\d+)[SH]/;
+    $main::STACK[-1] = $s;
+}
+
+
+cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = acigar($main::STACK[-1], 'MDN=X', 'sum');
+}
+
+
+cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = acigar($main::STACK[-2], $main::STACK[-1], 'sum');
+}
+
+
+cos         x           cos(x)              Cosine of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = cos $main::STACK[-1];
+}
+
+
+dd          x N         x'                  Floating point x printed with N decimal digits [math/format/precision]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = sprintf('%.*f', $main::STACK[-1], $main::STACK[-2]);
+}
+
+
+decr        x           x--                 x decremented by one [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1]--;
+}
+
+
+del         x p         x =~ s/p//          Delete pattern p in x [string/regex]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] =~ s/$main::STACK[-1]//;
+}
+
+
+delg        x p         x =~ s/p//          Globally delete pattern p in x [string/regex]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] =~ s/$main::STACK[-1]//g;
+}
+
+
+div         x y         x/y                 Division, fraction, (cf -P and PICK_DIV_INF) [arithmetic]
+{
+    use warnings;
+    use strict;
+    my($x, $y) = @main::STACK[-2, -1];
+    $main::STACK[-2] = !$B_protect || $y ? $x / $y : (++$Nprotect, $PNAN{'PICK_DIV_INF'});
+}
+
+
+dnagc       x N         gc(x)               Percentage GC content of x with N decimal digits [bio]
+{
+    use warnings;
+    use strict;
+    my $gc = sprintf('%.*f', $main::STACK[-1], 100 * $main::STACK[-2] =~ tr/CGcg// / length($main::STACK[-2]));
+    $main::STACK[-2] = $gc;
+}
+
+
+dnatl       x f         x'                  DNA sequence x translated in frame f [input/format/bio]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = dna_tl($main::STACK[-2], $main::STACK[-1]);
+}
+
+
+dup         x           x x                 Duplicate top entry x [stack]
+{
+    use warnings;
+    use strict;
+    stacky('dup', 1);
+    push @main::STACK, $main::STACK[-1];
+}
+
+
+ed          x p s       x =~ s/p/s/         Substitute pattern p by s in x [string/regex]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-3] =~ s/$main::STACK[-2]/$main::STACK[-1]/;
+}
+
+
+edg         x p s       x =~ s/p/s/g        Globally substitute pattern p by s in x [string/regex]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-3] =~ s/$main::STACK[-2]/$main::STACK[-1]/g;
+}
+
+
+exp         x           e**x                Exponential function applied to x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = exp $main::STACK[-1];
+}
+
+
+exp10       x           10^x                10 to the power of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = 10 ** $main::STACK[-1];
+}
+
+
+fasta       i s         fasta format        ID and sequence in FASTA format [format/bio]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = ">$main::STACK[-2]\n$main::STACK[-1]";
+}
+
+
+fastq       i s         fastq format        ID and sequence in FASTQ format [format/bio]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = "\@$main::STACK[-2]\n$main::STACK[-1]\n+\n" . 'Z' x length($main::STACK[-1]);
+}
+
+
+fetch       n           reg(n)              retrieve value in register with name n [state/stack]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = $main::LINECACHE{'__REG__'}{$main::STACK[-1]};
+}
+
+
+floor       x           floor(x)            The floor of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = floor($main::STACK[-1]);
+}
+
+
+frac        x y N       x/y                 Division, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+{
+    use warnings;
+    use strict;
+    my($x, $y, $n) = @main::STACK[-3, -2, -1];
+    $main::STACK[-3] = !$B_protect || $y + 0 ? sprintf('%.*f', $n, $x / $y) : (++$Nprotect, $PNAN{'PICK_DIV_INF'});
+}
+
+
+get         x p         p-match-of-x        If x matches pattern p take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
+{
+    use warnings;
+    use strict;
+    my $item = $main::STACK[-2] =~ qr/$main::STACK[-1]/ ? defined $1 ? $1 : $& : '';
+    $main::STACK[-2] = $item;
+}
+
+
+gmeanall    *           gmean(Stack)        Geometric mean of all entries in stack, multiplication [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    my $x = 1;
+    $x *= abs $_ foreach (@main::STACK);
+    @main::STACK = @main::STACK ? $x ** (1 / @main::STACK) : 1;
+}
+
+
+groupi      -           x                   Push within-group offset x onto stack [input]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Groupi;
+}
+
+
+groupno     -           x                   Push group number x onto stack [input]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Ngroup;
+}
+
+
+hexto       x           x'                  Read hex representation x [input/format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = hex $main::STACK[-1];
+}
+
+
+hmeanall    *           hmean(Stack)        Harmonic mean of all entries in stack [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    @main::STACK = hmeanall();
+}
+
+
+idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
+{
+    use warnings;
+    use strict;
+    my($x, $y) = @main::STACK[-2, -1];
+    $main::STACK[-2] = !$B_protect || $y ? ($x - $x % $y) / $y : (++$Nprotect, $PNAN{'PICK_DIV_INF'});
+}
+
+
+ifelse      B x y       x or y              If B put x else put y [branch/test]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-3] = do_ifelse(@main::STACK[-3, -2, -1]);
+}
+
+
+incr        x           x++                 x incremented by one [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1]++;
+}
+
+
+int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = int $main::STACK[-1];
+}
+
+
+ipow        x y         x**y                x raised to power y ensuring integer artithmetic [arithmetic]
+{
+    use warnings;
+    use strict;
+    my $y = $main::STACK[-2];
+    $main::STACK[-2] *= $y while --$main::STACK[-1] > 0;
+}
+
+
+joinall     * s         Stack-joined-by-s   Stringified stack with s as separator [string/devour]
+{
+    use warnings;
+    use strict;
+    my $j = pop @main::STACK;
+    my $x = join($j, @main::STACK);
+    @main::STACK = $x;
+}
+
+
+lc          x           lc(x)               Lower case of x [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = lc $main::STACK[-1];
+}
+
+
+len         x           len(x)              Length of string x [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = length $main::STACK[-1];
+}
+
+
+lineno      -           x                   Push file line number x onto stack [input]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $.;
+}
+
+
+log         x           log(x)              Natural logarithm of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = !$B_protect || $main::STACK[-1] ? log $main::STACK[-1] : (++$Nprotect, $PNAN{'PICK_LOG_INF'});
+}
+
+
+log10       x           log10(x)            Logarithm of x in base 10 [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = !$B_protect || $main::STACK[-1] + 0 ? log($main::STACK[-1]) / 2.3025850929940459 : (++$Nprotect, $PNAN{'PICK_LOG10_INF'});
+}
+
+
+log2        x           log2(x)             Logarithm of x in base 2 [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = !$B_protect || $main::STACK[-1] + 0 ? log($main::STACK[-1]) / 0.69314718055994529 : (++$Nprotect, $PNAN{'PICK_LOG2_INF'});
+}
+
+
+lsh         x y         x << y              Shift x left by y [bitop]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] <<= int $main::STACK[-1];
+}
+
+
+map         x D         map-of-x            Use map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D= [string/dictionary]
+{
+    use warnings;
+    use strict;
+    my($x, $d) = @main::STACK[-2, -1];
+    my $dict = $main::dict{$d};
+    my $m = defined $dict ? $dict->{$x} : undef;
+    $main::STACK[-2] = defined $m ? $m : dict_not_found($d, $main::STACK[-2]);
+}
+
+
+max         x y         max(x,y)            Maximum of x and y [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = $main::STACK[-1] if $main::STACK[-1] > $main::STACK[-2];
+}
+
+
+maxall      *           max(Stack)          Max over all entries in stack [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    my $x = -9007199254740991 * 2**971;
+    foreach $_ (@main::STACK) {
+        $x = $_ if $_ > $x;
+    }
+    @main::STACK = $x;
+}
+
+
+md5         x           md5(x)              MD5 sum of x [string/format/input/output]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = md5_hex($main::STACK[-1]);
+}
+
+
+meanall     *           mean(Stack)         Mean of all entries in stack [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    my $x = 0;
+    $x += $_ foreach (@main::STACK);
+    @main::STACK = @main::STACK ? $x / @main::STACK : 0;
+}
+
+
+min         x y         min(x,y)            Minimum of x and y [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = $main::STACK[-1] if $main::STACK[-1] < $main::STACK[-2];
+}
+
+
+minall      *           min(Stack)          Min over all entries in stack [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    my $x = 9007199254740991 * 2**971;
+    foreach $_ (@main::STACK) {
+        $x = $_ if $_ < $x;
+    }
+    @main::STACK = $x;
+}
+
+
+mod         x y         x mod y             x modulo y, remainder [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] %= $main::STACK[-1];
+}
+
+
+mul         x y         x*y                 Multiply x and y, multiplication, product [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] *= $main::STACK[-1];
+}
+
+
+mulall      *           product(Stack)      Product of all entries in stack, multiplication [arithmetic/devour]
+{
+    use warnings;
+    use strict;
+    my $x = 1;
+    $x *= $_ foreach (@main::STACK);
+    @main::STACK = $x;
+}
+
+
+neg         x           -x                  The sign-reversed value of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] *= -1;
+}
+
+
+npat        x p         nc                  Count occurrences of pattern p in x [string/regex]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = () = $main::STACK[-2] =~ /$main::STACK[-1]/g;
+}
+
+
+octto       x           x'                  Read octal representation x [input/format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = oct $main::STACK[-1];
+}
+
+
+or          x y         x or y              Bitwise or between x and y [bitop]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] |= int $main::STACK[-1];
+}
+
+
+pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+{
+    use warnings;
+    use strict;
+    my($x, $y, $n) = @main::STACK[-3, -2, -1];
+    $main::STACK[-3] = !$B_protect || $y + 0 ? sprintf('%.*f', $n, $x * 100 / $y) : (++$Nprotect, $PNAN{'PICK_DIV_INF'});
+}
+
+
+pload       c           prevrow[c]          Field of column c in the previous row [state/stack]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = $main::pstore_cache{$main::STACK[-1]};
+}
+
+
+pml         x y N       pct(x/y)            Promille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
+{
+    use warnings;
+    use strict;
+    my($x, $y, $n) = @main::STACK[-3, -2, -1];
+    $main::STACK[-3] = !$B_protect || $y + 0 ? sprintf('%.*f', $n, $x * 1000 / $y) : (++$Nprotect, $PNAN{'PICK_DIV_INF'});
+}
+
+
+pop         x           -                   Remove top entry x from stack [stack]
+{
+    use warnings;
+    use strict;
+    stacky('pop', 1);
+    pop @main::STACK;
+}
+
+
+pow         x y         x**y                x raised to power y [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] **= $main::STACK[-1];
+}
+
+
+ppl         x N         x'                  x blank-padded to width of N [output/string/format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = sprintf('%-*s', $main::STACK[-1], $main::STACK[-2]);
+}
+
+
+ppr         x N         x'                  x blank-padded to width of N [output/string/format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = sprintf('%*s', $main::STACK[-1], $main::STACK[-2]);
+}
+
+
+qry_matched -           qry_matched         matched query sequence in reference orientation [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_qry_part(1);
+}
+
+
+qry_seq     -           qry_seq             query sequence in reference orientation [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_qry_part(-1);
+}
+
+
+qry_trail3p -           qry_trail3p         3' unaligned query sequence in reference orientation [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_qry_part(2);
+}
+
+
+qry_trail5p -           qry_trail5p         5' unaligned query sequence in reference orientation [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &get_qry_part(0);
+}
+
+
+qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
+{
+    use warnings;
+    use strict;
+    my $n = 0;
+    $n = $1 if $main::Flink->[5] =~ /^(\d+)[SH]/;
+    push @main::STACK, $n;
+}
+
+
+qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]
+{
+    use warnings;
+    use strict;
+    my $n = 0;
+    $n = $1 if $main::Flink->[5] =~ /(\d+)[SH]$/;
+    push @main::STACK, $n;
+}
+
+
+qrycov      -           qrycov              Span of query covered by alignment [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, acigar($main::Flink->[5], 'MI=X', 'sum');
+}
+
+
+qryend      -           qryend              Last base in query covered by alignment [sam]
+{
+    use warnings;
+    use strict;
+    my $e = acigar($main::Flink->[5], 'MISH=X', 'sum');
+    $e -= $1 if $main::Flink->[5] =~ /(\d+)[SH]$/;
+    push @main::STACK, $e;
+}
+
+
+qrylen      -           qrylen              Length of query sequence [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, acigar($main::Flink->[5], 'MISH=X', 'sum');
+}
+
+
+qrystart    -           qrystart            Start of alignment in query [sam]
+{
+    use warnings;
+    use strict;
+    my $s = 1;
+    $s += $1 if $main::Flink->[5] =~ /^(\d+)[SH]/;
+    push @main::STACK, $s;
+}
+
+
+r0wno       -           x                   Push current table (start zero) row number x onto stack [input]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Nrows - 2 + $B_headless;
+}
+
+
+rand        x           rand(x)             Random real in range [0, x) [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = rand $main::STACK[-1];
+}
+
+
+rc          x           rc(x)               Reverse complement [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] =~ tr/ACGTUacgtu/TGCAAtgca/;
+    $main::STACK[-1] = reverse($main::STACK[-1]);
+}
+
+
+refclipl    -           refclipl            Number of 5p trailing reference bases [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Flink->[3] - 1;
+}
+
+
+refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &sam_reflen - $main::Flink->[3] + 1 - acigar($main::Flink->[5], 'MDN=X', 'sum');
+}
+
+
+refcov      -           refcov              Span of reference covered by alignment [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, acigar($main::Flink->[5], 'MDN=X', 'sum');
+}
+
+
+refcovsplice-           refcov              Amount of reference covered by alignment [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, acigar($main::Flink->[5], 'MD=X', 'sum');
+}
+
+
+refend      -           refend              Last base in reference covered by alignment [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Flink->[3] + acigar($main::Flink->[5], 'MDN=X', 'sum') - 1;
+}
+
+
+reflen      -           reflen              Length of reference sequence (requires samtools view -h) [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, &sam_reflen;
+}
+
+
+refstart    -           refstart            Field 4 from sam format [sam]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Flink->[3];
+}
+
+
+rev         x           rev(x)              String reverse of x [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = reverse($main::STACK[-1]);
+}
+
+
+rot13       x           rot13(x)            Rot13 encoding of x [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] =~ tr/A-Za-z/N-ZA-Mn-za-m/;
+}
+
+
+round       x           round(x)            The integer nearest to x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = sprintf('%.0f', $main::STACK[-1]);
+}
+
+
+rowno       -           x                   Push current table (start one) row number x onto stack [input]
+{
+    use warnings;
+    use strict;
+    push @main::STACK, $main::Nrows - 1 + $B_headless;
+}
+
+
+rsh         x y         x >> y              Shift x right by y [bitop]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] >>= int $main::STACK[-1];
+}
+
+
+save        x n         x                   store x in register with name n [state/stack]
+{
+    use warnings;
+    use strict;
+    $main::LINECACHE{'__REG__'}{$main::STACK[-1]} = $main::STACK[-2];
+}
+
+
+sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = $main::STACK[-1] > 0 ? 1 : ($main::STACK[-1] < 0 ? -1 : 0);
+}
+
+
+sin         x           sin(x)              Sine of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = sin $main::STACK[-1];
+}
+
+
+sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = sprintf('%.*e', $main::STACK[-1], $main::STACK[-2]);
+}
+
+
+sq          x           x^2                 Square of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = $main::STACK[-1] ** 2;
+}
+
+
+sqrt        x           sqrt(x)             Square root of x [math]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = sqrt $main::STACK[-1];
+}
+
+
+sub         x y         x-y                 Subtract y from x, subtraction [arithmetic]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] -= $main::STACK[-1];
+}
+
+
+substr      x i k       x[i:i+k-1]          Substring of x starting at i (zero-based) of length k [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-3] = substr($main::STACK[-3], $main::STACK[-2], $main::STACK[-1]);
+}
+
+
+tan         x           tan(x)              Tangens of x [math]
+{
+    use warnings;
+    use strict;
+    my $c = cos $main::STACK[-1];
+    $main::STACK[-1] = !$B_protect || $c ? sin($main::STACK[-1]) / $c : (++$Nprotect, $PNAN{'PICK_TAN_INF'});
+}
+
+
+test        x y T       B                   test T applied to x y [branch/test]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-3] = do_test(@main::STACK[-3, -2, -1]);
+}
+
+
+tmap        x D c       map-of-x            Use map of x in dictionary D for column c (if found; cf --table-dict-D= [string/dictionary]
+{
+    use warnings;
+    use strict;
+    my($x, $d, $k) = @main::STACK[-3, -2, -1];
+    my $dict = $main::dict{$d}{$k};
+    my $m = defined $dict ? $dict->{$x} : undef;
+    $main::STACK[-3] = defined $m ? $m : dict_not_found($d, $main::STACK[-3]);
+}
+
+
+tobin       x           x'                  Binary representation of x [format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = sprintf('%b', $main::STACK[-1]);
+}
+
+
+todna       x           x'                  Preserve case, translate uU to tT, nN for non-DNA [format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] =~ tr/Uu/Tt/;
+    $main::STACK[-1] =~ tr/bd-fh-mo-su-z/n/;
+    $main::STACK[-1] =~ tr/BD-FH-MO-SU-Z/N/;
+    $main::STACK[-1] =~ tr/ACGNTacgnt/N/c;
+}
+
+
+tohex       x           x'                  Hex representation of x [format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = sprintf('%x', $main::STACK[-1]);
+}
+
+
+tooct       x           x'                  Octal representation of x [format]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = sprintf('%o', $main::STACK[-1]);
+}
+
+
+uc          x           uc(x)               Upper case of x [string]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = uc $main::STACK[-1];
+}
+
+
+uie         x y         x-or-y              Use x if not empty, otherwise use y [string/branch/test]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] = $main::STACK[-1] unless length $main::STACK[-2];
+}
+
+
+urldc       x           urldc(x)            Url decoding of x [string/format/input/output]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = urldecode($main::STACK[-1]);
+}
+
+
+urlec       x           urlec(x)            Url encoding of x [string/format/input/output]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-1] = urlencode($main::STACK[-1]);
+}
+
+
+xch         x y         y x                 Exchange x and y [stack]
+{
+    use warnings;
+    use strict;
+    stacky('xch', 2);
+    ($main::STACK[-2], $main::STACK[-1]) = ($main::STACK[-1], $main::STACK[-2]);
+}
+
+
+xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
+{
+    use warnings;
+    use strict;
+    $main::STACK[-2] ^= int $main::STACK[-1];
+}
+
+
+zp          x N         x'                  x left zero-padded to width of N [output/string/format]
+{
+    use warnings;
+    use strict;
+    my $l = $main::STACK[-1] - length($main::STACK[-2]);
+    $l = 0 if $l < 0;
+    $main::STACK[-2] = '0' x $l . $main::STACK[-2];
+}
+
+

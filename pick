@@ -30,6 +30,7 @@ use Scalar::Util qw(looks_like_number);
 use List::Util qw(min max);
 use IO::File;
 use POSIX;
+# use B::Deparse ();      # seems slow to load. I use it incidentally to pretty-print all code refs.
 
 
 =for commanding tables
@@ -67,20 +68,10 @@ sub helphelp {
 
 helphelp(0) unless @::spec;
 
-@::output_nm  = ();         # names - (header|1..N) + compute handles
-@::output_os  = ();         # names translated to offsets in @F (field array)
-@::compute = ();            # derived column specifications
-@::select  = ();            # row select specifications
-@::preselect  = ();         # row select specifications
-%::handle_map = ();         # map column names to offsets
-%::plain_handle = ();       # handles without any compute following.
-@::INPUT_HEADER = ();       # input header. @::HEADER exists, is intermediate and can have repeats; @::OUTPUT_HEADER is output header.
-
 my $PAT_PURGE      = '';    # ::/my style is somewhat intractable. :: tend to be thing accessed in subroutines.
 my $PAT_PASS       = '';    # PURGE is removed before processing, PASS is passed through before processing.
 my $INSERT_OFFSET  = undef; # with -A, where to put extra columns (by default at the end).
 my $OFFSET_OMEGA   = -1;    # with -O<N>, accept overflow ragged columns from position <N> onwards.
-my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values. Bit flag variable.
 my $sam_refdictname   = "";    # The first dictionary specified. Either with --sam/fname or --fasta-dict=fname
 
 my $B_print_header = 1;     # B_oolean. Also accessed in subroutines.
@@ -109,12 +100,14 @@ my $N_expect       = -1;    # If set, exit with error if number of non-header ro
 my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
 my $B_groupfirst   = 0;     # Whether to cache the first row of a group for all subsequent group elements.
 
+$::EPSILON         = 0.0001;     # obvs the best default epsilon - 10,000 is a myriad.
+$::OOM             = 2;          # order of magnitude. Maybe sqrt(2) makes more sense.
+
 my $fh_other       = undef;
 my $name_demux     = undef;
 my $index_demux    = -1;
 
-$::EPSILON         = 0.0001;     # obvs the best default epsilon - 10,000 is a myriad.
-$::OOM             = 2;          # order of magnitude. Maybe sqrt(2) makes more sense.
+my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values. Bit flag variable.
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -759,19 +752,22 @@ EOH
     }
     exit 0;
   }
-  elsif ($options eq '-l') {
+  elsif ($options =~ /^\-(l+)$/) {
+    my $elliness = length($1);
     my $filter = @::spec ? $::spec[0] : '.';
     $filter =~ s/,/|/g;
     print "\nSelect comparison operators:\n  @opsf\n\n";
     exit 0 if $filter eq 'selection';
     printf "%-12s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
     print  '-' x 80 . "\n";
+    # my $deparse = B::Deparse->new;
     for my $op (sort keys %cp_opdefinitions) {
       my $opdef = $cp_opdefinitions{$op};
       my @help = split "\t", $opdef->[2];
       die "Error in description @help\n" unless @help == 4;
       next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
       printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
+      # print $deparse->coderef2text($opdef->[1]), "\n\n\n" if $elliness > 1;
     }
     if ($filter eq 'regex') {
       print "\n$regexpointers";
@@ -1138,6 +1134,17 @@ print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_
 }
 
 
+@::output_nm  = ();         # names - (header|1..N) + compute handles
+%::output_nm_cmp_output = (); # names introduced for output using compute
+@::output_os  = ();         # names translated to offsets in @F (field array)
+@::compute = ();            # derived column specifications
+@::select  = ();            # row select specifications
+@::preselect  = ();         # row select specifications
+%::handle_map = ();         # map column names to offsets
+%::plain_handle = ();       # handles without any compute following.
+@::INPUT_HEADER = ();       # input header. @::HEADER exists, is intermediate and can have repeats; @::OUTPUT_HEADER is output header.
+
+
 sub compile_select {
 
   my ($caller, $select, $limit_handle) = @_;
@@ -1217,6 +1224,7 @@ print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] ar
         push @::compute, [$m->{nameout}, $parsed_compute];
         push @::output_nm, $m->{namein} if $duplicate;            # fixme consider // duplicate combined with := assignment
         push @::output_nm, $m->{nameout} if $type eq '::';        # ':=' is assignment without output.
+        $::output_nm_cmp_output{$m->{nameout}}++ if $type eq '::';
       }
     }
     elsif ($B_headless && parse_range($spec)) {
@@ -1315,8 +1323,9 @@ local $" = ','; print STDERR "-- output column names as specified: [@::output_nm
 
   if ($B_excise || $B_printall) {
     my @new_names = grep { !defined($in_input_header{$_}) } @::output_nm;
+print STDERR "-- new column names before -x/-A treatment: @new_names\n" if $B_debug;
     if ($B_excise) {
-       @::output_nm = grep { !defined($::plain_handle{$_}) } @::HEADER;
+       @::output_nm = grep { !defined($::plain_handle{$_}) || defined($::output_nm_cmp_output{$_}) } @::INPUT_HEADER;
     }
     else {
        @::output_nm = @::HEADER;
@@ -1329,7 +1338,7 @@ local $" = ','; print STDERR "-- output column names as specified: [@::output_nm
     else {
        push @::output_nm, @new_names;
     }
-print STDERR "-- output column names after -i/-A treatment: @::output_nm\n" if $B_debug && ($B_excise || $B_printall);
+print STDERR "-- output column names after -x/-A treatment: @::output_nm\n" if $B_debug;
   }
 
   { my %names = (); my $i = 1;
