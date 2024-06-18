@@ -285,6 +285,10 @@ my %cp_opdefinitions =
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
+     head      => [ 2, sub { $::STACK[-2] =  substr($::STACK[-2], 0, $::STACK[-1]) }, "x k\tx[0:i-1]\tInitial part of string x, of length k\tstring" ],
+     tail      => [ 2, sub { $::STACK[-2] =  substr($::STACK[-2], length($::STACK[-2])-$::STACK[-1]) },   "x k\tx[#x-k:#x-1]\tTrailing part of string x, of length k\tstring" ],
+     skip      => [ 2, sub { $::STACK[-2] =  substr($::STACK[-2], $::STACK[-1]) },    "x k\tx[k:#x-1]\tTrailing part of string x, skipping first k\tstring" ],
+     shed      => [ 2, sub { $::STACK[-2] =  substr($::STACK[-2], 0, length($::STACK[-2]) - $::STACK[-1]) },"x k\tx[0:#x-k-1]\tLeading part of string x, shedding last k\tstring" ],
      pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
      pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
      frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
