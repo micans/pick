@@ -369,7 +369,7 @@ my %cp_samdefs = (
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
      alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
-     sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in _rbt_[MIDNS] and _rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
+     sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
 
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
@@ -1758,14 +1758,14 @@ $::Groupi = 2;    # index within group.
       $qry_x_pos = 0 if $qry_x_pos < 0;
       $qry_y_pos = $qlen - 1;               # inclusive.
     }
-    $::LINECACHE{__REG__}{_rbt_M} = $M;
-    $::LINECACHE{__REG__}{_rbt_D} = $D;
-    $::LINECACHE{__REG__}{_rbt_E} = $E;
-    $::LINECACHE{__REG__}{_rbt_I} = $I;
-    $::LINECACHE{__REG__}{_rbt_S} = $S;
-    $::LINECACHE{__REG__}{_rbt_qry_x} = $qry_x_pos;
-    $::LINECACHE{__REG__}{_rbt_qry_y} = $qry_y_pos;
-    $::LINECACHE{__REG__}{_rbt_qry_xylen} = $qry_y_pos - $qry_x_pos + 1;
+    $::LINECACHE{__REG__}{rbt_M} = $M;
+    $::LINECACHE{__REG__}{rbt_D} = $D;
+    $::LINECACHE{__REG__}{rbt_E} = $E;
+    $::LINECACHE{__REG__}{rbt_I} = $I;
+    $::LINECACHE{__REG__}{rbt_S} = $S;
+    $::LINECACHE{__REG__}{rbt_qry_x} = $qry_x_pos;
+    $::LINECACHE{__REG__}{rbt_qry_y} = $qry_y_pos;
+    $::LINECACHE{__REG__}{rbt_qry_xylen} = $qry_y_pos - $qry_x_pos + 1;
   }
 
   sub getalnposx {
