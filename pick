@@ -293,7 +293,7 @@ my %cp_opdefinitions =
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
-     head      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:i-1]\tInitial part of string x, of length k\tstring" ],
+     head      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:k-1]\tInitial part of string x, of length k\tstring" ],
      tail      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], length($::STACK[-2]) - $n) },  "x k\tx[#x-k:#x-1]\tTrailing part of string x, of length k\tstring" ],
      skip      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], $n) },                         "x k\tx[k:#x-1]\tTrailing part of string x, skipping first k\tstring" ],
      shed      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, length($::STACK[-2])-$n) }, "x k\tx[0:#x-k-1]\tLeading part of string x, shedding last k\tstring" ],
@@ -369,7 +369,7 @@ my %cp_samdefs = (
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
      alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
-     _sam_rbt  => [ 0, sub { stacky('_sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in _rbt_[MIDNS] registers (region-bound-tally)\tEXPERIMENTAL/sam" ],
+     sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in _rbt_[MIDNS] and _rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
 
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
@@ -394,7 +394,7 @@ my %cp_samdefs = (
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
 
-my %cp_sam_setup_seqs = map { ($_, 1) } qw(alnposx aln_ref aln_aln aln_qry qry_seq qry_trail3p qry_trail5p qry_matched _sam_rbt);
+my %cp_sam_setup_seqs = map { ($_, 1) } qw(alnposx aln_ref aln_aln aln_qry qry_seq qry_trail3p qry_trail5p qry_matched sam_rbt);
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -1754,7 +1754,7 @@ $::Groupi = 2;    # index within group.
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
     if ($qry_x_pos < 0 || $qry_y_pos < 0) {
-      print STDERR "[$.] _sam_rbt one or both of x ($qry_x_pos) and y ($qry_y_pos) not pegged to read ($pair)\n";
+      print STDERR "[$.] sam_rbt one or both of x ($qry_x_pos) and y ($qry_y_pos) not pegged to read ($pair)\n";
       $qry_x_pos = 0 if $qry_x_pos < 0;
       $qry_y_pos = $qlen - 1;               # inclusive.
     }
