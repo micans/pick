@@ -406,6 +406,7 @@ my %cp_samdefs = (
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
 
+   # below bit 2: needs query sequence. bit 4: needs reference sequence.
 my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
 
             # sub { } :
@@ -1653,8 +1654,8 @@ $::Groupi = 2;    # index within group.
       return "";
     }
 
-    $qry =~ tr/acgtu/ACGTT/;
-    $ref =~ tr/acgtu/ACGTT/;
+    $qry =~ tr/uU/tT/;
+    $ref =~ tr/uU/tT/;
 
     my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
     my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
@@ -1675,7 +1676,7 @@ $::Groupi = 2;    # index within group.
           last;
         }
         my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
-        $aln_aln .= align_get_matchregion($subref, $subqry, $pref);
+        $aln_aln .= align_get_matchregion(uc $subref, uc $subqry, $pref);
         $aln_ref .= $subref;
         $aln_qry .= $subqry;
         $pref += $num; $pqry += $num;
@@ -1731,23 +1732,19 @@ $::Groupi = 2;    # index within group.
   sub ref_bounded_tally {
 
     my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
-    my $qry = $sam_qry_cache[3];
-    my $ref = $sam_ref_sequence;
+    my $qlen = length($sam_qry_cache[3]);
+    my $rlen = &sam_reflen;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    if (!length($qry) || !length($ref)) {
+    if (!$qlen || !$rlen) {
       errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
       return "";
     }
-
-    $qry =~ tr/acgtu/ACGTT/;     # fixme: ensure this is done at the cache level, remove here and in siblings.
-    $ref =~ tr/acgtu/ACGTT/;
 
     my ($pqry, $sqry) = (0, 0);             # position query, start query
     my $pref = $::Flink->[3]-1;
     my ($qry_x_pos, $qry_y_pos) = (-1, -2); # the positions in query that match ($ref_x, $ref_y)
 
-    my ($rlen, $qlen) = (length($ref), length($qry));
     my ($M, $D, $E, $I, $S) = (0, 0, 0, 0, 0);
 
     while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
@@ -1970,7 +1967,7 @@ my $Npostdisc = $Ndisc - $Npredisc;
 if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 else           { print STDERR "-- $Nskip skipped lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 print STDERR "-- $Npredisc/$Npostdisc rows have been pre/post-discarded\n" if @::preselect && $L_verbose >= 1;
-print STDERR "-- $Nsamdisc sam rows have been discarded because of missing sequence\n" if $Nsamdisc > 0 && $L_verbose >= 1;
+print STDERR "-- $Nsamdisc sam rows have been discarded because of missing sequence(s)\n" if $Nsamdisc > 0 && $L_verbose >= 0;
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if (@::preselect || @::select) && $L_verbose >= 1;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
