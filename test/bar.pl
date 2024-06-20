@@ -26,6 +26,6 @@ sub makebar {
 my $N = int($duration/3);
 my ($bar, $barlen) = makebar($N);
 
-printf "%s%s %10d %s\n", $bar, ' ' x (70 - $barlen),  $duration,  $descr;
+printf "%s%s %10d %s\n", $bar, ' ' x (100 - $barlen),  $duration,  $descr;
 
 

@@ -108,6 +108,10 @@ my $name_demux     = undef;
 my $index_demux    = -1;
 
 my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values. Bit flag variable.
+                            # 1: dealing with sam input
+                            # 2: an operator is used that requires the query sequence
+                            # 4: an operator is used that requires the reference sequence
+                            # 8: check sequence lengths between header and supplied fasta
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -129,6 +133,14 @@ my $Nsam_qryunmapped = 0;
 my $Nsam_cigarerr = 0;
 my $Nsam_lenmiss = 0;
 my $Nsam_lenclash = 0;
+
+my $errtok = ' !';
+
+sub errm {
+  local $" = '][';
+  my $vlevel = shift;
+  print STDERR "$errtok [error line $.] [@_]\n" if $L_verbose >= $vlevel;
+}
 
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
@@ -246,7 +258,7 @@ my %cp_opdefinitions =
      groupi    => [ 0, sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
 
      save      => [ 2, sub { $::LINECACHE{__REG__}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
-     fetch     => [ 1, sub { $::STACK[-1] = $::LINECACHE{__REG__}{$::STACK[-1]} }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
+     fetch     => [ 1, sub { my $v = $::LINECACHE{__REG__}{$::STACK[-1]}; unless (defined($v)) { errm(1, "no value for $::STACK[-1]"); $v = ""; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
      pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate/stack" ],
                                                                      # see /pload_validate/
 
@@ -351,7 +363,7 @@ sub sam_reflen {
   my $x = $::dict{seqlen}{$::Flink->[2]};
   if (!defined($x)) {
     $x = $::dictnotfound{seqlen};
-    print STDERR "-- [$.] No length for $::Flink->[2]\n" if $L_verbose >= 2;
+    errm(1, "no length for $::Flink->[2]");
     $Nsam_lenmiss++;
   }
   return $x;
@@ -368,12 +380,12 @@ my %cp_samdefs = (
      alnmatch  => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
      alnedit   => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
-     alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
-     sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
 
+     alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
      aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_qry\talignment string for query\tsam" ],
+     sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
@@ -394,7 +406,7 @@ my %cp_samdefs = (
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
 
-my %cp_sam_setup_seqs = map { ($_, 1) } qw(alnposx aln_ref aln_aln aln_qry qry_seq qry_trail3p qry_trail5p qry_matched sam_rbt);
+my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -927,7 +939,7 @@ EOH
         $OFFSET_OMEGA = 12;
         $::dictnotfound{seqlen} = 0;
         $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
-        $I_AM_SAM |= 5;                      # 1: i-am-sam. 4: check sequence lengths between sam header and fasta.
+        $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      else {
@@ -1034,7 +1046,7 @@ sub parse_compute {
       }
                                              # /sam_activate/
       elsif (defined($cp_sam_setup_seqs{$what})) {
-         $I_AM_SAM |= 2;
+         $I_AM_SAM |= $cp_sam_setup_seqs{$what};
       }
       elsif ($what eq 'test') {              # /test_validate/
          die "Operator 'test' requires three operands" unless @oplist > 3;
@@ -1043,10 +1055,10 @@ sub parse_compute {
       }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
-print STDERR "-- $handle >> type=$type op=$what N=$opdef->[0], code=$what:$opdef->[1]\n" if $B_debug;
+print STDERR "ddd $handle >> type=$type op=$what N=$opdef->[0], code=$what:$opdef->[1]\n" if $B_debug;
     }
     else {
-print STDERR "-- $type $what >>\n" if $B_debug;
+print STDERR "ddd $type $what >>\n" if $B_debug;
     }
   }
   die "Parse error in spec [$spec] near position $p\n" unless $p == $l;
@@ -1086,7 +1098,7 @@ sub acigar {
         $c->{max}{$it} = $num if $num > $c->{max}{$it};
         $p = pos($cigar);
       }
-print STDERR "-- Unmatched part in cigar string $cigar at $p (line $.)\n" unless $p == length($cigar) && $n == length($cigar);
+      errm(-1, "unmatched part in cigar string $cigar at $p") unless $p == length($cigar) && $n == length($cigar);
    }
    my $cache = $::LINECACHE{$key};
    if ($mode eq 'max')      { my $max = 0; for my $x (@subset) { $max = $cache->{max}{$x} if $cache->{max}{$x} > $max }; return $max }
@@ -1182,7 +1194,7 @@ sub compile_select {
        $sel->[2] = $::handle_map{$val};  # fixme overwrite inelegant
     }
     { my ($code, $indirection, $val, $name, $arg) = @$sel;
-print STDERR "-- select code=$code ind=$indirection val=$val name=$name arg=$arg --\n" if $B_debug; }
+print STDERR "ddd select code=$code ind=$indirection val=$val name=$name arg=$arg --\n" if $B_debug; }
 
   }
 }
@@ -1218,7 +1230,7 @@ sub compile_spec {
       else{
          $arg = 0;
       }
-print STDERR "-- adding select criterion handle=[$handle] op=[$op] val=[$val] arg=[$arg]\n" if $B_debug;
+print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] arg=[$arg]\n" if $B_debug;
       my $indirection = $val =~ s/^:// ? 1 : 0;
       if ($type eq '@') { push    @::select, [$op, $indirection, $val, $handle, $arg]; }
       else              { push @::preselect, [$op, $indirection, $val, $handle, $arg]; }
@@ -1291,7 +1303,7 @@ sub compile_compute {
     $::handle_map{$name} = $j;
                               # inplace NOTE continued. Future lookups for foo will refer to this definition; This includes output.
                               # This process is consistently applied if multiple foo:: are specified.
-print STDERR "-- map compute name [$name] to offset $j\n" if $B_debug;
+print STDERR "ddd map compute name [$name] to offset $j\n" if $B_debug;
   }
 
   my @pload_notfound = grep { !defined($::handle_map{$_}) } keys %pload_references;
@@ -1312,7 +1324,7 @@ sub compile_command {
     my $name = $::HEADER[$i];
     die "Name $name defined more than once\n" if defined($::handle_map{$name}) && !$B_force;
     $::handle_map{$name} = $i;
-print STDERR "-- map header name $name to offset $i\n" if $B_debug;
+print STDERR "ddd map header name $name to offset $i\n" if $B_debug;
   }
 
       # This populates
@@ -1331,11 +1343,11 @@ print STDERR "-- map header name $name to offset $i\n" if $B_debug;
 
 if ($B_debug) { for (@::output_nm) { print "PH $_\t$::plain_handle{$_}\n"; } }
 
-local $" = ','; print STDERR "-- output column names as specified: [@::output_nm]\n" if $B_debug;
+local $" = ','; print STDERR "ddd output column names as specified: [@::output_nm]\n" if $B_debug;
 
   if ($B_excise || $B_printall) {
     my @new_names = grep { !defined($in_input_header{$_}) } @::output_nm;
-print STDERR "-- new column names before -x/-A treatment: @new_names\n" if $B_debug;
+print STDERR "ddd new column names before -x/-A treatment: @new_names\n" if $B_debug;
     if ($B_excise) {
        @::output_nm = grep { !defined($::plain_handle{$_}) || defined($::output_nm_cmp_output{$_}) } @::INPUT_HEADER;
     }
@@ -1350,7 +1362,7 @@ print STDERR "-- new column names before -x/-A treatment: @new_names\n" if $B_de
     else {
        push @::output_nm, @new_names;
     }
-print STDERR "-- output column names after -x/-A treatment: @::output_nm\n" if $B_debug;
+print STDERR "ddd output column names after -x/-A treatment: @::output_nm\n" if $B_debug;
   }
 
   { my %names = (); my $i = 1;
@@ -1391,7 +1403,7 @@ print STDERR "-- Identical output column names exist ($job)\n";
   }
   @::output_os = map { $::handle_map{$_} } @::output_nm;
 
-print STDERR "-- output columns @::output_os --\n" if $B_debug;
+print STDERR "ddd output columns @::output_os --\n" if $B_debug;
 
   #
   ##  In select list replace names by offsets into field array.
@@ -1499,16 +1511,17 @@ sub do_cache {
 $::Ngroup = 0;    # skipped because first in group: --group
 my $Nskip = 0;    # skipped based on pattern; e.g. pick -/^#
 my $Npthr = 0;    # skipped and passed through
-my $Ndisc = 0;    # skipped because @ criteria not met
-my $Npredisc = 0; # skipped because % criteria not met
+my $Ndisc = 0;    # skipped because @, @@, or sam criteria not met
+my $Npredisc = 0; # skipped because @@ criteria not met
+my $Nsamdisc = 0; # skipped because sam setup missed sequences
 my $Nkeep = 0;
 
 $::Groupi = 2;    # index within group.
 
 
-{ my @sam_cache = ("no-readname", "no-refname", -1, '');       # Read name, refname, strand, read sequence
+{ my @sam_qry_cache = ("no-readname", "no-refname", -1, '');       # Read name, refname, strand, read sequence
                                    # ^ fixme: more maintainable to stick this in LINECACHE.
-  my @sam_cache_prev = ();         # arrays rather than hash, a bit faster.
+  my @sam_qry_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
 
   sub sam_setup_reflendict {
@@ -1533,30 +1546,39 @@ $::Groupi = 2;    # index within group.
       }
       print STDERR "-- Header/Fasta/Shared/Conflict $nheader/$nfasta/$nshared/$Nsam_lenclash\n";
     }
-    $I_AM_SAM ^= 4;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
+    $I_AM_SAM ^= 8;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
                         # fixme do not attempt to lookup '*' reference (unmapped query),
                         # improve structure.
   sub sam_setup_aln_sequences {
-    @sam_cache_prev = @sam_cache[0..3];              # no danger of using 4..6, but still.
-    @sam_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
-                                                     # checkme strandcheck: not sure if this strand flipping works.
-    if ($sam_cache[3] eq '*') {
-      if ($sam_cache[0] eq $sam_cache_prev[0]) {     # same read name.
-        $sam_cache[3] = $sam_cache[2] != $sam_cache_prev[2] ? rc($sam_cache_prev[3]) : $sam_cache_prev[3];
+
+    my $found = 0;      # 2 for query, 4 for reference.
+
+    @sam_qry_cache_prev = @sam_qry_cache[0..3];              # no danger of using 4..6, but still.
+    @sam_qry_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
+                    # 0     read name
+                    # 1     ref name
+                    # 2     reverse strand = 1
+                    # 3     sequence
+
+    if ($sam_qry_cache[3] eq '*') {
+      if ($sam_qry_cache[0] eq $sam_qry_cache_prev[0]) {     # same read name.
+        $sam_qry_cache[3] = $sam_qry_cache[2] != $sam_qry_cache_prev[2] ? rc($sam_qry_cache_prev[3]) : $sam_qry_cache_prev[3];
       }
       else {
-        $sam_cache[3] = '';
+        $sam_qry_cache[3] = '';
       }
     }
-    {  $sam_ref_sequence = $sam_refdictname ? ($::dict{$sam_refdictname}{$sam_cache[1]} || dict_not_found($sam_refdictname, $sam_cache[1])) : '';
-       my $pair = "$sam_cache[0] $sam_cache[1]";
+    {  $sam_ref_sequence =  $sam_qry_cache[1] eq '*' || ! $sam_refdictname
+                            ? ''
+                            : ($::dict{$sam_refdictname}{$sam_qry_cache[1]} || dict_not_found($sam_refdictname, $sam_qry_cache[1]));
+       my $pair = "$sam_qry_cache[0] $sam_qry_cache[1]";
        if (!$sam_ref_sequence) {
          print STDERR "-- [$.] No reference sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_refmiss++;
        }
-       if (!$sam_cache[3]) {
+       if (!$sam_qry_cache[3]) {
          print STDERR "-- [$.] No query sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_qrymiss++;
        }
@@ -1565,13 +1587,19 @@ $::Groupi = 2;    # index within group.
          $sam_ref_sequence = '';       # .. fixme check whether this catches all cases, or how to arrange it so that
                                        # a single check catches all cases and the implementation logic is clear.
        }
-       elsif ((my $l1 = length($sam_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
+       elsif ((my $l1 = length($sam_qry_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
          print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n" if $L_verbose >= 2;
          $sam_ref_sequence = '';    # this will abort analysis in align_get_mismatch
          $Nsam_cigarerr++;
        }
     }
+
+    $found |= 2 if length($sam_qry_cache[3]);
+    $found |= 4 if length($sam_ref_sequence);
+
+    return $found;
   }
+
 
   sub align_get_matchregion {
     my ($sref, $sqry, $posref) = @_;
@@ -1616,11 +1644,14 @@ $::Groupi = 2;    # index within group.
       return $::LINECACHE{SAM_ALN}[$part-1];
     }
 
-    my $qry = $sam_cache[3];
+    my $qry = $sam_qry_cache[3];
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    return "" unless length($qry) && length($ref);
+    if (!length($qry) || !length($ref)) {
+      errm(0, "aln_* sequence missing", "pair $pair", "SNH");
+      return "";
+    }
 
     $qry =~ tr/acgtu/ACGTT/;
     $ref =~ tr/acgtu/ACGTT/;
@@ -1673,22 +1704,22 @@ $::Groupi = 2;    # index within group.
 
   sub get_qry_part {
     my $part = shift;
-    my $qry = $sam_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
+    my $qry = $sam_qry_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
     return $qry if $part == -1;
-    return $sam_cache[4+$part] if defined($sam_cache[4+$part]);
+    return $sam_qry_cache[4+$part] if defined($sam_qry_cache[4+$part]);
     my $qrylen = length($qry);
     if (!$qrylen) {
-       @sam_cache[4..6] = ('', '', '');
+       @sam_qry_cache[4..6] = ('', '', '');
        return '';
     }
     my $NL = 0; $NL = $1 if $::Flink->[5] =~ /^(\d+)S/;
     my $NR = 0; $NR = $1 if $::Flink->[5] =~ /(\d+)S$/;
-    @sam_cache[4..6] =
+    @sam_qry_cache[4..6] =
     ( substr($qry, 0,             $NL                 )
     , substr($qry, $NL,           $qrylen - $NL - $NR )
     , substr($qry, $qrylen - $NR, $NR                 )
     ) ;
-    return $sam_cache[4+$part];
+    return $sam_qry_cache[4+$part];
   }
 
     # Given inclusive bounds in the reference, compute MDI in the bound region
@@ -1700,18 +1731,21 @@ $::Groupi = 2;    # index within group.
   sub ref_bounded_tally {
 
     my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
-    my $qry = $sam_cache[3];
+    my $qry = $sam_qry_cache[3];
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    return "" unless length($qry) && length($ref);
+    if (!length($qry) || !length($ref)) {
+      errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
+      return "";
+    }
 
     $qry =~ tr/acgtu/ACGTT/;     # fixme: ensure this is done at the cache level, remove here and in siblings.
     $ref =~ tr/acgtu/ACGTT/;
 
     my ($pqry, $sqry) = (0, 0);             # position query, start query
     my $pref = $::Flink->[3]-1;
-    my ($qry_x_pos, $qry_y_pos) = (-1, -1); # the positions in query that match ($ref_x, $ref_y)
+    my ($qry_x_pos, $qry_y_pos) = (-1, -2); # the positions in query that match ($ref_x, $ref_y)
 
     my ($rlen, $qlen) = (length($ref), length($qry));
     my ($M, $D, $E, $I, $S) = (0, 0, 0, 0, 0);
@@ -1754,9 +1788,7 @@ $::Groupi = 2;    # index within group.
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
     if ($qry_x_pos < 0 || $qry_y_pos < 0) {
-      print STDERR "[$.] sam_rbt one or both of x ($qry_x_pos) and y ($qry_y_pos) not pegged to read ($pair)\n";
-      $qry_x_pos = 0 if $qry_x_pos < 0;
-      $qry_y_pos = $qlen - 1;               # inclusive.
+      print STDERR "[$.] sam_rbt one or both of x ($qry_x_pos) and y ($qry_y_pos) not pegged to read ($pair)\n" if $L_verbose >= 1;
     }
     $::LINECACHE{__REG__}{rbt_M} = $M;
     $::LINECACHE{__REG__}{rbt_D} = $D;
@@ -1771,11 +1803,14 @@ $::Groupi = 2;    # index within group.
   sub getalnposx {
 
     my $indel_report_limit = shift;
-    my $qry = $sam_cache[3];
+    my $qry = $sam_qry_cache[3];
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    return "" unless length($qry) && length($ref);
+    if (!length($qry) || !length($ref)) {
+      errm(0, "aln_posx sequence missing", "pair $pair", "SNH");
+      return "";
+    }
 
     $qry =~ tr/acgtu/ACGTT/;
     $ref =~ tr/acgtu/ACGTT/;
@@ -1862,8 +1897,16 @@ while (<>) {
     $::Nrows++;
   }
 
-  sam_setup_reflendict    if $I_AM_SAM & 4;        # Done only once.
-  sam_setup_aln_sequences if $I_AM_SAM & 2;        # Done for each line; /sam_activate/
+  sam_setup_reflendict if $I_AM_SAM & 8;        # Done only once.
+
+  if ($I_AM_SAM & 6) {
+    my $found = sam_setup_aln_sequences;
+    if ((($I_AM_SAM & 6) | $found) ^ $found) {
+      errm(1, "sequence missing: found $found (2/query=$F[0], 4/ref=$F[2]");
+      $Nsamdisc++; $Ndisc++;
+      next;
+    }
+  }
 
   if (@::preselect) {
     my $nmatch = 0;
@@ -1927,6 +1970,7 @@ my $Npostdisc = $Ndisc - $Npredisc;
 if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 else           { print STDERR "-- $Nskip skipped lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 print STDERR "-- $Npredisc/$Npostdisc rows have been pre/post-discarded\n" if @::preselect && $L_verbose >= 1;
+print STDERR "-- $Nsamdisc sam rows have been discarded because of missing sequence\n" if $Nsamdisc > 0 && $L_verbose >= 1;
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if (@::preselect || @::select) && $L_verbose >= 1;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
@@ -1949,6 +1993,6 @@ if ($N_expect >= 0 && $N_expect != $Nkeep) {
 demux_tally() if $index_demux >= 0;
 
 if (@::preselect && !$B_select_and && !@::select) {
-   print STDERR "__ __ You've used -o with @@ preselection, did you want -s? __ __\n";
+   print STDERR "---> You've used -o with @@ preselection, did you want -s? <---\n";
 }
 
