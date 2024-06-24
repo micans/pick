@@ -1589,7 +1589,7 @@ $::Groupi = 2;    # index within group.
                                        # a single check catches all cases and the implementation logic is clear.
        }
        elsif ((my $l1 = length($sam_qry_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
-         print STDERR "-- [$.] Cigar string mismatch $l1 / $l2 for $pair\n" if $L_verbose >= 2;
+         print STDERR "-- [$.] Cigar string [$::Flink->[5]] query mismatch [s=$l1 c=$l2] for $pair\n" if $L_verbose >= 1;
          $sam_ref_sequence = '';    # this will abort analysis in align_get_mismatch
          $Nsam_cigarerr++;
        }
