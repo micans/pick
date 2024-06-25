@@ -18,7 +18,7 @@ pick -h ::end:start,sub^1,add     < data.txt       # compute new column with inc
 
 pick -k ::3:4,sub^1,add           < data.txt       # as previous, in the absence of column headers
 
-pick -h ::foo^'(\d+)',get         < data.txt       # extract a sequence of digits from the foo values
+pick digits::foo^'(\d+)',get      < data.txt       # extract a sequence of digits from the foo values, store in column/variable 'digits'
 
 ```
 
