@@ -782,8 +782,6 @@ See below for more information about SAM format support.
 
 ## SAM format support
 
-SAM support has seen a lot of recent development. This documentation section is not yet fully crystallised.
-
 SAM support is currently entirely focused on single-end reads. Aspects of paired-end alignment that do not depend
 on the paired-end / single-end dichotomy may be perfectly amenable to pick processing but none of it
 has been tested by me.

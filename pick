@@ -385,7 +385,8 @@ my %cp_samdefs = (
      alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
      aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
-     aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_qry\talignment string for query\tsam" ],
+     aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_qry\talignment string for query\tsam" ], 
+     patchiness => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
@@ -1603,7 +1604,55 @@ $::Groupi = 2;    # index within group.
   }
 
 
+    #  | and + indicate matching base (+ is a solitary base - not used currently)
+    #  - is a deletion
+    #  = is intronic deletion. Still penalise it in case the alignment
+    #      weaves in and out of intronic sequence.
+    #  ~ is an insertion
+    # 
+    # The patch penalty is measured across a sliding window; a rapid alternation
+    # of short stretches of { match, mismatch, insertion, deletion } causes
+    # the highest score.
+    # 
+  my %patchy_penalty = ( '|' => 1, '+' => 1, 'x' => 2, '-' => 3, '~' => 2, '=' => 4 );
+
+  sub aln_patchiness {
+
+    my ($string, $winsize) = @_;
+    my @pos = ();
+    my $score = 0;
+    my $maxscore = 0;
+
+    $string =~ s/[()]/|/g;
+    $string =~ s/ /x/g;
+
+    while ($string =~ /((.)\2{0,})/g) {    # \2 (backreference to second parentheses pair) forces a run of the same thing
+
+      my $pos = pos($string);
+
+      my $type = $2;
+      my $stretch = $1;
+      my $len = length($stretch);
+      my $fine = $patchy_penalty{$type};
+      die "No type $type" unless defined($fine);
+
+      my $p = $pos - $len;
+
+      push @pos, [$p, $fine];
+      $score += $fine;
+
+      while ($p - $pos[0][0] > $winsize) {
+        my $out = shift @pos;
+        $score -= $out->[1];
+      }
+
+      $maxscore = $score if $score > $maxscore;
+    }
+    return $maxscore;
+  }
+
   sub align_get_matchregion {
+
     my ($sref, $sqry, $posref) = @_;
     my $aln= "";
     my $ls = length($sref);
@@ -1684,7 +1733,7 @@ $::Groupi = 2;    # index within group.
       }
       elsif ($it eq 'I') {
         $aln_ref .= '-' x $num;
-        $aln_aln .= '-' x $num;
+        $aln_aln .= '~' x $num;
         $aln_qry .= substr($qry, $pqry, $num);
         $pqry += $num;
       }
