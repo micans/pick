@@ -59,6 +59,7 @@ use POSIX;
 
 @::spec = @ARGV; @ARGV = ();
 
+
 sub helphelp {
    my $status = shift;
    print STDERR "Use -l (list) for concise help, -H for long help, -h suppresses header line output\n";
@@ -99,6 +100,7 @@ my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
 my $B_groupfirst   = 0;     # Whether to cache the first row of a group for all subsequent group elements.
+my $B_whitesquash  = 0;
 
 $::EPSILON         = 0.0001;     # obvs the best default epsilon - 10,000 is a myriad.
 $::OOM             = 2;          # order of magnitude. Maybe sqrt(2) makes more sense.
@@ -259,7 +261,7 @@ my %cp_opdefinitions =
      groupi    => [ 0, sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
 
      save      => [ 2, sub { $::LINECACHE{__REG__}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
-     fetch     => [ 1, sub { my $v = $::LINECACHE{__REG__}{$::STACK[-1]}; unless (defined($v)) { errm(1, "no value for $::STACK[-1]"); $v = ""; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
+     fetch     => [ 1, sub { my $v = $::LINECACHE{__REG__}{$::STACK[-1]}; unless (defined($v)) { errm(0, "no value for $::STACK[-1]"); $v = ""; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
      pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate/stack" ],
                                                                      # see /pload_validate/
 
@@ -383,11 +385,14 @@ my %cp_samdefs = (
      alnmatchx => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::Flink->[5], 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches\tsam" ],
 
      alnposx   => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\talnposx\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
-     aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_ref\talignment string for reference\tsam" ],
-     aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_aln\talignment string between reference and query\tsam" ],
-     aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_qry\talignment string for query\tsam" ], 
+     aln_ref   => [ 0, sub { push @::STACK, &get_aln_strings(0) }, "-\taln_ref\talignment string for reference\tsam" ],
+     aln_aln   => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_aln\talignment string between reference and query\tsam" ],
+     aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_qry\talignment string for query\tsam" ], 
+     aln_rlr   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_rlr\talignment ruler for reference\tsam" ],
+     aln_all   => [ 0, sub { push @::STACK, join "\n", &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
      patchiness => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
+     rbt_alnall => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
      qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
@@ -409,7 +414,7 @@ my %cp_samdefs = (
    );
 
    # below bit 2: needs query sequence. bit 4: needs reference sequence.
-my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
+my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry aln_rlr sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -510,6 +515,7 @@ my $help_options=q{Options:
   -//<pat> pass through lines matching <pat>
      <pat> allows perl regular expressions, e.g. ^ $ . [] * ? (|) work.
   -v verbose (-vv -vvv increase verbosity)
+  -e squash all white-space from computes and selections before parsing them
   -q quiet
   -d debug
 
@@ -974,6 +980,7 @@ EOH
   $B_print_header = 0 if $options =~ s/h//;
   $B_regex        = 0 if $options =~ s/F//;
   $B_protect      = 1 if $options =~ s/P//;
+  $B_whitesquash  = 1 if $options =~ s/e//;
   ($B_protect, $B_protect_discard) = (1,1) if $options =~ s/Z//;
   $B_select_and   = 0 if $options =~ s/o//;
   $B_preselect_and   = 0 if $options =~ s/s//;
@@ -995,6 +1002,9 @@ EOH
     exit 1;
   }
 }
+
+@::spec = map { s/\s+//g; $_; } @::spec if $B_whitesquash;
+
 
 die "-O<N> requires -k\n" if $OFFSET_OMEGA > 0 && !$B_headless;
 
@@ -1688,11 +1698,8 @@ $::Groupi = 2;    # index within group.
 
   sub get_aln_strings {
 
-    my $part = shift;
-    die "get_aln_strings need 1, 2, or 3" unless $part == 1 || $part == 2 || $part == 3;
-
     if (defined($::LINECACHE{SAM_ALN})) {
-      return $::LINECACHE{SAM_ALN}[$part-1];
+      return map { $::LINECACHE{SAM_ALN}[$_]; } @_;
     }
 
     my $qry = $sam_qry_cache[3];
@@ -1749,8 +1756,22 @@ $::Groupi = 2;    # index within group.
       }
       elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
-    $::LINECACHE{SAM_ALN} = [ $aln_ref, $aln_aln, $aln_qry ];
-    return $::LINECACHE{SAM_ALN}[$part-1];
+    {  my $aln_rlr = ' ' x length($aln_ref);
+       my $Oprint = -10;
+       my $Nskip  = 0;
+       for (my $i=0; $i<length($aln_ref); $i++) {
+         if (substr($aln_ref, $i, 1) eq '-') {
+            $Nskip++;
+         }
+         elsif ($Oprint + 10 <= $i) {
+           my $N = $::Flink->[3] + $i - $Nskip;
+           substr($aln_rlr, $i, length("$N")) = $N;
+           $Oprint = $i;
+         }
+       }
+       $::LINECACHE{SAM_ALN} = [ $aln_ref, $aln_aln, $aln_qry, $aln_rlr ];
+    }
+    return map { $::LINECACHE{SAM_ALN}[$_]; } @_;
   }
 
   sub get_qry_part {
@@ -1773,11 +1794,9 @@ $::Groupi = 2;    # index within group.
     return $sam_qry_cache[4+$part];
   }
 
-    # Given inclusive bounds in the reference, compute MDI in the bound region
+    # Given inclusive bounds in the reference, compute several local quantities in the bound region.
     # Conceivably this could be done by recomputing the CIGAR string and alignment offsets,
     # but we cannot reuse code easily since a lot is cached and assumes those to be immutable.
-    #
-    # fixme/todo: reasoned semantics for where insertions and soft clips are placed/counted.
     #
   sub ref_bounded_tally {
 
@@ -1786,40 +1805,69 @@ $::Groupi = 2;    # index within group.
     my $rlen = &sam_reflen;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
+    my @aln_strings = get_aln_strings(0, 1, 2, 3);
+
     if (!$qlen || !$rlen) {
       errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
       return "";
     }
 
     my ($pqry, $sqry) = (0, 0);             # position query, start query
+    my $paln = 0;
     my $pref = $::Flink->[3]-1;
-    my ($qry_x_pos, $qry_y_pos) = (-1, -2); # the positions in query that match ($ref_x, $ref_y)
+
+    my ($qry_x_ind, $qry_y_ind) = (-1, -2);     # the outermost positions in query that match ($ref_x, $ref_y)
+    my ($aln_x_ind, $aln_y_ind) = (-1, -2);     # the outermost positions in alignment that match ($ref_x, $ref_y)
+    my ($ref_xq_ind, $ref_yq_ind) = (-1, -2);   # the actual positions matched in ($ref_x, $ref_y)
 
     my ($M, $D, $E, $I, $S) = (0, 0, 0, 0, 0);
+    my $total_num_in_bounds = 0;
 
     while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
+
       my ($num, $it) = ($1, $2);
+      next if $it eq 'H';
 
       my $rright = $pref + $num;
       my $qright = $pqry + $num;
 
       my $project_x = $pref;
-      my $project_y = $it eq 'M' || $it eq 'D' || $it eq 'N' ? $pref + $num - 1 : $project_x;
+      my $project_y = $it eq 'M' || $it eq 'D' || $it eq 'N' ? $pref + $num - 1 : $project_x -1;
       my $num_in_bounds = 0;
       if ($project_x <= $ref_y && $project_y >= $ref_x) {   # overlap exists.
-         $num_in_bounds = ($ref_y - $ref_x + 1) + ($project_y - $project_x + 1) - (max($ref_y, $project_y) - min($ref_x, $project_x) + 1);
-         # Above: intersection = sum of the the two intervals minus their union.
-         $num_in_bounds = $num if $it eq 'I';
+        $num_in_bounds = ($ref_y - $ref_x + 1) + ($project_y - $project_x + 1) - (max($ref_y, $project_y) - min($ref_x, $project_x) + 1);
+        # Above: intersection = sum of the the two intervals minus their union.
+        if ($it eq 'I') {
+          # $num_in_bounds = $num if $total_num_in_bounds > 0 && $project_y < $ref_y;    # fixme checkme (insert at boundary)
+          $num_in_bounds = $pref > $ref_x && $total_num_in_bounds > 0 ? $num : 0;
+          print "-> tnib=$total_num_in_bounds pref=$pref ref_x=$ref_x py=$project_y n=$num_in_bounds\n";
+        }
       }
 
+                                                #           ref              ref
+                                                #           x................y
+                                                #               px    py     .
+                                                #     px      py
+                                                #           .              px      py
+                                                #     px                           py
       if ($it eq 'M') {
         if ($num_in_bounds > 0) {
-          if ($qry_x_pos < 0) {
-            $qry_x_pos  = $pqry;
-            $qry_x_pos += $ref_x - $pref if $ref_x > $pref;
+          if ($qry_x_ind < 0) {
+            ($qry_x_ind, $ref_xq_ind, $aln_x_ind) = ($pqry, $pref, $paln);
+            if ($ref_x > $pref) {
+              $qry_x_ind  += $ref_x - $pref;
+              $ref_xq_ind += $ref_x - $pref;
+              $aln_x_ind  += $ref_x - $pref; #if $paln;     # at start alignment is already corrected.
+            }
           }
-          $qry_y_pos  = $pqry + $num - 1;                                           # update each time ...
-          $qry_y_pos -= ($pref + $num - 1 - $ref_y) if $ref_y < $pref + $num -1;    # don't know a priori which one is the last.
+          $qry_y_ind  = $pqry + $num - 1;       # update each time ... don't know a priori which one is the last.
+          $ref_yq_ind = $pref + $num - 1;
+          $aln_y_ind  = $paln + $num - 1;
+          if ($ref_y < $pref + $num -1) {
+            $qry_y_ind  -= $pref + $num - 1 - $ref_y;
+            $ref_yq_ind -= $pref + $num - 1 - $ref_y;
+            $aln_y_ind  -= $pref + $num - 1 - $ref_y;
+          }
         }
         if ($rright > $rlen || $qright > $qlen) {
           print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
@@ -1831,20 +1879,55 @@ $::Groupi = 2;    # index within group.
       elsif ($it eq 'I')                { $pqry += $num; $I += $num_in_bounds; }
       elsif ($it eq 'D')                { $pref += $num; $D += $num_in_bounds; }
       elsif ($it eq 'N')                { $pref += $num; $E += $num_in_bounds; }
-      elsif ($it eq 'S')                { $pqry += $num; $S += $num_in_bounds; }
-      elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
+      elsif ($it eq 'S')                { $pqry += $num; $S += $num_in_bounds; }          # checkme. depends on project_y = project_x - 1
+      elsif ($it eq 'P')                { print STDERR "[$.] Unexpected cigar state P for pair $pair\n"; last; }
+      if ($it ne 'S') {
+        $total_num_in_bounds += $num_in_bounds;
+        $paln += $num;
+      }
     }
-    if ($qry_x_pos < 0 || $qry_y_pos < 0) {
-      print STDERR "[$.] sam_rbt one or both of x ($qry_x_pos) and y ($qry_y_pos) not pegged to read ($pair)\n" if $L_verbose >= 1;
+    if ($qry_x_ind < 0 || $qry_y_ind < 0) {
+      # fixme there are surely applications where below warning is not wanted; but as verbosity perhaps ok.
+      errm(1, "sam_rbt one or both of x ($qry_x_ind) and y ($qry_y_ind) not pegged to read ($pair)");
     }
+
     $::LINECACHE{__REG__}{rbt_M} = $M;
     $::LINECACHE{__REG__}{rbt_D} = $D;
     $::LINECACHE{__REG__}{rbt_E} = $E;
     $::LINECACHE{__REG__}{rbt_I} = $I;
     $::LINECACHE{__REG__}{rbt_S} = $S;
-    $::LINECACHE{__REG__}{rbt_qry_x} = $qry_x_pos;
-    $::LINECACHE{__REG__}{rbt_qry_y} = $qry_y_pos;
-    $::LINECACHE{__REG__}{rbt_qry_xylen} = $qry_y_pos - $qry_x_pos + 1;
+
+    $::LINECACHE{__REG__}{rbt_qryx}   = $qry_x_ind+1;           # fixme: 0/1-based. Logic between choices, naming.
+    $::LINECACHE{__REG__}{rbt_qryy}   = $qry_y_ind+1;
+    $::LINECACHE{__REG__}{rbt_qrylen} = $qry_y_ind - $qry_x_ind + 1;
+
+    $::LINECACHE{__REG__}{rbt_refxq}  = $ref_xq_ind+1;          # fixme: what is the user interface (for all produced values) for not available?
+    $::LINECACHE{__REG__}{rbt_refyq}  = $ref_yq_ind+1;          # fixme: what is the user interface (for all produced values) for not available?
+
+    my $qry_ok = $qry_x_ind >= 0 && $qry_y_ind >= 0 ? 1 : 0;
+
+    $::LINECACHE{__REG__}{rbt_qryseq} = $qry_ok ? substr($sam_qry_cache[3], $qry_x_ind, $qry_y_ind - $qry_x_ind + 1) : "";
+
+    $::LINECACHE{__REG__}{rbt_alnx}   = $aln_x_ind;
+    $::LINECACHE{__REG__}{rbt_alnlen} = $aln_y_ind - $aln_x_ind + 1;
+
+    my $aln_ok = $aln_x_ind >= 0 && $aln_y_ind >= 0 ? 1 : 0;
+
+    $::LINECACHE{__REG__}{rbt_alnref} = $aln_ok ? substr($aln_strings[0], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
+    $::LINECACHE{__REG__}{rbt_alnaln} = $aln_ok ? substr($aln_strings[1], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
+    $::LINECACHE{__REG__}{rbt_alnqry} = $aln_ok ? substr($aln_strings[2], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
+    $::LINECACHE{__REG__}{rbt_alnrlr} = $aln_ok ? substr($aln_strings[3], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
+
+    { my $aq = $::LINECACHE{__REG__}{rbt_alnqry};
+      my $qs = $::LINECACHE{__REG__}{rbt_qryseq};
+      $aq =~ s/[^a-zA-Z]//g;
+      if ($aq ne $qs) {
+         print STDERR "RBT excised sequences for alignment and query not matching:\n++ $aq\n++ $qs\n";
+      }
+      if ($::LINECACHE{__REG__}{rbt_qrylen} != $M + $I) {
+         print "RBT excised sequence counts error [$pair] $::LINECACHE{__REG__}{rbt_qrylen} != $M + $I\n";
+      }
+    }
   }
 
   sub getalnposx {
@@ -1949,6 +2032,7 @@ while (<>) {
   if ($I_AM_SAM & 6) {
     my $found = sam_setup_aln_sequences;
     if ((($I_AM_SAM & 6) | $found) ^ $found) {
+      $F[5] =~ s/[=X]/M/g;                      # Change explicit match (=) and mismatch (X) to generic match.
       errm(1, "sequence missing: found $found (2/query=$F[0], 4/ref=$F[2]");
       $Nsamdisc++; $Ndisc++;
       next;
