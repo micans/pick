@@ -1840,7 +1840,6 @@ $::Groupi = 2;    # index within group.
         if ($it eq 'I') {
           # $num_in_bounds = $num if $total_num_in_bounds > 0 && $project_y < $ref_y;    # fixme checkme (insert at boundary)
           $num_in_bounds = $pref > $ref_x && $total_num_in_bounds > 0 ? $num : 0;
-          print "-> tnib=$total_num_in_bounds pref=$pref ref_x=$ref_x py=$project_y n=$num_in_bounds\n";
         }
       }
 
