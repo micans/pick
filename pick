@@ -390,7 +390,7 @@ my %cp_samdefs = (
      aln_qry   => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_qry\talignment string for query\tsam" ], 
      aln_rlr   => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_rlr\talignment ruler for reference\tsam" ],
      aln_all   => [ 0, sub { push @::STACK, join "\n", &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
-     patchiness => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
+     patchiness => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      rbt_alnall => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
@@ -1957,6 +1957,8 @@ $::Groupi = 2;    # index within group.
       my $rright = $pref + $num;
       my $qright = $pqry + $num;
 
+      my $pref1  = $pref + 1;
+
       if ($it eq 'M') {
         if ($rright > $rlen || $qright > $qlen) {
           print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
@@ -1965,11 +1967,11 @@ $::Groupi = 2;    # index within group.
         push @mismatch, align_get_mismatch(substr($ref, $pref, $num), substr($qry, $pqry, $num), $pref);
         $pref += $num; $pqry += $num;
       }
-      elsif ($it eq 'I')                { push @mismatch, "i=$pref,n=$num";
+      elsif ($it eq 'I')                { push @mismatch, "i=$pref1,n=$num";
                                           $mismatch[-1] .= ',s=' . substr($qry, $pqry, $num) if !$indel_report_limit || $num <= $indel_report_limit;
                                           $pqry += $num;
                                         }
-      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, ($it eq 'D' ? 'd' : 'e') . "=$pref,n=$num";
+      elsif ($it eq 'D' || $it eq 'N')  { push @mismatch, ($it eq 'D' ? 'd' : 'e') . "=$pref1,n=$num";
                                           $mismatch[-1] .= ',s=' . substr($ref, $pref, $num) if !$indel_report_limit || $num <= $indel_report_limit;
                                           $pref += $num;
                                         }
