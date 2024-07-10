@@ -44,7 +44,7 @@ a tool that can compute statistics over columns, optionally grouped over a secon
 Additionally `pick` has **extensive support for SAM format** such as printing alignments and
 outputting alignment-derived quantities like coverage and base mismatch information.
 A reference FASTA file can be specified, which is then used by pick to automatically slot in reference
-sequences where needed.
+sequences where needed. Alignments can be queried and printed limited to an interval of interest (by reference coordinates).
 
 > [!NOTE]
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)

@@ -1917,6 +1917,9 @@ $::Groupi = 2;    # index within group.
     $::LINECACHE{__REG__}{rbt_alnqry} = $aln_ok ? substr($aln_strings[2], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
     $::LINECACHE{__REG__}{rbt_alnrlr} = $aln_ok ? substr($aln_strings[3], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
 
+    $::LINECACHE{__REG__}{rbt_match}  = ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr /\|/\|/);
+    $::LINECACHE{__REG__}{rbt_edit}   = length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_match};
+
     { my $aq = $::LINECACHE{__REG__}{rbt_alnqry};
       my $qs = $::LINECACHE{__REG__}{rbt_qryseq};
       $aq =~ s/[^a-zA-Z]//g;
