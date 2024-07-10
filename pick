@@ -407,8 +407,8 @@ my %cp_samdefs = (
      refclipl  => [ 0, sub { push @::STACK, $::Flink->[3] -1 }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
      refclipr  => [ 0, sub { push @::STACK, &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum')}, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
 
-     qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
-     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
+     qryclipl  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /^(\d+)[SHI]/; push @::STACK, $n }, "-\tqryclipl\tNumber of 5p trailing query bases (NOTE leading insertion included)\tsam" ],
+     qryclipr  => [ 0, sub { my $n = 0; $n = $1 if $::Flink->[5] =~ /(\d+)[SHI]$/; push @::STACK, $n }, "-\tqryclipr\tNumber of 3p trailing query bases (NOTE trailing insertion included)\tsam" ]
 
             # TODO: deduplicate qrystart/clipl and qryend/clipr code. e.g. use acigar/linecache, keys L R?
    );
@@ -1624,7 +1624,7 @@ $::Groupi = 2;    # index within group.
     # of short stretches of { match, mismatch, insertion, deletion } causes
     # the highest score.
     # 
-  my %patchy_penalty = ( '|' => 1, '+' => 1, 'x' => 2, '-' => 3, '~' => 2, '=' => 4 );
+  my %patchy_penalty = ( '|' => 0, '+' => 1, 'x' => 2, '-' => 1, '~' => 1, '=' => 0 );
 
   sub aln_patchiness {
 
