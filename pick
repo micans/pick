@@ -1643,7 +1643,7 @@ $::Groupi = 2;    # index within group.
       my $type = $2;
       my $stretch = $1;
       my $len = length($stretch);
-      my $fine = $patchy_penalty{$type};
+      my $fine = $len * $patchy_penalty{$type};
       die "No type $type" unless defined($fine);
 
       my $p = $pos - $len;
