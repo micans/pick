@@ -463,9 +463,9 @@ my %sel_opdefinitions = (
      # - conceivably in both cases there is an operand that forces number
      # promotion.  Thus, absint.
      #
-  '/all/'      => [ 58, sub { $_[1] == (abs(int($_[0])) & abs(int($_[1]))) } ],
-  '/any/'      => [ 59, sub { abs(int($_[0])) & abs(int($_[1])) } ],
-  '/none/'     => [ 60, sub { ! (abs(int($_[0])) & abs(int($_[1]))) } ]
+  '/all/'      => [ 61, sub { $_[1] == (abs(int($_[0])) & abs(int($_[1]))) } ],
+  '/any/'      => [ 62, sub { abs(int($_[0])) & abs(int($_[1])) } ],
+  '/none/'     => [ 63, sub { ! (abs(int($_[0])) & abs(int($_[1]))) } ]
 
 );
 
