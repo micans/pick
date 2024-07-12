@@ -446,6 +446,8 @@ my %sel_opdefinitions = (
   '~le~'       => [ 55, sub { $_[0] le $_[1] } ],
   '~ge~'       => [ 56, sub { $_[0] ge $_[1] } ],
   '~gt~'       => [ 57, sub { $_[0] gt $_[1] } ],
+  '~isin~'     => [ 59, sub { defined($::dict{$_[1]}{$_[0]}) ? 1 : 0 } ],
+  '~isnotin~'  => [ 60, sub { defined($::dict{$_[1]}{$_[0]}) ? 0 : 1 } ],
 
      # Perl behaves weirdly with bit operators in very specific cases; perhaps
      # because it thought both operands a string and one operand is negative.
@@ -1219,16 +1221,16 @@ sub compile_spec {
     if ($spec =~ s/^(\@{1,2})//) {
       my $type = $1;
       my ($handle, $op, $val, $arg) = (undef, undef, undef, undef);
-                    #  = ~ /= /~
-      if ($spec =~ /^(.*?)(\/?[=~])(.*?)$/) {
-        ($handle, $op, $val) = (urldecode($1), $2, urldecode($3));      # @urldecode @handle/../arg|handle/arg
-      }
                     #  H handle
                     #  a1a2a3, b, c, d different forms for op
                     #  V value or :handle
                     #    ( H )([ a1](      a2    )[ a3])( V)(  arg )
-      elsif ($spec =~ /^(.*?)([\/~](?:[a-z]{2,4})[\/~])(.*?)(\/.*?)?$/) {
+      if ($spec =~ /^(.*?)([\/~](?:[a-z]{2,7})[\/~])(.*?)(\/.*?)?$/) {       # fixme. proper checking.
         ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      # @urldecode @handle/../arg|handle/arg
+      }
+                    #  = ~ /= /~
+      elsif ($spec =~ /^(.*?)(\/?[=~])(.*?)$/) {
+        ($handle, $op, $val) = (urldecode($1), $2, urldecode($3));      # @urldecode @handle/../arg|handle/arg
       }
       else {
          print STDERR "-- Selection invalid [$_]. I need @<name><op><:name|value>, see pick -l selection for <op>\n";
@@ -1242,6 +1244,9 @@ sub compile_spec {
       }
       else{
          $arg = 0;
+      }
+      if ($op eq '~isin~' || $op eq '~isnotin~') {
+         die "Dictionary [$val] not found" unless defined($::dict{$val});
       }
 print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] arg=[$arg]\n" if $B_debug;
       my $indirection = $val =~ s/^:// ? 1 : 0;
