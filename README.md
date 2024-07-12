@@ -304,6 +304,7 @@ The full list of comparison operators:
     = /=                            string identy select, avoid
     ~ /~                            string (Perl) regular expression select, avoid
     ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
+    ~isin~ ~isnotin~                dictionary presence check
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
     /all/ /any/ /none/              bit selection
@@ -705,16 +706,8 @@ Other uses of the `not-found` syntax are to select or filter columns, e.g. below
 shows an idiomatic way to find rows where a column value is not part of a limited set
 of prescribed values.
 
-- the `-i` (in-place) option is dropped.
-- dictionary values are not specified and thus set to 1 by pick.
-- the dictionary is given the name `foo`, refered to later by the `map` operator.
-- the mapped values in column 1 are put in variable `check`.
-- `check` is set to zero if the field in `col1` is not found in the dictionary.
-- `check` is not output (`:=` instead of `::`).
-- Those rows are selected where `check` has value 0 (not found).
-
 ```
-echo -e "col1\tcol2\na\t3\nb\t4\nc\t8" | pick -A --cdict-foo/0=a,b check:=col1^foo,map @check=0
+> echo -e "col1\tcol2\na\t3\nb\t4\nc\t8" | ./pick -A --cdict-foo=a,b @col1~isnotin~foo
 col1 col2
 c    8
 ```
@@ -733,6 +726,7 @@ comparison operators below - these are [the same as can be used for row filterin
     = /=                            string identy select, avoid
     ~ /~                            string (Perl) regular expression select, avoid
     ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
+    ~isin~ ~isnotin~                dictionary presence check
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
     /all/ /any/ /none/              bit selection

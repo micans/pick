@@ -1227,6 +1227,7 @@ sub compile_spec {
                     #    ( H )([ a1](      a2    )[ a3])( V)(  arg )
       if ($spec =~ /^(.*?)([\/~](?:[a-z]{2,7})[\/~])(.*?)(\/.*?)?$/) {       # fixme. proper checking.
         ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      # @urldecode @handle/../arg|handle/arg
+        die "Unrecognised operator [$op]\n" unless defined($sel_opdefinitions{$op});
       }
                     #  = ~ /= /~
       elsif ($spec =~ /^(.*?)(\/?[=~])(.*?)$/) {
