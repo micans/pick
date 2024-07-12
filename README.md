@@ -1136,22 +1136,13 @@ In some cases an external list has been computed that contains identifiers
 for which the rows should be deleted or retained. This is generically done like this:
 
 ```
-pick  -A --kdict-DEL/keep=delete-file.txt action:=myid^DEL,map @action=keep < data.txt > reduced-data.txt
+pick  -A --kdict-DEL=delete-file.txt @myid~isnotin~DEL < data.txt > reduced-data.txt
 ```
 
-Here a temporary column `action` is computed that contains the value in the `myid` column mapped
-using the keys in the file `delete-file.txt`. If the value is not to be deleted it is set to the
-default value `keep`. Finally those rows are chosen where `action` has that value `keep`.
-
-Although the values `DEL` and `keep` are never seen in the output, it is useful to choose these
-strings such that the command line is self-explanatory.
-Note that for `--kdict` pick will set the value for each key to be deleted to `1`. It is necessary
-to set the `not-found` value to something different, in this case `keep`.
-
-The `pick` invocation if keys need to be retained is very similar, changing `action` to avoid `delete` values.
+The `pick` invocation if keys need to be retained is very similar, now using the `~isin~` select operator.
 
 ```
-pick  -A --kdict-KEEP/delete=keep-file.txt action:=myid^KEEP,map @action/=delete < data.txt > reduced-data.txt
+pick  -A --kdict-KEEP=keep-file.txt @myid~isin~KEEP < data.txt > reduced-data.txt
 ```
 
 [More information about maps.](#map-column-values-using-a-dictionary)
