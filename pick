@@ -1195,8 +1195,14 @@ sub compile_select {
        # fixme: better naming/documenting/coding-logic to follow tight linkt between @::HEADER and %::handle_map.
        # the if-else here is not entirely satisfactory - handle_map{$name} lookup is not checked for preselect; this is OK but still.
        #
-    if ($caller eq 'select') { die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name}); }
-    else                  { die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$name}); }
+    if ($caller eq 'select') {
+      die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
+      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/;
+    }
+    else {
+      die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$name});
+      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($limit_handle->{$val}) && $op !~ /is(not)?in/;
+    }
 
     my $opdef = $sel_opdefinitions{$op};
     die "The impossible happened ($op)\n" unless defined($opdef);
