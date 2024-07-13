@@ -20,6 +20,7 @@ pick -k ::3:4,sub^1,add           < data.txt       # as previous, in the absence
 
 pick digits::foo^'(\d+)',get      < data.txt       # extract a sequence of digits from the foo values, store in column/variable 'digits'
 
+pick --kdict-KEEP=dict.txt @tim~isin~KEEP  < data.txt   # subset rows using a dictionary
 ```
 
 Pick is a standalone script that depends only on a standard perl installation - it should work on any standard Linux (or Unix) OS
