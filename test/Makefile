@@ -47,6 +47,7 @@ runpick: data.txt
 	../utils/preserve_header sort -k $$($(p) --idx-list num4 < $<) < $< | $(p) -v --group-first-ref=num4 name num4 ::^name,pload  > o.groupfirst.test
 	../utils/preserve_header sort -k $$($(p) --idx-list num4 < $<) < $< | $(p) -v --group=num4 name num4 ::^name,pload  > o.group.test
 	$(p) -h --table-dict-I/huh=info.txt ::name^I^info1,tmap ::name^I^info2,tmap ::fib2 < $< > o.tbdict.test
+	$(p) -h --table-dict/huh=info.txt ::name^info1,map ::name^info2,map ::fib2 < $< > o.tbdict2.test
 	$(p) -i '.*'::__^'(?i)(142857|[aeoiy02468])',npat < $< > o.npat.test
 	$(p) -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < $< > o.update.test
 	$(p) -Ai '.*'::__^1^~,test < $< > o.testallcells.test

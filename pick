@@ -290,8 +290,8 @@ my %cp_opdefinitions =
      cgrefcov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MDN=X', 'sum') }, "c\trefcov\tCount of reference bases covered by cigar string c (MDN=X events)\tstring/sam" ],
      cgqrycov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MI=X', 'sum') }, "c\tqrycov\tCount of query bases covered by cigar string c (MI=X events)\tstring/sam"  ],
      cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MISH=X', 'sum') }, "c\tqrylen\tLength of query (MIS=X events) in cigar string c\tstring/sam" ],
-     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[SH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
-     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[SH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
+     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[ISH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
+     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[ISH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
                                          ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
@@ -301,10 +301,10 @@ my %cp_opdefinitions =
      del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
      delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
      npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnc\tCount occurrences of pattern p in x\tstring/regex" ],
-     map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; my $m = defined($dict) ? $dict->{$x} : undef; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
+     map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
                            "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
                   ],
-     tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; my $m = defined($dict) ? $dict->{$x} : undef; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
+     tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
@@ -395,8 +395,8 @@ my %cp_samdefs = (
      rbt_alnall => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
-     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[SH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
-     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MISH=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)[SH]$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
+     qrystart  => [ 0, sub { my $s = 1; $s += $1 if $::Flink->[5] =~ /^(\d+)[ISH]/; push @::STACK, $s }, "-\tqrystart\tStart of alignment in query\tsam" ],
+     qryend    => [ 0, sub { my $e = acigar($::Flink->[5], 'MISH=X', 'sum'); $e -= $1 if $::Flink->[5] =~ /(\d+)[ISH]$/; push @::STACK, $e }, "-\tqryend\tLast base in query covered by alignment\tsam" ],
      qrylen    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MISH=X', 'sum') }, "-\tqrylen\tLength of query sequence\tsam" ],
 
      qry_trail5p  => [ 0, sub { push @::STACK, &get_qry_part(0); }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
@@ -414,7 +414,7 @@ my %cp_samdefs = (
    );
 
    # below bit 2: needs query sequence. bit 4: needs reference sequence.
-my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry aln_rlr sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
+my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -646,16 +646,22 @@ sub read_tbdict {
    open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
    my $header=<D>; chomp $header; my @header = split "\t", $header; my %h = ();
    for (my $i=0; $i<@header; $i++) { $h{$i} = $header[$i] }
+   my $n = 0;
+   $::dict{$name} = {} unless !length($name) || defined($::dict{$name});
+   my $root = length($name) ? $::dict{$name} : \%::dict;
    while(<D>) {
       chomp; my @items = split "\t", $_, -1;                      # recognise empty fields (-1 split argument)
       die "Table read error" unless scalar @items == scalar @header;
       for (my $i=1; $i<@items; $i++) {
-         $::dict{$name}{$h{$i}}{$items[0]} = $items[$i];
+         $root->{$h{$i}}{$items[0]} = $items[$i];
       }
+     $n++;
    } close(D);
-   my $n = keys %{$::dict{$name}};
    my $k = @header - 1;
-print STDERR "-- table dictionary $name has $n keys for $k columns after reading $fname\n" if $L_verbose >= 1;
+print STDERR "-- Table dictionary $name has $n keys for $k columns { @header } after reading $fname\n" if $L_verbose >= 0;
+print STDERR "-- Keys to be used with ^$name\[^:]KEY,tmap\n" if $L_verbose >= 0 && length($name);
+print STDERR "-- Keys to be used with [^:]KEY,map\n" if $L_verbose >= 0 && !length($name);
+   return \@header;
 }
 
 sub read_fadict {
@@ -878,6 +884,11 @@ EOH
        read_fqdict($2, $5) if $1 eq 'fastq-';
        read_tbdict($2, $5) if $1 eq 'table-';
        $::dictnotfound{$2} = $4 if length($3);        # for read_fadict this happens twice. tidy up sometime.
+     }
+     elsif ($options =~ /^table-dict(\/(.*?))?=(.+)$/) {
+       my $header = read_tbdict("", $3);
+       if (defined($2)) { $::dictnotfound{$_} = $2 for @$header; }
+       my $nd = keys %{$::dict{$header->[1]}};
      }
      elsif ($options =~ /^cdict-(\w+)(\/(.*?))?=(.+)$/) {
        parse_dict($1, $4);
