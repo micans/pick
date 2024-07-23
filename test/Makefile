@@ -22,7 +22,8 @@ runpick: data.txt
 	$(p) '.*\d{2,}'               < $<  > o.twodigits.test
 	$(p) ud fx @ud/gt/0 @fx~a     < $<  > o.udfx-and.test
 	$(p) -h ::'^>:fx^%0A:dna'     < $<  > o.fasta.test
-	$(p) -o ud fx @ud/gt/0 @fx~a  < $< > o.udfx-or.test
+	$(p) -o ud fx @ud/gt/0 @fx~a  < $<  > o.udfx-or.test
+	$(p) fib @fib~le~5 @fib~gt~20 < $<  > o.strcmp.test
 	$(p) -A1ki foo:=1 1::2 2::foo x::^x                           <  $<  > o.switch.test
 	$(p) -h y::name,uc x::foo11^_,delg,uc @y/=:x                  <  $<  > o.ucdelg.test
 	$(p) --cdict-123/NOTFOUND=1:one,2:two,3:three x::num4^123,map <  $<  > o.123dict.test
