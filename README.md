@@ -75,6 +75,7 @@ and make them more robust and understandable by promoting the use of column name
 - Filter (or fork) rows on boolean clauses computed on columns
 - Select multiple columns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression
+- Import dictionaries to test membership or to map values
 - Split/demultiplex rows to different output files based on (computed) labels in columns
 
 
