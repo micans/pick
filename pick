@@ -114,6 +114,7 @@ my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of som
                             # 2: an operator is used that requires the query sequence
                             # 4: an operator is used that requires the reference sequence
                             # 8: check sequence lengths between header and supplied fasta
+                            # 16: show additional trailing parts of sequence op to length ...
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -137,6 +138,8 @@ my $Nsam_lenmiss = 0;
 my $Nsam_lenclash = 0;
 
 my $errtok = ' !';
+
+$::sam_max_trail = 0;
 
 sub errm {
   local $" = '][';
@@ -964,6 +967,10 @@ EOH
         $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
+     elsif ($options =~ /^sam-trail=(\d+)/) {
+        $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show trailing sequences.
+        $::sam_max_trail = $1;
+     }
      else {
        die "Unrecognised long option --$options";
      }
@@ -1750,13 +1757,13 @@ $::Groupi = 2;    # index within group.
       my $rright = $pref + $num;
       my $qright = $pqry + $num;
 
-      if ($it eq 'M') {
+      if ($it eq 'M' || $it eq 'X') {
         if ($rright > $rlen || $qright > $qlen) {
           print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
         my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
-        $aln_aln .= align_get_matchregion(uc $subref, uc $subqry, $pref);
+        $aln_aln .= $it eq 'M' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : ' ' x $num;
         $aln_ref .= $subref;
         $aln_qry .= $subqry;
         $pref += $num; $pqry += $num;
@@ -1807,8 +1814,8 @@ $::Groupi = 2;    # index within group.
        @sam_qry_cache[4..6] = ('', '', '');
        return '';
     }
-    my $NL = 0; $NL = $1 if $::Flink->[5] =~ /^(\d+)S/;
-    my $NR = 0; $NR = $1 if $::Flink->[5] =~ /(\d+)S$/;
+    my $NL = 0; $NL = $1 if $::Flink->[5] =~ /^(\d+)[SIX]/;     # dangersign recentchange
+    my $NR = 0; $NR = $1 if $::Flink->[5] =~  /(\d+)[SIX]$/;
     @sam_qry_cache[4..6] =
     ( substr($qry, 0,             $NL                 )
     , substr($qry, $NL,           $qrylen - $NL - $NR )
@@ -2055,6 +2062,39 @@ while (<>) {
   }
 
   sam_setup_reflendict if $I_AM_SAM & 8;        # Done only once.
+
+  if ($I_AM_SAM & 16) {                # experimental code to force printing of trailing parts. sam_max_trail not yet used.
+    my $reflen  = &sam_reflen;
+    my $refclipl = $F[3] - 1;          # dangersign. Do this now. We are changing $F[3] below.
+    my $refclipr = $reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum');   # dangersign as above , both $F[3,5] both changed.
+                                       # fixme: does this work with vsearch terminal D.
+
+    { my $qryclipl = $F[5] =~ /^(\d+)S/? $1 : 0;
+      my $nx = min($refclipl, $qryclipl);
+
+      if ($nx > 0) {
+        $F[3] -= $nx;
+        $F[5] =~ s/^\d+S/$nx . 'X'/e;
+        if ($nx < $qryclipl) {     # bases trailing in ref are fewer than soft; add the rest as insertion.
+          my $ninsert = $qryclipl - $nx;
+          $F[5] = $ninsert . 'I' . $F[5];
+        }
+      }
+      if ($F[3] > 1) {             # convert reference offset to a deletion in query.
+        $F[5] = ($F[3]-1) . 'D' . $F[5];
+        $F[3] = 1;
+      }
+    }
+    { my $qryclipr = $F[5] =~ /(\d+)S$/ ? $1 : 0;
+      my $nx = min($refclipr, $qryclipr);
+      if ($nx > 0) {
+        $F[5] =~ s/\d+S$/$nx . 'X'/e;
+      }
+      my $trail = $refclipr - $qryclipr;
+      if ($trail != 0) { $F[5] .= abs($trail) . ($trail > 0 ? 'D' : 'I'); }
+    }
+  }
+# print STDERR "$F[5]\n";
 
   if ($I_AM_SAM & 6) {
     my $found = sam_setup_aln_sequences;
