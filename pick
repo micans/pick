@@ -2059,11 +2059,11 @@ while (<>) {
   if ($I_AM_SAM & 6) {
     my $found = sam_setup_aln_sequences;
     if ((($I_AM_SAM & 6) | $found) ^ $found) {
-      $F[5] =~ s/[=X]/M/g;                      # Change explicit match (=) and mismatch (X) to generic match.
       errm(1, "sequence missing: found $found (2/query=$F[0], 4/ref=$F[2]");
       $Nsamdisc++; $Ndisc++;
       next;
     }
+    # $F[5] =~ s/[=X]/M/g;                      # outcomment; ongoing X support work, include = as well.
   }
 
   if (@::preselect) {
