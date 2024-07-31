@@ -115,6 +115,7 @@ my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of som
                             # 4: an operator is used that requires the reference sequence
                             # 8: check sequence lengths between header and supplied fasta
                             # 16: show additional trailing parts of sequence op to length ...
+                            # 32: trim alignment; e.g. leading/trailing I D X
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -967,9 +968,12 @@ EOH
        $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
-     elsif ($options =~ /^sam-trail=(\d+)/) {
-       $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show trailing sequences.
+     elsif ($options =~ /^sam-aln-pad=(\d+)/) {
+       $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
        $::sam_max_trail = $1;
+     }
+     elsif ($options eq 'sam-aln-trim') {
+       $I_AM_SAM |= 33;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
      }
      else {
        die "Unrecognised long option --$options";
@@ -1592,9 +1596,23 @@ $::Groupi = 2;    # index within group.
     $I_AM_SAM ^= 8;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
+  sub sam_adjust_trim {
+
+    if ($::Flink->[5] =~ s/^(\d+)D//) { $::Flink->[3] += $1; }
+    if ($::Flink->[5] =~ s/\d+D$//)   {                    ; }
+
+    if ($::Flink->[5] =~ s/^\d+\KI/S/) {                   ; }
+    if ($::Flink->[5] =~ s/\d+\KI$/S/) {                   ; }
+
+         # below is to test undoing the changes made by sam_adjust_trail.
+         #
+    if ($::Flink->[5] =~ s/^((\d+)S)?((\d+)X)/($4 + (defined($1) ? $2 : 0)) . 'S'/e) { $::Flink->[3] += $4; }
+    if ($::Flink->[5] =~ s/((\d+)X)((\d+)S)?$/($2 + (defined($3) ? $4 : 0)) . 'S'/e) {                    ; }
+  }
+
   sub sam_adjust_trail {
 
-print STDERR "cigar IN  $::Flink->[5]\n" if $B_debug;
+print STDERR "-- $::Flink->[0] cigar IN  $::Flink->[5]\n" if $B_debug;
 
     my $reflen  = &sam_reflen;
     my $refclipl = $::Flink->[3] - 1;      # dangersign. Do this now. We are changing $::Flink->[3] below.
@@ -1648,7 +1666,7 @@ print STDERR "cigar IN  $::Flink->[5]\n" if $B_debug;
         $::Flink->[5] .=  $qryclipr . 'S' if $qryclipr > 0;
       }
     }
-print STDERR "cigar OUT $::Flink->[5]\n" if $B_debug;
+print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   }
 
                         # fixme do not attempt to lookup '*' reference (unmapped query),
@@ -2126,6 +2144,7 @@ while (<>) {
 
     sam_setup_reflendict if $I_AM_SAM &  8;        # Done only once.
     sam_adjust_trail     if $I_AM_SAM & 16;
+    sam_adjust_trim      if $I_AM_SAM & 32;
 
     if ($I_AM_SAM & 6) {
       if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
