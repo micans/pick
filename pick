@@ -139,7 +139,7 @@ my $Nsam_lenclash = 0;
 
 my $errtok = ' !';
 
-$::sam_max_trail = 0;
+$::sam_max_trail = 10000;
 
 sub errm {
   local $" = '][';
@@ -954,22 +954,22 @@ EOH
      }
                            # see /sam_activate/ for compile-time activation sam_setup_aln_sequences
      elsif ($options =~ /^sam(-h)?(\/(\S+))?$/) {
-        if (defined($1)) { $F_ignore |= 5; $PAT_PASS  = '^@'; }
-        else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
-        if (defined($2)) {
-          my $fname = $3;
-          read_fadict('SAMFA', $fname, '__EXIT__');
-        }
-        $B_headless = 1;
-        $OFFSET_OMEGA = 12;
-        $::dictnotfound{seqlen} = 0;
-        $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
-        $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
-        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
+       if (defined($1)) { $F_ignore |= 5; $PAT_PASS  = '^@'; }
+       else             { $F_ignore |= 6; $PAT_PURGE = '^@'; }
+       if (defined($2)) {
+         my $fname = $3;
+         read_fadict('SAMFA', $fname, '__EXIT__');
+       }
+       $B_headless = 1;
+       $OFFSET_OMEGA = 12;
+       $::dictnotfound{seqlen} = 0;
+       $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
+       $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
+       for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      elsif ($options =~ /^sam-trail=(\d+)/) {
-        $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show trailing sequences.
-        $::sam_max_trail = $1;
+       $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show trailing sequences.
+       $::sam_max_trail = $1;
      }
      else {
        die "Unrecognised long option --$options";
@@ -1592,11 +1592,70 @@ $::Groupi = 2;    # index within group.
     $I_AM_SAM ^= 8;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
+  sub sam_adjust_trail {
+
+print STDERR "cigar IN  $::Flink->[5]\n" if $B_debug;
+
+    my $reflen  = &sam_reflen;
+    my $refclipl = $::Flink->[3] - 1;      # dangersign. Do this now. We are changing $::Flink->[3] below.
+    my $refclipr = $reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum');   #
+                                           # dangersign as above , both $::Flink->[3,5] both changed.
+
+    my $qryclipl = $::Flink->[5] =~ /^(\d+)S/ ? $1 : 0;
+    my $qryclipr = $::Flink->[5] =~ /(\d+)S$/ ? $1 : 0;
+
+    { my $ntrail = $::sam_max_trail;
+      my $nxshared = min($refclipl, $qryclipl, $ntrail);          # displayed together, no match ('X' symbol).
+
+      $ntrail   -= $nxshared;
+      $refclipl -= $nxshared;
+      $qryclipl -= $nxshared;
+
+      $::Flink->[3] -= $nxshared;
+      $::Flink->[5] =~ s/^\d+S/$nxshared ? $nxshared . 'X' : ""/e;      # accounts for both ref and query.
+
+      if ($refclipl > 0) {
+        my $ndangle = min($refclipl, $ntrail);
+        if ($ndangle > 0) {
+          $::Flink->[5]  = $ndangle . 'D' . $::Flink->[5];
+          $::Flink->[3] -= $ndangle;
+        }
+      }
+      if ($qryclipl > 0) {     # bases trailing in ref are fewer than soft; add the rest as insertion.
+        my $ndangle = min($ntrail, $qryclipl);
+        $qryclipl  -= $ndangle;
+        $::Flink->[5] = $ndangle  . 'I' . $::Flink->[5] if $ndangle  > 0;
+        $::Flink->[5] = $qryclipl . 'S' . $::Flink->[5] if $qryclipl > 0;
+      }
+    }
+    { my $ntrail = $::sam_max_trail;
+      my $nxshared = min($refclipr, $qryclipr, $ntrail);
+
+      $refclipr -= $nxshared;
+      $qryclipr -= $nxshared;
+      $ntrail   -= $nxshared;
+
+      $::Flink->[5] =~ s/\d+S$/$nxshared ? $nxshared . 'X' : ""/e;      # accounts for both ref and query.
+
+      if ($refclipr > 0) {
+        my $ndangle = min($refclipr, $ntrail);
+        $::Flink->[5] .=  $ndangle . 'D' if $ndangle > 0;
+      }
+      if ($qryclipr > 0) {
+        my $ndangle = min($qryclipr, $ntrail);
+        $qryclipr -= $ndangle;
+        $::Flink->[5] .=  $ndangle  . 'I' if $ndangle  > 0;
+        $::Flink->[5] .=  $qryclipr . 'S' if $qryclipr > 0;
+      }
+    }
+print STDERR "cigar OUT $::Flink->[5]\n" if $B_debug;
+  }
+
                         # fixme do not attempt to lookup '*' reference (unmapped query),
                         # improve structure.
   sub sam_setup_aln_sequences {
 
-    my $found = 0;      # 2 for query, 4 for reference.
+    my ($get_query, $get_ref) = @_;
 
     @sam_qry_cache_prev = @sam_qry_cache[0..3];              # no danger of using 4..6, but still.
     @sam_qry_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
@@ -1637,10 +1696,12 @@ $::Groupi = 2;    # index within group.
        }
     }
 
-    $found |= 2 if length($sam_qry_cache[3]);
-    $found |= 4 if length($sam_ref_sequence);
-
-    return $found;
+    my ($lq, $lr) = (length($sam_qry_cache[3]), length($sam_ref_sequence));
+    if ((!$lq && $get_query) || (!$lr && $get_ref)) {
+      errm(1, "sequence missing: found query/$::Flink->[0] length $lq, ref/$::Flink->[2] length $lr");
+      return 1;
+    }
+    return 0;
   }
 
 
@@ -1757,13 +1818,13 @@ $::Groupi = 2;    # index within group.
       my $rright = $pref + $num;
       my $qright = $pqry + $num;
 
-      if ($it eq 'M' || $it eq 'X') {
+      if ($it eq 'M' || $it eq 'X' || $it eq '=') {
         if ($rright > $rlen || $qright > $qlen) {
           print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
         my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
-        $aln_aln .= $it eq 'M' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : ' ' x $num;
+        $aln_aln .= $it eq 'M' || $it eq '=' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : ' ' x $num;
         $aln_ref .= $subref;
         $aln_qry .= $subqry;
         $pref += $num; $pqry += $num;
@@ -1862,7 +1923,7 @@ $::Groupi = 2;    # index within group.
       my $qright = $pqry + $num;
 
       my $project_x = $pref;
-      my $project_y = $it eq 'M' || $it eq 'D' || $it eq 'N' ? $pref + $num - 1 : $project_x -1;
+      my $project_y = $it =~ /[MDN=X]/ ? $pref + $num - 1 : $project_x -1;
       my $num_in_bounds = 0;
       if ($project_x <= $ref_y && $project_y >= $ref_x) {   # overlap exists.
         $num_in_bounds = ($ref_y - $ref_x + 1) + ($project_y - $project_x + 1) - (max($ref_y, $project_y) - min($ref_x, $project_x) + 1);
@@ -1879,7 +1940,7 @@ $::Groupi = 2;    # index within group.
                                                 #     px      py
                                                 #           .              px      py
                                                 #     px                           py
-      if ($it eq 'M') {
+      if ($it eq 'M' || $it eq 'X' || $it eq '=') {
         if ($num_in_bounds > 0) {
           if ($qry_x_ind < 0) {
             ($qry_x_ind, $ref_xq_ind, $aln_x_ind) = ($pqry, $pref, $paln);
@@ -1954,10 +2015,10 @@ $::Groupi = 2;    # index within group.
       my $qs = $::LINECACHE{__REG__}{rbt_qryseq};
       $aq =~ s/[^a-zA-Z]//g;
       if ($aq ne $qs) {
-         print STDERR "RBT excised sequences for alignment and query not matching:\n++ $aq\n++ $qs\n";
+         print STDERR "RBT [$pair] excised sequences for alignment and query not matching:\n++ $aq\n++ $qs\n";
       }
       if ($::LINECACHE{__REG__}{rbt_qrylen} != $M + $I) {
-         print "RBT excised sequence counts error [$pair] $::LINECACHE{__REG__}{rbt_qrylen} != $M + $I\n";
+         print STDERR "RBT [$pair] excised sequence counts error $::LINECACHE{__REG__}{rbt_qrylen} != $M + $I\n";
       }
     }
   }
@@ -2061,49 +2122,14 @@ while (<>) {
     $::Nrows++;
   }
 
-  sam_setup_reflendict if $I_AM_SAM & 8;        # Done only once.
+  if ($I_AM_SAM) {
 
-  if ($I_AM_SAM & 16) {                # experimental code to force printing of trailing parts. sam_max_trail not yet used.
-    my $reflen  = &sam_reflen;
-    my $refclipl = $F[3] - 1;          # dangersign. Do this now. We are changing $F[3] below.
-    my $refclipr = $reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum');   # dangersign as above , both $F[3,5] both changed.
-                                       # fixme: does this work with vsearch terminal D.
+    sam_setup_reflendict if $I_AM_SAM &  8;        # Done only once.
+    sam_adjust_trail     if $I_AM_SAM & 16;
 
-    { my $qryclipl = $F[5] =~ /^(\d+)S/? $1 : 0;
-      my $nx = min($refclipl, $qryclipl);
-
-      if ($nx > 0) {
-        $F[3] -= $nx;
-        $F[5] =~ s/^\d+S/$nx . 'X'/e;
-        if ($nx < $qryclipl) {     # bases trailing in ref are fewer than soft; add the rest as insertion.
-          my $ninsert = $qryclipl - $nx;
-          $F[5] = $ninsert . 'I' . $F[5];
-        }
-      }
-      if ($F[3] > 1) {             # convert reference offset to a deletion in query.
-        $F[5] = ($F[3]-1) . 'D' . $F[5];
-        $F[3] = 1;
-      }
+    if ($I_AM_SAM & 6) {
+      if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
     }
-    { my $qryclipr = $F[5] =~ /(\d+)S$/ ? $1 : 0;
-      my $nx = min($refclipr, $qryclipr);
-      if ($nx > 0) {
-        $F[5] =~ s/\d+S$/$nx . 'X'/e;
-      }
-      my $trail = $refclipr - $qryclipr;
-      if ($trail != 0) { $F[5] .= abs($trail) . ($trail > 0 ? 'D' : 'I'); }
-    }
-  }
-# print STDERR "$F[5]\n";
-
-  if ($I_AM_SAM & 6) {
-    my $found = sam_setup_aln_sequences;
-    if ((($I_AM_SAM & 6) | $found) ^ $found) {
-      errm(1, "sequence missing: found $found (2/query=$F[0], 4/ref=$F[2]");
-      $Nsamdisc++; $Ndisc++;
-      next;
-    }
-    # $F[5] =~ s/[=X]/M/g;                      # outcomment; ongoing X support work, include = as well.
   }
 
   if (@::preselect) {
