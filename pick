@@ -925,6 +925,9 @@ EOH
        print "pick version: $v_v_v\n";
        exit 0;
      }
+     elsif ($options eq 'sam-umi-pp') {
+       &sam_set_umi_pp;
+     }
      elsif ($options =~ /^onames=(.+)$/) {
        $nameslist=$1;
        $B_posthoc_names = 1;
@@ -1751,7 +1754,11 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     # of short stretches of { match, mismatch, insertion, deletion } causes
     # the highest score.
     # 
-  my %patchy_penalty = ( '|' => 0, '+' => 1, 'x' => 2, '-' => 1, '~' => 1, '=' => 0 );
+  my %patchy_penalty = ( '|' => 0, '+' => 0, 'x' => 2, '-' => 1, '~' => 1, '=' => 0, 'X' => 2 );
+
+  sub sam_set_umi_pp {
+    %patchy_penalty  = ( '|' => 0, '+' => 0, 'x' => 1, '-' => 2, '~' => 2, '=' => 0, 'X' => 1 );
+  }
 
   sub aln_patchiness {
 
