@@ -857,8 +857,11 @@ include the computation and extraction of quantities for quality control.
 
 Two options to control display and handling of clipped parts of alignments are:
 
-`--sam-aln-context=<N>` - show soft-clipped sequence in printed alignment, e.g. with `,aln_all`, up to an additional
-length of `N` bases.
+`--sam-aln-context=<N>` - show additional context of reference sequence and
+(soft-clipped) query sequence in printed alignments, e.g. with `,aln_all`, up to an additional
+length of `N` bases. This is implemented by changing the CIGAR sequence itself and introducing `X` segments (mismatched sequence),
+`I` segments (additional query sequence) and `D` segments (additional reference sequence). Hence be careful not to use
+this with statistics for deletions and insertions.
 
 `--sam-aln-trim` - convert exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
 

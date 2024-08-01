@@ -942,15 +942,30 @@ EOH
        $fh_other->open("$openstring") || die "Cannot open $fn";
      }
      elsif ($options eq 'remind-me' || $options eq 'rmm')  {
-       if (!@::spec) {
-         print "Available reminders: sam\n"; exit 0;
+       if (!@::spec || $::spec[0] ne 'sam') {
+         print STDERR "Available reminders: sam\n"; exit 0;
        }
        if ($::spec[0] eq 'sam') {
-       print <<EOH;
+         print <<EOH;
+Fields:
    1     2     3     4     5     6     7     8     9    10    11
  QNAME FLAG  RNAME  POS  MAPQ  CIGAR  RNEXT PNEXT TLEN SEQ   QUAL
+
+Bits:
+     1     template has multiple templates in sequencing (read is paired)
+     2     each segment properly aligned according to the aligner (read mapped in proper pair)
+     4     segment unmapped (read1 unmapped)
+     8     next segment in the template unmapped (read2 unmapped)
+    16     SEQ is reverse complemented (read1 reverse complemented)
+    32     SEQ of the next segment in the template is reverse complemented (read2 reverse complemented)
+    64     the first segment in the template (is read1)
+   128     the last segment in the template (is read2)
+   256     secondary alignment
+   512     alignment fails quality checks
+  1024     PCR or optical duplicate
+  2048     supplementary alignment (e.g. aligner specific, could be a portion of a split read or a tied region)
 EOH
-       exit 0;
+         exit 0;
        }
      }
                            # see /sam_activate/ for compile-time activation sam_setup_aln_sequences
