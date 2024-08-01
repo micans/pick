@@ -855,6 +855,14 @@ With these operators pick can be used to efficiently filter alignments, for exam
 removing those that do not start near expected primer sites (see below). Other applications
 include the computation and extraction of quantities for quality control.
 
+Two options to control display and handling of clipped parts of alignments are:
+
+`--sam-aln-context=<N>` - show soft-clipped sequence in printed alignment, e.g. with `,aln_all`, up to an additional
+length of `N` bases.
+
+`--sam-aln-trim` - convert exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
+
+
 ### Operators to output alignments
 
 ```
@@ -1333,14 +1341,13 @@ lines with a certain pattern `//<pat>` can be tagged on at the end, e.g. `-kA2/#
 
 ## Pick options
 
+See [Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences) for
+options to invoke and control processing of SAM format.
+
 -  `-l` print a table of all pick operators.
 -  `-l <str>` as above, limited to operators in sections matching `<str>`.  
    Available sections are `arithmetic bitop devour dictionary format input math output precision regex sam stack string`.
 -  `-H` summary of pick syntax.
-
--  `--sam` / `--sam-h` Expect sam input, pass through sam header (`--sam-h`).  
-   These options effectively set `-k -O12`, `-/^@` (`--sam`) or `-//^@` (`--sam-h`) and
-   additionally store sequence lengths in the `seqlen` dictionary if the input contains a sam header.
 
 -  `-h` do not print header
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.

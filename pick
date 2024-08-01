@@ -968,7 +968,7 @@ EOH
        $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
-     elsif ($options =~ /^sam-aln-pad=(\d+)/) {
+     elsif ($options =~ /^sam-aln-context=(\d+)/) {
        $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
        $::sam_max_trail = $1;
      }
@@ -1572,6 +1572,7 @@ $::Groupi = 2;    # index within group.
   my $sam_ref_sequence = '';
 
   sub sam_setup_reflendict {
+
     if (length($sam_refdictname)) {
       print STDERR "-- Comparing fasta sequence lengths with header information if present\n";
       my $nheader = keys %{$::dict{seqlen}};
@@ -1596,7 +1597,8 @@ $::Groupi = 2;    # index within group.
     $I_AM_SAM ^= 8;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
-  sub sam_adjust_trim {
+
+  sub sam_adjust_view_trim {
 
     if ($::Flink->[5] =~ s/^(\d+)D//) { $::Flink->[3] += $1; }
     if ($::Flink->[5] =~ s/\d+D$//)   {                    ; }
@@ -1604,13 +1606,14 @@ $::Groupi = 2;    # index within group.
     if ($::Flink->[5] =~ s/^\d+\KI/S/) {                   ; }
     if ($::Flink->[5] =~ s/\d+\KI$/S/) {                   ; }
 
-         # below is to test undoing the changes made by sam_adjust_trail.
+         # below is to test undoing the changes made by sam_adjust_view_extend.
          #
     if ($::Flink->[5] =~ s/^((\d+)S)?((\d+)X)/($4 + (defined($1) ? $2 : 0)) . 'S'/e) { $::Flink->[3] += $4; }
     if ($::Flink->[5] =~ s/((\d+)X)((\d+)S)?$/($2 + (defined($3) ? $4 : 0)) . 'S'/e) {                    ; }
   }
 
-  sub sam_adjust_trail {
+
+  sub sam_adjust_view_extend {
 
 print STDERR "-- $::Flink->[0] cigar IN  $::Flink->[5]\n" if $B_debug;
 
@@ -2142,11 +2145,11 @@ while (<>) {
 
   if ($I_AM_SAM) {
 
-    sam_setup_reflendict if $I_AM_SAM &  8;        # Done only once.
-    sam_adjust_trail     if $I_AM_SAM & 16;
-    sam_adjust_trim      if $I_AM_SAM & 32;
+    sam_setup_reflendict   if $I_AM_SAM &  8;        # Done only once.
+    sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
+    sam_adjust_view_trim   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
 
-    if ($I_AM_SAM & 6) {
+    if ($I_AM_SAM & 6) {                             # Either query or ref sequence needed.
       if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
     }
   }
