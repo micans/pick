@@ -100,6 +100,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-format-support)  
 &emsp;&emsp;[Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences)  
+&emsp;&emsp;[Extended view of alignments](#Extended-view-of-alignments)  
+&emsp;&emsp;[Clipping exterior insertions and deletions](#Clipping-exterior-insertions-and-deletions)  
 &emsp;&emsp;[Operators to output alignments](#operators-to-output-alignments)  
 &emsp;&emsp;[Operators to retrieve mismatch and indel positions and sequences](#operators-to-retrieve-mismatch-and-indel-positions-and-sequences)  
 &emsp;&emsp;[Operators to retrieve query sequence parts](#operators-to-retrieve-query-sequence-parts)  
@@ -855,15 +857,21 @@ With these operators pick can be used to efficiently filter alignments, for exam
 removing those that do not start near expected primer sites (see below). Other applications
 include the computation and extraction of quantities for quality control.
 
-Two options to control display and handling of clipped parts of alignments are:
+
+### Extended view of alignments
 
 `--sam-aln-context=<N>` - show additional context of reference sequence and
 (soft-clipped) query sequence in printed alignments, e.g. with `,aln_all`, up to an additional
 length of `N` bases. This is implemented by changing the CIGAR sequence itself and introducing `X` segments (mismatched sequence),
 `I` segments (additional query sequence) and `D` segments (additional reference sequence). Hence be careful not to use
 this with statistics for deletions and insertions.
+This can change the CIGAR sequence and the reference offset (column 4 in SAM format).
 
-`--sam-aln-trim` - convert exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
+
+### Clipping exterior insertions and deletions
+
+`--sam-aln-clip` - convert exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
+This can change the CIGAR sequence and the reference offset (column 4 in SAM format).
 
 
 ### Operators to output alignments

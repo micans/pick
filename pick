@@ -115,7 +115,7 @@ my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of som
                             # 4: an operator is used that requires the reference sequence
                             # 8: check sequence lengths between header and supplied fasta
                             # 16: show additional trailing parts of sequence op to length ...
-                            # 32: trim alignment; e.g. leading/trailing I D X
+                            # 32: soft clip alignment; e.g. leading/trailing I D X
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -990,7 +990,7 @@ EOH
        $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
        $::sam_max_trail = $1;
      }
-     elsif ($options eq 'sam-aln-trim') {
+     elsif ($options eq 'sam-aln-clip') {
        $I_AM_SAM |= 33;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
      }
      else {
@@ -1616,7 +1616,7 @@ $::Groupi = 2;    # index within group.
   }
 
 
-  sub sam_adjust_view_trim {
+  sub sam_adjust_view_clip {
 
     if ($::Flink->[5] =~ s/^(\d+)D//) { $::Flink->[3] += $1; }
     if ($::Flink->[5] =~ s/\d+D$//)   {                    ; }
@@ -2169,7 +2169,7 @@ while (<>) {
 
     sam_setup_reflendict   if $I_AM_SAM &  8;        # Done only once.
     sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
-    sam_adjust_view_trim   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
+    sam_adjust_view_clip   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
 
     if ($I_AM_SAM & 6) {                             # Either query or ref sequence needed.
       if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
