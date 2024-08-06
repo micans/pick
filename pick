@@ -140,7 +140,7 @@ my $Nsam_lenclash = 0;
 
 my $errtok = ' !';
 
-$::sam_max_trail = 10000;
+$::sam_max_context = 10000;
 
 sub errm {
   local $" = '][';
@@ -988,7 +988,7 @@ EOH
      }
      elsif ($options =~ /^sam-aln-context=(\d+)/) {
        $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
-       $::sam_max_trail = $1;
+       $::sam_max_context = $1;
      }
      elsif ($options eq 'sam-aln-clip') {
        $I_AM_SAM |= 33;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
@@ -1643,7 +1643,7 @@ print STDERR "-- $::Flink->[0] cigar IN  $::Flink->[5]\n" if $B_debug;
     my $qryclipl = $::Flink->[5] =~ /^(\d+)S/ ? $1 : 0;
     my $qryclipr = $::Flink->[5] =~ /(\d+)S$/ ? $1 : 0;
 
-    { my $ntrail = $::sam_max_trail;
+    { my $ntrail = $::sam_max_context;
       my $nxshared = min($refclipl, $qryclipl, $ntrail);          # displayed together, no match ('X' symbol).
 
       $ntrail   -= $nxshared;
@@ -1667,7 +1667,7 @@ print STDERR "-- $::Flink->[0] cigar IN  $::Flink->[5]\n" if $B_debug;
         $::Flink->[5] = $qryclipl . 'S' . $::Flink->[5] if $qryclipl > 0;
       }
     }
-    { my $ntrail = $::sam_max_trail;
+    { my $ntrail = $::sam_max_context;
       my $nxshared = min($refclipr, $qryclipr, $ntrail);
 
       $refclipr -= $nxshared;
@@ -2144,6 +2144,9 @@ while (<>) {
   $::Flink = \@F;
 
   if ($OFFSET_OMEGA > 0 && @F < $OFFSET_OMEGA) {
+    if ($I_AM_SAM && $::Nrows < 5 && (@F < 11 || !looks_like_number($F[1]))) {
+      print STDERR "This does not look like SAM format [$_]\n";
+    }
     push @F, ( ("") x ($OFFSET_OMEGA - @F)) ;
   }
   if (!$::Nrows) {
@@ -2168,8 +2171,8 @@ while (<>) {
   if ($I_AM_SAM) {
 
     sam_setup_reflendict   if $I_AM_SAM &  8;        # Done only once.
-    sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
     sam_adjust_view_clip   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
+    sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
 
     if ($I_AM_SAM & 6) {                             # Either query or ref sequence needed.
       if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
