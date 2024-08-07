@@ -116,6 +116,8 @@ my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of som
                             # 8: check sequence lengths between header and supplied fasta
                             # 16: show additional trailing parts of sequence op to length ...
                             # 32: soft clip alignment; e.g. leading/trailing I D X
+                            # 64: compute region-bounded tally
+
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -141,6 +143,8 @@ my $Nsam_lenclash = 0;
 my $errtok = ' !';
 
 $::sam_max_context = 10000;
+$::sam_rbt_x = 0;
+$::sam_rbt_y = 0;
 
 sub errm {
   local $" = '][';
@@ -990,8 +994,13 @@ EOH
        $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
        $::sam_max_context = $1;
      }
+     elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
+       $I_AM_SAM |= 71;                    # 1: i-am-sam. 64: show sequence beyond aligned part, 6: prepare sequences
+       $::sam_rbt_x = $1;
+       $::sam_rbt_y = $2;
+     }
      elsif ($options eq 'sam-aln-clip') {
-       $I_AM_SAM |= 33;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
+       $I_AM_SAM |= 33;                    # 1: i-am-sam. 32: change exterior insertions to soft clips etc
      }
      else {
        die "Unrecognised long option --$options";
@@ -1863,7 +1872,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
       if ($it eq 'M' || $it eq 'X' || $it eq '=') {
         if ($rright > $rlen || $qright > $qlen) {
-          print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
+          print STDERR "[$.] aln_strings cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
         my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
@@ -2003,7 +2012,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
           }
         }
         if ($rright > $rlen || $qright > $qlen) {
-          print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
+          print STDERR "[$.] sam_rbt cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
         $pref += $num; $pqry += $num;
@@ -2098,7 +2107,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
       if ($it eq 'M') {
         if ($rright > $rlen || $qright > $qlen) {
-          print STDERR "[$.] cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
+          print STDERR "[$.] getalnposx cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
         push @mismatch, align_get_mismatch(substr($ref, $pref, $num), substr($qry, $pqry, $num), $pref);
@@ -2168,17 +2177,6 @@ while (<>) {
     $::Nrows++;
   }
 
-  if ($I_AM_SAM) {
-
-    sam_setup_reflendict   if $I_AM_SAM &  8;        # Done only once.
-    sam_adjust_view_clip   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
-    sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
-
-    if ($I_AM_SAM & 6) {                             # Either query or ref sequence needed.
-      if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
-    }
-  }
-
   if (@::preselect) {
     my $nmatch = 0;
     for my $sel (@::preselect) {
@@ -2190,6 +2188,18 @@ while (<>) {
       $Ndisc++; $Npredisc++;
       next LINE;
     }
+  }
+
+  if ($I_AM_SAM) {
+
+    sam_setup_reflendict   if $I_AM_SAM &  8;        # Done only once.
+    sam_adjust_view_clip   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
+    sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
+
+    if ($I_AM_SAM & 6) {                             # Either query or ref sequence needed.
+      if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
+    }
+    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & 64;
   }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
