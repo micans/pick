@@ -1592,7 +1592,6 @@ my $Nkeep = 0;
 
 $::Groupi = 2;    # index within group.
 
-
 { my @sam_qry_cache = ("no-readname", "no-refname", -1, '');       # Read name, refname, strand, read sequence
                                    # ^ fixme: more maintainable to stick this in LINECACHE.
   my @sam_qry_cache_prev = ();         # arrays rather than hash, a bit faster.
@@ -1763,45 +1762,47 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     # of short stretches of { match, mismatch, insertion, deletion } causes
     # the highest score.
     # 
-  my %patchy_penalty = ( '|' => 0, '+' => 0, 'x' => 2, '-' => 1, '~' => 1, '=' => 0, 'X' => 2 );
+  BEGIN {
+    my %patchy_penalty = ( '|' => 0, '+' => 0, 'x' => 2, '-' => 1, '~' => 1, '=' => 0 );
 
-  sub sam_set_umi_pp {
-    %patchy_penalty  = ( '|' => 0, '+' => 0, 'x' => 1, '-' => 2, '~' => 2, '=' => 0, 'X' => 1 );
-  }
-
-  sub aln_patchiness {
-
-    my ($string, $winsize) = @_;
-    my @pos = ();
-    my $score = 0;
-    my $maxscore = 0;
-
-    $string =~ s/[()]/|/g;
-    $string =~ s/ /x/g;
-
-    while ($string =~ /((.)\2{0,})/g) {    # \2 (backreference to second parentheses pair) forces a run of the same thing
-
-      my $pos = pos($string);
-
-      my $type = $2;
-      my $stretch = $1;
-      my $len = length($stretch);
-      my $fine = $len * $patchy_penalty{$type};
-      die "No type $type" unless defined($fine);
-
-      my $p = $pos - $len;
-
-      push @pos, [$p, $fine];
-      $score += $fine;
-
-      while ($p - $pos[0][0] > $winsize) {
-        my $out = shift @pos;
-        $score -= $out->[1];
-      }
-
-      $maxscore = $score if $score > $maxscore;
+    sub sam_set_umi_pp {
+      %patchy_penalty  = ( '|' => 0, '+' => 0, 'x' => 1, '-' => 2, '~' => 2, '=' => 0 );
     }
-    return $maxscore;
+
+    sub aln_patchiness {
+
+      my ($string, $winsize) = @_;
+      my @pos = ();
+      my $score = 0;
+      my $maxscore = 0;
+
+      $string =~ s/[()]/|/g;
+      $string =~ s/ /x/g;
+
+      while ($string =~ /((.)\2{0,})/g) {    # \2 (backreference to second parentheses pair) forces a run of the same thing
+
+        my $pos = pos($string);
+
+        my $type = $2;
+        my $stretch = $1;
+        my $len = length($stretch);
+        my $fine = $len * $patchy_penalty{$type};
+        die "No type $type" unless defined($fine);
+
+        my $p = $pos - $len;
+
+        push @pos, [$p, $fine];
+        $score += $fine;
+
+        while ($p - $pos[0][0] > $winsize) {
+          my $out = shift @pos;
+          $score -= $out->[1];
+        }
+
+        $maxscore = $score if $score > $maxscore;
+      }
+      return $maxscore;
+    }
   }
 
   sub align_get_matchregion {
