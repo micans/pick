@@ -1912,6 +1912,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
            $Oprint = $i;
          }
        }
+       substr($aln_rlr, length($aln_ref)) = "";
        $::LINECACHE{SAM_ALN} = [ $aln_ref, $aln_aln, $aln_qry, $aln_rlr ];
     }
     return map { $::LINECACHE{SAM_ALN}[$_]; } @_;
@@ -1992,22 +1993,26 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
                                                 #     px      py
                                                 #           .              px      py
                                                 #     px                           py
-      if ($it eq 'M' || $it eq 'X' || $it eq '=') {
+      if ($it eq 'M' || $it eq 'X' || $it eq '=' || $it eq 'D') {
         if ($num_in_bounds > 0) {
           if ($qry_x_ind < 0) {
             ($qry_x_ind, $ref_xq_ind, $aln_x_ind) = ($pqry, $pref, $paln);
             if ($ref_x > $pref) {
-              $qry_x_ind  += $ref_x - $pref;
+              $qry_x_ind  += $ref_x - $pref if $it ne 'D';     # made conditional on $it != 'D'.
               $ref_xq_ind += $ref_x - $pref;
-              $aln_x_ind  += $ref_x - $pref; #if $paln;     # at start alignment is already corrected.
+              $aln_x_ind  += $ref_x - $pref; #if $paln;        # at start alignment is already corrected.
             }
           }
-          $qry_y_ind  = $pqry + $num - 1;       # update each time ... don't know a priori which one is the last.
-          $ref_yq_ind = $pref + $num - 1;
+          if ($it ne 'D') {
+            $qry_y_ind  = $pqry + $num - 1;        # update each time ... don't know a priori which one is the last.
+            $ref_yq_ind = $pref + $num - 1;
+          }
           $aln_y_ind  = $paln + $num - 1;
           if ($ref_y < $pref + $num -1) {
-            $qry_y_ind  -= $pref + $num - 1 - $ref_y;
-            $ref_yq_ind -= $pref + $num - 1 - $ref_y;
+            if ($it ne 'D') {
+              $qry_y_ind  -= $pref + $num - 1 - $ref_y;
+              $ref_yq_ind -= $pref + $num - 1 - $ref_y;
+            }
             $aln_y_ind  -= $pref + $num - 1 - $ref_y;
           }
         }
@@ -2015,11 +2020,11 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
           print STDERR "[$.] sam_rbt cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
-        $pref += $num; $pqry += $num;
-        $M += $num_in_bounds;
+        if ($it eq 'D') { $D += $num_in_bounds; }
+        else            { $M += $num_in_bounds; $pqry += $num; }
+        $pref += $num;
       }
       elsif ($it eq 'I')                { $pqry += $num; $I += $num_in_bounds; }
-      elsif ($it eq 'D')                { $pref += $num; $D += $num_in_bounds; }
       elsif ($it eq 'N')                { $pref += $num; $E += $num_in_bounds; }
       elsif ($it eq 'S')                { $pqry += $num; $S += $num_in_bounds; }          # checkme. depends on project_y = project_x - 1
       elsif ($it eq 'P')                { print STDERR "[$.] Unexpected cigar state P for pair $pair\n"; last; }
@@ -2041,7 +2046,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     $::LINECACHE{__REG__}{rbt_qryx}   = $qry_x_ind+1;           # fixme: 0/1-based. Logic between choices, naming.
     $::LINECACHE{__REG__}{rbt_qryy}   = $qry_y_ind+1;
-    $::LINECACHE{__REG__}{rbt_qrylen} = $qry_y_ind - $qry_x_ind + 1;
+    $::LINECACHE{__REG__}{rbt_qrylen} = max(0, $qry_y_ind - $qry_x_ind + 1);
 
     $::LINECACHE{__REG__}{rbt_refxq}  = $ref_xq_ind+1;          # fixme: what is the user interface (for all produced values) for not available?
     $::LINECACHE{__REG__}{rbt_refyq}  = $ref_yq_ind+1;          # fixme: what is the user interface (for all produced values) for not available?
