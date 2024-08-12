@@ -400,6 +400,8 @@ my %cp_samdefs = (
      aln_all   => [ 0, sub { push @::STACK, join "\n", &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
      patchiness => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
+     sam_rbt_old   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally_old($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
+     sam_rbt   => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      rbt_alnall => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
      qrycov    => [ 0, sub { push @::STACK, acigar($::Flink->[5], 'MI=X', 'sum') }, "-\tqrycov\tSpan of query covered by alignment\tsam" ],
@@ -422,7 +424,7 @@ my %cp_samdefs = (
    );
 
    # below bit 2: needs query sequence. bit 4: needs reference sequence.
-my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
+my %cp_sam_setup_seqs = (map { ($_, 6) } qw(alnposx aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt sam_rbt_old), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -996,6 +998,11 @@ EOH
      }
      elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
        $I_AM_SAM |= 71;                    # 1: i-am-sam. 64: show sequence beyond aligned part, 6: prepare sequences
+       $::sam_rbt_x = $1;
+       $::sam_rbt_y = $2;
+     }
+     elsif ($options =~ /^sam-rbt-old=(\d+),(\d+)/) {
+       $I_AM_SAM |= 135;
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
@@ -1871,6 +1878,10 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       my $rright = $pref + $num;
       my $qright = $pqry + $num;
 
+                  # Note I use 'X' with sam_adjust_view_extend to indicate dangling non-aligned sequence.
+                  # in default view this is a space; with sam_rbtaln it becomes an underscore.
+                  # This may evolve in the future.
+                  #
       if ($it eq 'M' || $it eq 'X' || $it eq '=') {
         if ($rright > $rlen || $qright > $qlen) {
           print STDERR "[$.] aln_strings cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
@@ -1939,11 +1950,83 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     return $sam_qry_cache[4+$part];
   }
 
+
+  sub ref_bounded_tally {
+
+    my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
+    my $ref_offset = $::Flink->[3] - 1;
+
+    my $qlen = length($sam_qry_cache[3]);
+    my $rlen = &sam_reflen;
+    my $pair = "$::Flink->[0] $::Flink->[2]";
+
+    $::LINECACHE{__REG__}{rbt_alnref} = "";
+    $::LINECACHE{__REG__}{rbt_alnaln} = "";
+    $::LINECACHE{__REG__}{rbt_alnqry} = "";
+    $::LINECACHE{__REG__}{rbt_alnrlr} = "";
+
+    if (!$qlen || !$rlen) {
+      errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
+      return "";
+      # fixme. this return is meaningless / not picked up.
+    }
+
+    my @aln_strings = get_aln_strings(0, 1, 2, 3);
+
+    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = @aln_strings;
+
+    $aln_aln =~ s/ /_/g;
+    my $n_ref_insert  = ($aln_aln =~ tr|~|~|);
+    my $n_ref_present = length($aln_aln) - $n_ref_insert;
+
+    my $x_aln_ref = $ref_offset;                         # zero based.
+    my $y_aln_ref = $x_aln_ref + $n_ref_present - 1;     # zero based, inclusive
+
+    if ($x_aln_ref > $ref_x || $y_aln_ref < $ref_y) {
+      errm(0, "sam_rbt request (0-based) [$ref_x $ref_y] not in alignment bounds [$x_aln_ref $y_aln_ref] -- adjusting bounds to overlap");
+      $ref_x = max($ref_x, $x_aln_ref);
+      $ref_y = min($ref_y, $y_aln_ref);
+      if ($ref_x > $ref_y) {
+        errm(0, "sam_rbt request (0-based) [$ref_x $ref_y] zero overlap with alignment bounds [$x_aln_ref $y_aln_ref], result is empty");
+        return "";
+      }
+    }
+
+#print STDERR "have $x_aln_ref $y_aln_ref\n";
+    my ($x_aln_rbt, $y_aln_rbt, $nmatch) = (-1, -1, 0);        # where ref_x and ref_y are mapped to in the alignment string.
+
+#print STDERR "$aln_aln\n";
+    while ($aln_aln =~ /([^~]+)/g) {
+      $nmatch += length($1);
+      if ($ref_offset + $nmatch >= $ref_x+1) {
+        if ($x_aln_rbt < 0) {
+#print "$aln_rlr\n$aln_ref\n$aln_aln\n$aln_qry\n";
+#print "pos=" . pos($aln_aln) . " offset=$ref_offset nmatch=$nmatch refx=$ref_x\n";
+          $x_aln_rbt = pos($aln_aln) - ($ref_offset + $nmatch - $ref_x);
+        }
+      }
+      if ($ref_offset + $nmatch >= $ref_y+1) {
+        if ($y_aln_rbt < 0) {
+          $y_aln_rbt = pos($aln_aln) - ($ref_offset + $nmatch - $ref_y);
+        }
+      }
+    }
+
+    die "RBT compute error bounds $ref_x $ref_y" unless $x_aln_rbt >= 0 && $y_aln_rbt >= 0;
+
+    $::LINECACHE{__REG__}{rbt_alnref} = substr($aln_strings[0], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+    $::LINECACHE{__REG__}{rbt_alnaln} = substr(       $aln_aln, $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+    $::LINECACHE{__REG__}{rbt_alnqry} = substr($aln_strings[2], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+    $::LINECACHE{__REG__}{rbt_alnrlr} = substr($aln_strings[3], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+
+  }
+
+
     # Given inclusive bounds in the reference, compute several local quantities in the bound region.
     # Conceivably this could be done by recomputing the CIGAR string and alignment offsets,
     # but we cannot reuse code easily since a lot is cached and assumes those to be immutable.
     #
-  sub ref_bounded_tally {
+  sub ref_bounded_tally_old {
 
     my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
     my $qlen = length($sam_qry_cache[3]);
@@ -2206,6 +2289,7 @@ while (<>) {
       if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
     }
     ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & 64;
+    ref_bounded_tally_old($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & 128;
   }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
