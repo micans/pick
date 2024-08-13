@@ -1888,7 +1888,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
           last;
         }
         my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
-        $aln_aln .= $it eq 'M' || $it eq '=' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : ' ' x $num;
+        $aln_aln .= $it eq 'M' || $it eq '=' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : '_' x $num;
         $aln_ref .= $subref;
         $aln_qry .= $subqry;
         $pref += $num; $pqry += $num;
@@ -1925,6 +1925,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
          }
        }
        substr($aln_rlr, length($aln_ref)) = "";
+       $aln_aln =~ s/^(\-+)/'_' x length($1)/e;
+       $aln_aln =~ s/(\-+)$/'_' x length($1)/e;
        $::LINECACHE{SAM_ALN} = [ $aln_ref, $aln_aln, $aln_qry, $aln_rlr ];
     }
     return map { $::LINECACHE{SAM_ALN}[$_]; } @_;
