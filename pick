@@ -1967,6 +1967,9 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LINECACHE{__REG__}{rbt_alnqry} = "";
     $::LINECACHE{__REG__}{rbt_alnrlr} = "";
 
+    $::LINECACHE{__REG__}{rbt_match} = 0;
+    $::LINECACHE{__REG__}{rbt_edit}  = $ref_y - $ref_x + 1;
+
     if (!$qlen || !$rlen) {
       errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
       return "";
@@ -2020,6 +2023,10 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LINECACHE{__REG__}{rbt_alnaln} = substr(       $aln_aln, $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
     $::LINECACHE{__REG__}{rbt_alnqry} = substr($aln_strings[2], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
     $::LINECACHE{__REG__}{rbt_alnrlr} = substr($aln_strings[3], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+
+    { $::LINECACHE{__REG__}{rbt_match} =  ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr/\|/\|/);
+      $::LINECACHE{__REG__}{rbt_edit}  =  length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_match};
+    }
 
   }
 
