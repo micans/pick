@@ -866,12 +866,23 @@ length of `N` bases. This is implemented by changing the CIGAR sequence itself a
 `I` segments (additional query sequence) and `D` segments (additional reference sequence). Hence be careful not to use
 this with statistics for deletions and insertions.
 This can change the CIGAR sequence and the reference offset (column 4 in SAM format).
+In alignments non-aligned parts are indicated in the alignment string with `_`.
+The list of symbols used in the alignment string is
 
+```
+-     deletion
+=     expected (intron) deletion
+~     insertion
+_     non-aligned / dangling sequence
+|     matching base
+x     mismatching base
+```
 
 ### Clipping exterior insertions and deletions
 
-`--sam-aln-clip` - convert exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
+By default pick converts exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
 This can change the CIGAR sequence and the reference offset (column 4 in SAM format).
+To avoid this behaviour use `--sam-aln-nonf` (*no normalform*).
 
 
 ### Operators to output alignments

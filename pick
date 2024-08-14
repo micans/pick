@@ -1006,8 +1006,8 @@ EOH
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
-     elsif ($options eq 'sam-aln-clip') {
-       $I_AM_SAM |= 33;                    # 1: i-am-sam. 32: change exterior insertions to soft clips etc
+     elsif ($options eq 'sam-aln-nonf') {  # no normal form.
+       $I_AM_SAM |= 33;                    # 1: i-am-sam. 32: leave exterior as is (otherwise change insertions to soft clips)
      }
      else {
        die "Unrecognised long option --$options";
@@ -1631,7 +1631,7 @@ $::Groupi = 2;    # index within group.
   }
 
 
-  sub sam_adjust_view_clip {
+  sub sam_normalform {
 
     if ($::Flink->[5] =~ s/^(\d+)D//) { $::Flink->[3] += $1; }
     if ($::Flink->[5] =~ s/\d+D$//)   {                    ; }
@@ -2290,9 +2290,9 @@ while (<>) {
 
   if ($I_AM_SAM) {
 
-    sam_setup_reflendict   if $I_AM_SAM &  8;        # Done only once.
-    sam_adjust_view_clip   if $I_AM_SAM & 32;        # Change trailing indels to soft clips
-    sam_adjust_view_extend if $I_AM_SAM & 16;        # Show trailing parts in alignment
+    sam_setup_reflendict    if $I_AM_SAM &  8;        # Done only once.
+    sam_normalform      unless $I_AM_SAM & 32;        # Change trailing indels to soft clips
+    sam_adjust_view_extend  if $I_AM_SAM & 16;        # Show trailing parts in alignment
 
     if ($I_AM_SAM & 6) {                             # Either query or ref sequence needed.
       if (sam_setup_aln_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
