@@ -969,28 +969,24 @@ e=144,n=108             # An 'expected' deletion (intron/splice) event at positi
 
 ### Operators returning offsets and lengths
 
-The following set of operators does not need sequences, but `reflen` does expect sequence length information
+The following set of operators (provided when `--sam is used`) does not need sequences, but `reflen` does expect sequence length information
 to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
 
 ```
----------------------------------------
-using --sam         without using --sam or --sam-h
-   or --sam-h
----------------------------------------
-qs::,qrystart       qs::6,cgqrystart         query start, 1-based
-qe::,qryend         qe::6,cgqryend           query end 1-based, inclusive
-qc::,qrycov         qc::6,cgqrycov           amount of bases covered by alignment in query
-ql::,qrylen         qc::6,cgqrylen           query length
+qs::,qrystart       query start, 1-based
+qe::,qryend         query end 1-based, inclusive
+qc::,qrycov         amount of bases covered by alignment in query
+ql::,qrylen         query length
 
-rs::,refstart       rs::4                    reference start, 1-based
-re::,refend         re::4:6,cgrefcov,add     reference end, 1-based, inclusive
-re::,refcov         rc::6,cgrefcov           amount of bases covered by alignment in reference
-rl::,reflen         rl::3^seqlen,map         reference length
+rs::,refstart       reference start, 1-based
+re::,refend         reference end, 1-based, inclusive
+re::,refcov         amount of bases covered by alignment in reference
+rl::,reflen         reference length
 
-qcl::,qryclipl      NA                       Number of 5p trailing query bases [sam]
-qcr::,qryclipr      NA                       Number of 3p trailing query bases [sam]
-rcl::,refclipl      NA                       Number of 5p trailing reference bases [sam]
-rcr::,refclipr      NA                       Number of 3p trailing reference bases [sam]
+qcl::,qryclipl      Number of 5p trailing query bases [sam]
+qcr::,qryclipr      Number of 3p trailing query bases [sam]
+rcl::,refclipl      Number of 5p trailing reference bases [sam]
+rcr::,refclipr      Number of 3p trailing reference bases [sam]
 ```
 
 Make sure to use `samtools view -h` to include header information so that `reflen` is available.
@@ -1026,21 +1022,6 @@ Returns the size of the longest stretch of bases across all alignment types in `
 
 `<cigarstring>` `<cigaritems>` **cgcount**  
 Returns the number of events across all alignment types in `<cigaritems>`.
-
-`<cigarstring>` cgqrycov - still supported but **qrycov** operator prefered.  
-The number of bases in query covered by this alignment; the sum of all events in `MI=X`.
-
-`<cigarstring>` cgqryend - still supported but **qryend** operator prefered.  
-The end of the alignment in query (1-based).
-
-`<cigarstring>` cgqrylen - still supported but **qrylen** operator prefered.  
-The length of query, the sum of all events in `MIS=X`.
-
-`<cigarstring>` cgqrystart - still supported byut **qrystart** operator prefered.  
-The start of the alignment in query (1-based).
-
-`<cigarstring>` cgrefcov - still supported but **refcov** operator prefered.  
-The number of bases in reference covered by this alignment; the sum of all events in `MDN=X`.
 
 You can use the `get` operator (`<value> <regex> get`)
 to retrieve information from the concatenated fields in picks last input column.
@@ -1494,11 +1475,6 @@ catall      *           Stack-joined        Stringified stack [string/devour]
 ceil        x           ceil(x)             The ceil of x [math]
 cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
 cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
-cgqrycov    c           qrycov              Count of query bases covered by cigar string c (MI=X events) [string/sam]
-cgqryend    c           qryend              Last base considered aligned in query for cigar string c [string/sam]
-cgqrylen    c           qrylen              Length of query (MIS=X events) in cigar string c [string/sam]
-cgqrystart  c           qrystart            First base considered aligned in query for cigar string c [string/sam]
-cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
 cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
 cos         x           cos(x)              Cosine of x [math]
 dd          x N         x'                  Floating point x printed with N decimal digits [math/format/precision]
@@ -1590,11 +1566,6 @@ alnmatchx   -           alnmatchx           Number of base mismatches [sam]
 alnposx     -           alnposx             Mismatch positions [sam]
 cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
 cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
-cgqrycov    c           qrycov              Count of query bases covered by cigar string c (MI=X events) [string/sam]
-cgqryend    c           qryend              Last base considered aligned in query for cigar string c [string/sam]
-cgqrylen    c           qrylen              Length of query (MIS=X events) in cigar string c [string/sam]
-cgqrystart  c           qrystart            First base considered aligned in query for cigar string c [string/sam]
-cgrefcov    c           refcov              Count of reference bases covered by cigar string c (MDN=X events) [string/sam]
 cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
 qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
 qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]

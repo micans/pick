@@ -16,3 +16,5 @@ for i in {1..40}; do
   } | ../utils/makedna.pl 0.03 0.03 0.03 5
 done > qry3.fa
 
+# vsearch --usearch_global qry3.fa  --db ref3.fa --strand both --samheader --id 0.7 --samout >(samtools view -h > qry3v.sam)
+

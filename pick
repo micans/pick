@@ -295,11 +295,6 @@ my %cp_opdefinitions =
      cgsum     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'sum') }, "c s\tSum of s in c\tSum of lengths of s items in cigar string c\tstring/sam" ],
      cgmax     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
      cgcount   => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
-     cgrefcov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MDN=X', 'sum') }, "c\trefcov\tCount of reference bases covered by cigar string c (MDN=X events)\tstring/sam" ],
-     cgqrycov  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MI=X', 'sum') }, "c\tqrycov\tCount of query bases covered by cigar string c (MI=X events)\tstring/sam"  ],
-     cgqrylen  => [ 1, sub { $::STACK[-1] = acigar($::STACK[-1], 'MISH=X', 'sum') }, "c\tqrylen\tLength of query (MIS=X events) in cigar string c\tstring/sam" ],
-     cgqryend  => [ 1, sub { my $e = acigar($::STACK[-1], 'MISH=X', 'sum'); $e -= $1 if $::STACK[-1] =~ /(\d+)[ISH]$/; $::STACK[-1] = $e }, "c\tqryend\tLast base considered aligned in query for cigar string c\tstring/sam" ],
-     cgqrystart=> [ 1, sub { my $s = 1; $s += $1 if $::STACK[-1] =~ /^(\d+)[ISH]/; $::STACK[-1] = $s }, "c\tqrystart\tFirst base considered aligned in query for cigar string c\tstring/sam" ],
 
      get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
                                          ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
@@ -418,7 +413,7 @@ my %cp_samdefs = (
          # Below four operators compensate for changes made if --sam-aln-context is used
          # and are consequently slightly hairy (specifically matching X cigar operator in pre-ulterior position).
          # Primarily useful to confirm validity of transformations in testing,
-         # it is not recommended to mix getting alignment statistics with displaying context alignments.
+         # it is, for now, not recommended to mix getting alignment statistics with displaying context alignments.
          #
      refclipl  => [ 0, sub { my $n = $::Flink->[5] =~ /^(\d+)([SDHI])((\d+)X)?/ ? $1 * $isD{$2} + (defined($3) ? $4 : 0) : 0; $n += $::Flink->[3] -1; push @::STACK, $n; }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
      refclipr  => [ 0, sub { my $n = $::Flink->[5] =~ /((\d+)X)?(\d+)([SDHI])$/ ? $3 * $isD{$4} + (defined($1) ? $2 : 0) : 0; $n += &sam_reflen - $::Flink->[3] + 1 - acigar($::Flink->[5], 'MDN=X', 'sum'); push @::STACK, $n; }, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
