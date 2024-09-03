@@ -5,6 +5,8 @@
   ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/ /sgn1eq/ /sgn1ne/
      /epd/ /omd/
 
+  -  -@@ and -@ selections allowed in/before command line arguments, to aid purpose self-explanation.
+
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
      For /any/ etc we need abs(int()), so depending on perl needs deep dive.
 
