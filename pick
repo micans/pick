@@ -346,6 +346,7 @@ my %cp_opdefinitions =
      md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
      len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
      rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
+     forward   => [ 2, sub { $::STACK[-2] = $::STACK[-2] ? $::STACK[-1]: rc($::STACK[-1]) }, "B seq\tforward\tseq if B else rc(seq)\tstring" ],
      abs       => [ 1, sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
      sqrt      => [ 1, sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
      sq        => [ 1, sub { $::STACK[-1] = $::STACK[-1]**2 }, "x\tx^2\tSquare of x\tmath" ],
@@ -1951,7 +1952,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   sub get_qry_part {
     my $part = shift;
     my $qry = $sam_qry_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
-    return $qry if $part == -1;
+    return $qry if $part == -1;                      # oh my, who hallucinated this interface.
     return $sam_qry_cache[4+$part] if defined($sam_qry_cache[4+$part]);
     my $qrylen = length($qry);
     if (!$qrylen) {
