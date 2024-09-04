@@ -74,7 +74,8 @@ my $PAT_PASS       = '';    # PURGE is removed before processing, PASS is passed
 my $INSERT_OFFSET  = undef; # with -A, where to put extra columns (by default at the end).
 my $OFFSET_OMEGA   = -1;    # with -O<N>, accept overflow ragged columns from position <N> onwards.
 my $sam_refdictname   = "";    # The first dictionary specified. Either with --sam/fname or --fasta-dict=fname
-my $progress       = 0;
+my $progress1      = 0;
+my $progress2      = 0;
 
 my $B_print_header = 1;     # B_oolean. Also accessed in subroutines.
 my $B_select_and   = 1;     # Require all selections to match (use -o for any)
@@ -922,8 +923,9 @@ EOH
      elsif ($options =~ /^idx-map$/) {
        $F_list |= 4;
      }
-     elsif ($options eq 'progress') {
-       $progress = 1000000;
+     elsif ($options =~ /progress(=(\d+)\/(\d+))?/) {
+       $progress1 = defined($1) ? $2 : 1000000;
+       $progress2 = defined($1) ? $3 : 0;
      }
      elsif ($options =~ /^pstore(\/(.*?))?(\/(.*?))?$/) {
        $B_pstore = 1;
@@ -2357,12 +2359,13 @@ while (<>) {
   if ($index_demux >= 0) { demux_do_row($F[$index_demux], $output, 1); }
   else                   { print $output; }
 
-  if ($progress && $::Nrows % $progress == 0) {
+  if ($progress1 && $::Nrows % $progress1 == 0) {
     print STDERR '.';
+    printf STDERR " %9d\n", $::Nrows if $progress2 && $::Nrows % ($progress1 * $progress2) == 0;
   }
 }
 
-print STDERR "\n" if $progress;
+print STDERR "\n" if $progress1;
 
 
 print "$Nkeep\n" if $B_count;
