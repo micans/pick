@@ -3,12 +3,14 @@
 use strict;
 use warnings;
 
+my $suffix = shift;
+
 local $/ = undef;
 open(R, '<pick') || die "No read";
 open(S, '>riskybusiness.txt') || die "No write";
 
 my $text = <R>; close(R);
-my $newversion = `echo -n "\$(git describe --abbrev=40 --always --tags)::\$(date +%y-%j)"`;
+my $newversion = `echo -n "\$(date +%y-%j)$suffix"`;
 
 if ($text =~ s/v_v_v = "\K([^"]*)/$newversion/) {
   print S "$text";

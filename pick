@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "648830e05efe4e1a2ddcbfd112dcedb56aac2bd4::24-115";
+my $v_v_v = "24-250a";
 
   #                     Copyright (c) 2022-2024  Stijn van Dongen
   #
@@ -62,7 +62,7 @@ use POSIX;
 
 sub helphelp {
    my $status = shift;
-   print STDERR "Use -l (list) for concise help, -H for long help, -h suppresses header line output\n";
+   print STDERR "Version $v_v_v. Use -l (list) for concise help, -H for long help, -h suppresses header line output\n";
    print STDERR "Pick only works as a pipe, so invoke e.g. as: pick foo bar < data.txt\n";
    exit $status;
 }
