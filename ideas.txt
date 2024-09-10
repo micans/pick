@@ -1,4 +1,8 @@
 
+  -  test whether buffering demux output on large data improves speed; e.g. 100 records buffering.  --demux-buffer=200
+
+  -  split & select? ^foo,bar,zut^,^2,splitget
+
   -  implement pick in rust, working name: pluck
 
   /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
