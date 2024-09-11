@@ -1034,6 +1034,11 @@ EOH
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
+     elsif ($options eq 'sam-nf') {        # normal form; the default. This option intended to nudge command lines towards self-documenting.
+                                           # change insertions to soft clips.
+       1;                                  # vsearch uses exterior insertions and deletions to create end-to-end alignments.
+                                           # with normal form, e.g. maxindel:=6^ID,cgmax computes the max indel in the interior of the match.
+     }
      elsif ($options eq 'sam-aln-nonf') {  # no normal form.
        $I_AM_SAM |= 33;                    # 1: i-am-sam. 32: leave exterior as is (otherwise change insertions to soft clips)
      }

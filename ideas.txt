@@ -1,7 +1,8 @@
 
   -  test whether buffering demux output on large data improves speed; e.g. 100 records buffering.  --demux-buffer=200
 
-  -  split & select? ^foo,bar,zut^,^2,splitget
+  /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,upget
+  \  elaborate pack/unpack support. 
 
   -  implement pick in rust, working name: pluck
 
