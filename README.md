@@ -8,19 +8,19 @@
 Entire scripts can be replaced by concise command line invocations. Some examples:
 
 ```
-pick foo bar                      < data.txt       # pick columns with names foo and bar (header included)
+pick foo bar                        # pick columns named foo and bar (header included)
 
-pick -A @tim/gt/0 qat::foo^-:bar  < data.txt       # pick all columns where the tim value is positive, add new column qat
+pick -h ::end:start,sub^1,add       # compute new column with inclusive interval length, omit header
 
-pick -k 1 2 ::3:4,add             < data.txt       # no names, pick columns 1, 2 and the sum of 3 and 4
+pick -k ::3:4,sub^1,add             # as previous, in the absence of column headers
 
-pick -h ::end:start,sub^1,add     < data.txt       # compute new column with inclusive interval length, omit header
+pick -A @tim/gt/0 qat::foo^-:bar    # pick all rows where tim > 0, add new column qat
 
-pick -k ::3:4,sub^1,add           < data.txt       # as previous, in the absence of column headers
+pick digits::foo^'(\d+)',get        # extract digits from column foo, store in new column 'digits'
 
-pick digits::foo^'(\d+)',get      < data.txt       # extract a sequence of digits from the foo values, store in column/variable 'digits'
+pick -A @foo/gt/1 foo:=bar,abs      # select on foo = abs(bar) without outputting foo
 
-pick --kdict-KEEP=dict.txt @tim~isin~KEEP  < data.txt   # subset rows using a dictionary
+pick --kdict-KEEP=dict.txt @tim~isin~KEEP  # subset rows using a dictionary
 ```
 
 Pick is a standalone script that depends only on a standard perl installation - it should work on any standard Linux (or Unix) OS
