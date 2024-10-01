@@ -753,7 +753,7 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
       }
    }
    sub demux_tally {
-      print STDERR "File\tWritten\tFiltered\tBuffered\n";
+      print STDERR "File\tWritten\tFiltered\tLastFlush\n";
       for (sort { $a cmp $b } keys %fh_demux) {
          print {$fh_demux{$_}[0]} $fh_demux{$_}[4] if $fh_demux{$_}[3] > 0;
          $fh_demux{$_}[0]->close() || print STDERR "-- issue closing file handle for $_\n";
