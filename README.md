@@ -973,20 +973,20 @@ The following set of operators (provided when `--sam is used`) does not need seq
 to be present in the SAM header information and thus needs for example input such as provided by `samtools view -h`.
 
 ```
-qs::,qrystart       query start, 1-based
-qe::,qryend         query end 1-based, inclusive
-qc::,qrycov         amount of bases covered by alignment in query
-ql::,qrylen         query length
+qs::,qry_posx        query start, 1-based
+qe::,qry_posy        query end 1-based, inclusive
+qc::,qry_matched_N   amount of bases covered by alignment in query
+ql::,qry_len         query length
 
-rs::,refstart       reference start, 1-based
-re::,refend         reference end, 1-based, inclusive
-re::,refcov         amount of bases covered by alignment in reference
-rl::,reflen         reference length
+rs::,ref_posx        reference start, 1-based
+re::,ref_posy        reference end, 1-based, inclusive
+re::,ref_matched_N   amount of bases covered by alignment in reference
+rl::,ref_len         reference length
 
-qcl::,qryclipl      Number of 5p trailing query bases [sam]
-qcr::,qryclipr      Number of 3p trailing query bases [sam]
-rcl::,refclipl      Number of 5p trailing reference bases [sam]
-rcr::,refclipr      Number of 3p trailing reference bases [sam]
+qcl::,qry_trail5p_N  Number of 5p trailing query bases [sam]
+qcr::,qry_trail3p_N  Number of 3p trailing query bases [sam]
+rcl::,ref_trail5p_N  Number of 5p trailing reference bases [sam]
+rcr::,ref_trail3p_N  Number of 3p trailing reference bases [sam]
 ```
 
 Make sure to use `samtools view -h` to include header information so that `reflen` is available.
@@ -1555,30 +1555,30 @@ These are additionally available if `--sam` is supplied:
 
 
 ```
-Operator    Consumed    Produced            Description
+Operator       Consumed    Produced            Description
 --------------------------------------------------------------------------------
-aln_aln     -           aln_aln             Alignment string between reference and query [sam]
-aln_qry     -           aln_qry             Alignment string for query [sam]
-aln_ref     -           aln_ref             Alignment string for reference [sam]
-alnedit     -           alnedit             Edit distance excluding clipping [sam]
-alnmatch    -           alnmatch            Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
-alnmatchx   -           alnmatchx           Number of base mismatches [sam]
-alnposx     -           alnposx             Mismatch positions [sam]
-cgcount     c s         Count of s in c     Count of s items in cigar string c [string/sam]
-cgmax       c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
-cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
-qryclipl    -           qryclipl            Number of 5p trailing query bases [sam]
-qryclipr    -           qryclipr            Number of 3p trailing query bases [sam]
-qrycov      -           qrycov              Span of query covered by alignment [sam]
-qryend      -           qryend              Last base in query covered by alignment [sam]
-qrylen      -           qrylen              Length of query sequence [sam]
-qrystart    -           qrystart            Start of alignment in query [sam]
-refclipl    -           refclipl            Number of 5p trailing reference bases [sam]
-refclipr    -           refclipr            Number of 3p trailing reference bases [sam]
-refcov      -           refcov              Span of reference covered by alignment [sam]
-refend      -           refend              Last base in reference covered by alignment [sam]
-reflen      -           reflen              Length of reference sequence (requires samtools view -h) [sam]
-refstart    -           refstart            Field 4 from sam format [sam]
+aln_aln        -           <str>               Alignment string between reference and query [sam]
+aln_qry        -           <str>               Alignment string for query [sam]
+aln_ref        -           <str>               Alignment string for reference [sam]
+aln_nedit      -           N                   Edit distance excluding clipping [sam]
+aln_nmatch     -           N                   Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
+aln_nmatchx    -           N                   Number of base mismatches [sam]
+alnposx        -           <list>              Mismatch positions [sam]
+cgcount        c s         Count of s in c     Count of s items in cigar string c [string/sam]
+cgmax          c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
+cgsum          c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
+qry_trail5p_N  -           N                   Number of 5p trailing query bases [sam]
+qry_trail3p_N  -           N                   Number of 3p trailing query bases [sam]
+qry_matched_N  -           N                   Span of query covered by alignment [sam]
+qry_posx       -           x                   Start of alignment in query [sam]
+qry_posy       -           y                   Last base in query covered by alignment [sam]
+qry_len        -           L                   Length of query sequence [sam]
+ref_trail5p_N  -           N                   Number of 5p trailing reference bases [sam]
+ref_trail3p_N  -           N                   Number of 3p trailing reference bases [sam]
+ref_matched_N  -           N                   Span of reference covered by alignment [sam]
+ref_posx       -           x                   Field 4 from sam format [sam]
+ref_posy       -           y                   Last base in reference covered by alignment [sam]
+ref_len        -           L                   Length of reference sequence (requires samtools view -h) [sam]
 ```
 
 
