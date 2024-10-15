@@ -986,9 +986,6 @@ EOH
        print "pick version: $v_v_v\n";
        exit 0;
      }
-     elsif ($options eq 'sam-umi-pp') {
-       &sam_set_umi_pp;
-     }
      elsif ($options =~ /^onames=(.+)$/) {
        $nameslist=$1;
        $B_posthoc_names = 1;
@@ -1904,10 +1901,6 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   BEGIN {
     my %patchy_penalty = ( '|' => 0, '+' => 0, 'x' => 2, '_' => 1, '-' => 1, '~' => 1, '=' => 0 );
 
-    sub sam_set_umi_pp {
-      %patchy_penalty  = ( '|' => 0, '+' => 0, 'x' => 1, '_' => 2, '-' => 2, '~' => 2, '=' => 0 );
-    }
-
     sub aln_patchiness {
 
       my ($string, $winsize) = @_;
@@ -1925,7 +1918,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
         my $type = $2;
         my $stretch = $1;
         my $len = length($stretch);
-        my $fine = $len * $patchy_penalty{$type};
+        my $fine = $patchy_penalty{$type};
         die "No type $type" unless defined($fine);
 
         my $p = $pos - $len;
