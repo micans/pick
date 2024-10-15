@@ -407,14 +407,18 @@ my %cp_samdefs = (
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
-     spuv            => [ 1, sub { my $r = $SPUV{$::STACK[-1]};  die "no spuv{$::STACK[-1]}" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
+    _spuv            => [ 1, sub { my $r = $SPUV{$::STACK[-1]};  die "no spuv{$::STACK[-1]}" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
 
      ref_posx        => [ 0, sub { push @::STACK, $SPUV{ref_posx} }, "-\trefstart\tStart of alignment in ref (1-based)\tsam" ],
      ref_posy        => [ 0, sub { push @::STACK, $SPUV{ref_posy} }, "-\trefend\tLast base in reference covered by alignment (1-based)\tsam" ],
      ref_len         => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
 
+     ref_trail5p     => [ 0, sub { push @::STACK, $SPUV{ref_trail5p} }, "-\tref_trail5p\t5' unaligned reference sequence\tsam" ],
+     ref_matched     => [ 0, sub { push @::STACK, $SPUV{ref_matched} }, "-\tref_matched\tmatched reference sequence\tsam" ],
+     ref_trail3p     => [ 0, sub { push @::STACK, $SPUV{ref_trail3p} }, "-\tref_trail3p\t3' reference query sequence\tsam" ],
+
      ref_trail5p_N   => [ 0, sub { push @::STACK, $SPUV{ref_trail5p_N} }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
-     ref_matched_N   => [ 0, sub { push @::STACK, $SPUV{ref_trail5p_N} }, "-\trefclipl\tNumber of 5p matched reference bases (mismatches and indels allowed)\tsam" ],
+     ref_matched_N   => [ 0, sub { push @::STACK, $SPUV{ref_matched_N} }, "-\trefclipl\tNumber of 5p matched reference bases (mismatches and indels allowed)\tsam" ],
      ref_trail3p_N   => [ 0, sub { push @::STACK, $SPUV{ref_trail3p_N} }, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
 
 
@@ -1996,7 +2000,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
     my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
 
-    my $pref = $::Flink->[3]-1;
+    my $pref = $::Flink->[3]-1;        # note: the aligned part should use $SPUV{ref_posx} and $SPUV{aln_matched_cgr}
+                                       # $::Flink->[3] and $::Flnk->[5] may have been changed to accomodate alignment context.
 
     my ($rlen, $qlen) = (length($ref), length($qry));
 
@@ -2081,8 +2086,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LINECACHE{__REG__}{rbt_alnqry} = "";
     $::LINECACHE{__REG__}{rbt_alnrlr} = "";
 
-    $::LINECACHE{__REG__}{rbt_match} = 0;
-    $::LINECACHE{__REG__}{rbt_edit}  = $ref_y - $ref_x + 1;
+    $::LINECACHE{__REG__}{rbt_nmatch} = 0;
+    $::LINECACHE{__REG__}{rbt_nedit}  = $ref_y - $ref_x + 1;
 
     if (!$qlen || !$rlen) {
       errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
@@ -2138,8 +2143,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LINECACHE{__REG__}{rbt_alnqry} = substr($aln_strings[2], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
     $::LINECACHE{__REG__}{rbt_alnrlr} = substr($aln_strings[3], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
 
-    { $::LINECACHE{__REG__}{rbt_match} =  ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr/\|/\|/);
-      $::LINECACHE{__REG__}{rbt_edit}  =  length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_match};
+    { $::LINECACHE{__REG__}{rbt_nmatch} =  ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr/\|/\|/);
+      $::LINECACHE{__REG__}{rbt_nedit}  =  length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_nmatch};
     }
 
   }
@@ -2272,8 +2277,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LINECACHE{__REG__}{rbt_alnqry} = $aln_ok ? substr($aln_strings[2], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
     $::LINECACHE{__REG__}{rbt_alnrlr} = $aln_ok ? substr($aln_strings[3], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
 
-    $::LINECACHE{__REG__}{rbt_match}  = ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr /\|/\|/);
-    $::LINECACHE{__REG__}{rbt_edit}   = length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_match};
+    $::LINECACHE{__REG__}{rbt_nmatch}  = ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr /\|/\|/);
+    $::LINECACHE{__REG__}{rbt_nedit}   = length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_nmatch};
 
     { my $aq = $::LINECACHE{__REG__}{rbt_alnqry};
       my $qs = $::LINECACHE{__REG__}{rbt_qryseq};

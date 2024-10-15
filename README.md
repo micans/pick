@@ -900,9 +900,9 @@ aln_ref      -      alignment string for reference
 ```
 (require the reference sequences to be loaded - see above)
 ---------------------------------------
-alnedit      -      Edit distance excluding clipping - obtained from NM field
-alnmatch     -      Amount of reference/query matched by alignment (ignoring indels and mismatches)
-alnmatchx    -      Number of base mismatches
+aln_nedit      -      Edit distance excluding clipping - obtained from NM field
+aln_nmatch     -      Amount of reference/query matched by alignment (ignoring indels and mismatches)
+aln_nmatchx    -      Number of base mismatches
 alnposx     <num>   Mismatch positions+change and indel sequence reported up to a length of <num>
 ```
 
@@ -926,7 +926,7 @@ Below creates an intermediate tab-separated table with fields `edit-distance`, `
 it then sorts them by edit-distance and outputs them as paragraphs, resulting in correctly displayed alignments, sorted
 from fewest edits to most edits.
 ```
-cat some.sam | pick --sam/some.fa ::,alnedit:1:3,aln_ref,aln_aln,aln_qry^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall > some.align
+cat some.sam | pick --sam/some.fa ::,aln_nedit:1:3,aln_ref,aln_aln,aln_qry^%09,joinall | sort -n | pick -k ::^:'.*'^%0A,joinall > some.align
 
 ...
 
