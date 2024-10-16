@@ -863,9 +863,10 @@ include the computation and extraction of quantities for quality control.
 `--sam-aln-context=<N>` - show additional context of reference sequence and
 (soft-clipped) query sequence in printed alignments, e.g. with `,aln_all`, up to an additional
 length of `N` bases. This is implemented by changing the CIGAR sequence itself and introducing `X` segments (mismatched sequence),
-`I` segments (additional query sequence) and `D` segments (additional reference sequence). Hence be careful not to use
-this with statistics for deletions and insertions.
-This can change the CIGAR sequence and the reference offset (column 4 in SAM format).
+`I` segments (additional query sequence) and `D` segments (additional reference sequence), as well as optionally
+adjusting the reference offset (column 4 in SAM format).
+Sam operators provided by pick (such as `aln_nmatch`) are aware of these changes and will use the substring of
+the CIGAR sequence that corresponds to the aligned parts.
 In alignments non-aligned parts are indicated in the alignment string with `_`.
 The list of symbols used in the alignment string is
 
@@ -903,7 +904,7 @@ aln_ref      -      alignment string for reference
 aln_nedit      -      Edit distance excluding clipping - obtained from NM field
 aln_nmatch     -      Amount of reference/query matched by alignment (ignoring indels and mismatches)
 aln_nmatchx    -      Number of base mismatches
-alnposx     <num>   Mismatch positions+change and indel sequence reported up to a length of <num>
+aln_posinfo   <num>   Mismatch positions+change and indel sequence reported up to a length of <num>
 ```
 
 ### Operators to retrieve query sequence parts
@@ -956,7 +957,7 @@ and can easily be modified to change output format or add filtering modes.
 
 **Example 2**  
 ```
-cat some.sam | pick --sam/some.fa ::^10,alnposx
+cat some.sam | pick --sam/some.fa ::^10,aln_posinfo
 ```
 This outputs a description of all edit events, where indel sequences are reported up to a length of 10.
 The output is a concatenation (separated by `:`) of items of the following types:
@@ -1563,7 +1564,7 @@ aln_ref        -           <str>               Alignment string for reference [s
 aln_nedit      -           N                   Edit distance excluding clipping [sam]
 aln_nmatch     -           N                   Amount of reference/query matched by alignment (ignoring indels and mismatches) [sam]
 aln_nmatchx    -           N                   Number of base mismatches [sam]
-alnposx        -           <list>              Mismatch positions [sam]
+aln_posinfo    -           <list>              Mismatch positions [sam]
 cgcount        c s         Count of s in c     Count of s items in cigar string c [string/sam]
 cgmax          c s         Max of s in c       Max of lengths of s items in cigar string c [string/sam]
 cgsum          c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
