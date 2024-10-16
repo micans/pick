@@ -312,7 +312,8 @@ my %cp_opdefinitions =
      edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
      del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
      delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
-     npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnc\tCount occurrences of pattern p in x\tstring/regex" ],
+     npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
+     nchar     => [ 2, sub { my ($x, $L, $n) = ($::STACK[-2], length($::STACK[-2]), 0); while ($L--) { $n++ if chop($x) eq $::STACK[-1] } $::STACK[-2] = $n; }, "x c\tnc\tCount char c in x\tstring" ],
      map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
                            "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
                   ],
@@ -855,7 +856,7 @@ while (@::spec && $::spec[0] =~ /^-/) {            # cline processing
     if (@::spec) { print "\n"; }
     else { print STDERR <<EOH;
 -- I url-encode (-z) or decode (-zz) any arguments. Useful cases:
-  ^   %5E     ;   %3B     (  %28     <TAB>      %09
+  ^   %5E     ;   %3B     (  %28     <TAB>      %09     |   %7C
   :   %3A     !   %21     )  %29     <NEWLINE>  %0A     ~   %7E
   ,   %2C     /   %2F     <  %3C     <CR>       %0D     @   %40
   %   %25     \\   %5C     >  %3E     <SPACE>    %20     =   %3D

@@ -35,3 +35,8 @@ for tag in vs mm; do
 done
 
 
+for tag in vs mm; do
+   echo -n "For $tag test { nm:i field } == { pick equivalent } failed: "
+   cat qry3$tag.sam | ../pick -qqq --sam/ref3.fa @@2/none/4 e1:=,aln_nedit e2:=,aln_aln,len,aln_aln^%7C,nchar,sub ::e1:e2,sub | pick -ck @1/=0
+done
+
