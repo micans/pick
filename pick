@@ -113,16 +113,16 @@ my $name_demux     = undef;
 my $index_demux    = -1;
 
 my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values. Bit flag variable.
-                            #   1: dealing with sam input
-                            #   2: an operator is used that requires the query sequence
-                            #   4: an operator is used that requires the reference sequence
-                            #   8: check sequence lengths between header and supplied fasta
-                            #  16: show additional trailing parts of sequence op to length ...
-                            #  32: soft clip alignment; e.g. leading/trailing I D X
-                            #  64: compute region-bounded tally
-                            # 128: compute parts for query.
-                            # 256: compute parts for reference.
 
+my $BIT_HAVE_SAM   =    1 << 0;     # dealing with sam input
+my $BIT_SAM_QSEQ   =    1 << 1;     # an operator is used that requires the query sequence
+my $BIT_SAM_RSEQ   =    1 << 2;     # an operator is used that requires the reference sequence
+my $BIT_SAM_CHECKLEN =  1 << 3;     # check sequence lengths between header and supplied fasta
+my $BIT_SAM_CONTEXT =   1 << 4;     # show wider context around alignment
+my $BIT_SAM_NONF   =    1 << 5;     # do not convert exterior insertion to softclip
+my $BIT_SAM_RBT    =    1 << 6;     # compute region bound tally
+my $BIT_SAM_QPARTS =    1 << 7;     # compute parts for query.
+my $BIT_SAM_RPARTS =    1 << 8;     # compute parts for reference.
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -403,7 +403,6 @@ my %cp_samdefs = (
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
-     sam_rbt_old     => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally_old($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
@@ -463,7 +462,20 @@ my %appreciated = qw(
    );
 
    # below bit 2: needs query sequence. bit 4: needs reference sequence.
-my %cp_sam_setup_seqs = (map { ($_, 6) } qw(spuv alnposx aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt sam_rbt_old), map { ($_, 2) } qw(qry_seq qry_trail3p qry_trail5p qry_matched ));
+my %cp_sam_setup_seqs
+= (map { ($_, $BIT_SAM_QSEQ | $BIT_SAM_RSEQ) }
+   qw(
+      alnposx aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt
+   ), map { ($_, $BIT_SAM_QSEQ) }
+   qw(
+      qry_seq
+   ), map { ($_, $BIT_SAM_QSEQ | $BIT_SAM_QPARTS) }
+   qw(
+      qry_trail3p qry_trail5p qry_matched
+   ), map { ($_, $BIT_SAM_RSEQ | $BIT_SAM_RPARTS) }
+   qw(
+      ref_trail3p ref_trail5p ref_matched
+ ));
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -1041,15 +1053,15 @@ EOH
        $OFFSET_OMEGA = 12;
        $::dictnotfound{seqlen} = 0;
        $::dict{seqlen} = {};                # noteme; if --fdict-seqlen=FILE --sam then fdict is thrown away.
-       $I_AM_SAM |= 9;                      # 1: i-am-sam. 8: check sequence lengths between sam header and fasta.
+       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_CHECKLEN;
        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      elsif ($options =~ /^sam-aln-context=(\d+)/) {
-       $I_AM_SAM |= 17;                    # 1: i-am-sam. 16: show sequence beyond aligned part.
+       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_CONTEXT;
        $::sam_max_context = $1;
      }
      elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
-       $I_AM_SAM |= 71;                    # 1: i-am-sam. 64: show sequence beyond aligned part, 6: prepare sequences
+       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_CONTEXT;     # why the context bit here?
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
@@ -1314,11 +1326,11 @@ sub compile_select {
        #
     if ($caller eq 'select') {
       die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
-      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/;
+      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
     }
     else {
       die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$name});
-      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($limit_handle->{$val}) && $op !~ /is(not)?in/;
+      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($limit_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
     }
 
     my $opdef = $sel_opdefinitions{$op};
@@ -1665,10 +1677,10 @@ $::Groupi = 2;    # index within group.
   my @sam_qry_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
 
-  sub sam_setup_reflendict {
+  sub sam_check_reflen {
 
     if (length($sam_refdictname)) {
-      print STDERR "-- Comparing fasta sequence lengths with header information if present\n";
+      print STDERR "-- Comparing fasta sequence lengths with header information if present\n" if $L_verbose >= 0;
       my $nheader = keys %{$::dict{seqlen}};
       my $nfasta  = (keys %{$::dict{$sam_refdictname}}) - 1;        # '*' has been added by pick, compensate for this.
       my $nshared = 0;
@@ -1686,26 +1698,30 @@ $::Groupi = 2;    # index within group.
           }
         }
       }
-      print STDERR "-- Header/Fasta/Shared/Conflict $nheader/$nfasta/$nshared/$Nsam_lenclash\n";
+      print STDERR "-- Header/Fasta/Shared/Conflict $nheader/$nfasta/$nshared/$Nsam_lenclash\n" if $L_verbose >= 0;
     }
-    $I_AM_SAM ^= 8;     # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
+    $I_AM_SAM ^= $BIT_SAM_CHECKLEN;   # noteme / dangersign. This unsets the bit; we are only called if the bit is set.
   }
 
 
-  sub sam_normalform {           # fixme: generalise this to any sequence of ISX (qry) and DX (ref).
+   ## Fixfixme. Is this still needed now that SPUV adapts to all variants of exterior representations?
+   ## Is it useful to normalise any exterior sequence of ISX (qry) and DX (ref)?
+
+  sub sam_normalform {
 
     if ($::Flink->[5] =~ s/^(\d+)D//) { $::Flink->[3] += $1; }
     if ($::Flink->[5] =~ s/\d+D$//)   {                    ; }
 
     if ($::Flink->[5] =~ s/^\d+\KI/S/) {                   ; }
     if ($::Flink->[5] =~ s/\d+\KI$/S/) {                   ; }
-
-         # below is to test undoing the changes made by sam_adjust_view_extend.
-         #
-    if ($::Flink->[5] =~ s/^((\d+)S)?((\d+)X)/($4 + (defined($1) ? $2 : 0)) . 'S'/e) { $::Flink->[3] += $4; }
-    if ($::Flink->[5] =~ s/((\d+)X)((\d+)S)?$/($2 + (defined($3) ? $4 : 0)) . 'S'/e) {                    ; }
   }
 
+
+     ## This adjustment does not affect any of the quantities computed related to
+     ## trail5p, matched and trail3p (by sam_compute_spuv). The view adjustment is achieved
+     ## optionally changing SAM field 3 (reference position) and changing exterior parts
+     ## of the CIGAR string (using X, D, I, S to affect what's output and what the alignment
+     ## status is).
 
   sub sam_adjust_view_extend {
 
@@ -1778,12 +1794,13 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     return $s;
   }
 
-  sub sam_compute_spuv {         # Sam Parts Unified View.
+  sub sam_compute_spuv {                  # Sam Parts Unified View.
 
     my ($get_ref_parts, $get_qry_parts) = @_;
     # TODO: checks for alnedit, compare NM:i: sam field with internal calculation.
 
     { $SPUV{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
+                                          # fixme: only do this when necessary or in a different appropriately guarded place.
 
       my $t5 = $SPUV{aln_trail5p_cgr} = $::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '';
       my $t3 = $SPUV{aln_trail3p_cgr} = $::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '';
@@ -1817,7 +1834,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $SPUV{qry_matched_N} = acigar($SPUV{aln_matched_cgr}, 'MISH=X', 'sum');
       $SPUV{qry_trail3p_N} = cgr_sum_trail_qry($SPUV{aln_trail3p_cgr});
 
-      errm(-1, "Query parts [$SPUV{qry_trail5p_N} + $SPUV{qry_trail3p_N} + $SPUV{qry_matched_N} != $SPUV{qry_len}] [$::Flink->[5]]") unless $SPUV{qry_trail5p_N} + $SPUV{qry_trail3p_N} + $SPUV{qry_matched_N} == $SPUV{qry_len};
+      # errm(-1, "Query parts [$SPUV{qry_trail5p_N} + $SPUV{qry_trail3p_N} + $SPUV{qry_matched_N} != $SPUV{qry_len}] [$::Flink->[5]]") unless $SPUV{qry_trail5p_N} + $SPUV{qry_trail3p_N} + $SPUV{qry_matched_N} == $SPUV{qry_len};
 
       $SPUV{qry_posx}      =  $SPUV{qry_trail5p_N} + 1;
       $SPUV{qry_posy}      =  $SPUV{qry_posx} + $SPUV{qry_matched_N} - 1;
@@ -1890,8 +1907,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     #  | and + indicate matching base (+ is a solitary base - not used currently)
     #  - is a deletion
-    #  = is intronic deletion. Still penalise it in case the alignment
-    #      weaves in and out of intronic sequence.
+    #  = is intronic deletion.
     #  ~ is an insertion
     # 
     # The patch penalty is measured across a sliding window; a rapid alternation
@@ -1899,7 +1915,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     # the highest score.
     # 
   BEGIN {
-    my %patchy_penalty = ( '|' => 0, '+' => 0, 'x' => 2, '_' => 1, '-' => 1, '~' => 1, '=' => 0 );
+    my %patchy_penalty = ( '|' => 0, '+' => 1, 'x' => 2, '_' => 1, '-' => 1, '~' => 1, '=' => 0 );
 
     sub aln_patchiness {
 
@@ -2142,149 +2158,6 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
   }
 
-
-    # Given inclusive bounds in the reference, compute several local quantities in the bound region.
-    # Conceivably this could be done by recomputing the CIGAR string and alignment offsets,
-    # but we cannot reuse code easily since a lot is cached and assumes those to be immutable.
-    #
-  sub ref_bounded_tally_old {
-
-    my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
-    my $qlen = length($sam_qry_cache[3]);
-    my $rlen = &sam_reflen;
-    my $pair = "$::Flink->[0] $::Flink->[2]";
-
-    my @aln_strings = get_aln_strings(0, 1, 2, 3);
-
-    if (!$qlen || !$rlen) {
-      errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
-      return "";
-    }
-
-    my ($pqry, $sqry) = (0, 0);             # position query, start query
-    my $paln = 0;
-    my $pref = $::Flink->[3]-1;
-
-    my ($qry_x_ind, $qry_y_ind) = (-1, -2);     # the outermost positions in query that match ($ref_x, $ref_y)
-    my ($aln_x_ind, $aln_y_ind) = (-1, -2);     # the outermost positions in alignment that match ($ref_x, $ref_y)
-    my ($ref_xq_ind, $ref_yq_ind) = (-1, -2);   # the actual positions matched in ($ref_x, $ref_y)
-
-    my ($M, $D, $E, $I, $S) = (0, 0, 0, 0, 0);
-    my $total_num_in_bounds = 0;
-
-    while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
-
-      my ($num, $it) = ($1, $2);
-      next if $it eq 'H';
-
-      my $rright = $pref + $num;
-      my $qright = $pqry + $num;
-
-      my $project_x = $pref;
-      my $project_y = $it =~ /[MDN=X]/ ? $pref + $num - 1 : $project_x -1;
-      my $num_in_bounds = 0;
-      if ($project_x <= $ref_y && $project_y >= $ref_x) {   # overlap exists.
-        $num_in_bounds = ($ref_y - $ref_x + 1) + ($project_y - $project_x + 1) - (max($ref_y, $project_y) - min($ref_x, $project_x) + 1);
-        # Above: intersection = sum of the the two intervals minus their union.
-        if ($it eq 'I') {
-          # $num_in_bounds = $num if $total_num_in_bounds > 0 && $project_y < $ref_y;    # fixme checkme (insert at boundary)
-          $num_in_bounds = $pref > $ref_x && $total_num_in_bounds > 0 ? $num : 0;
-        }
-      }
-
-                                                #           ref              ref
-                                                #           x................y
-                                                #               px    py     .
-                                                #     px      py
-                                                #           .              px      py
-                                                #     px                           py
-      if ($it eq 'M' || $it eq 'X' || $it eq '=' || $it eq 'D') {
-        if ($num_in_bounds > 0) {
-          if ($qry_x_ind < 0) {
-            ($qry_x_ind, $ref_xq_ind, $aln_x_ind) = ($pqry, $pref, $paln);
-            if ($ref_x > $pref) {
-              $qry_x_ind  += $ref_x - $pref if $it ne 'D';     # made conditional on $it != 'D'.
-              $ref_xq_ind += $ref_x - $pref;
-              $aln_x_ind  += $ref_x - $pref; #if $paln;        # at start alignment is already corrected.
-            }
-          }
-          if ($it ne 'D') {
-            $qry_y_ind  = $pqry + $num - 1;        # update each time ... don't know a priori which one is the last.
-            $ref_yq_ind = $pref + $num - 1;
-          }
-          $aln_y_ind  = $paln + $num - 1;
-          if ($ref_y < $pref + $num -1) {
-            if ($it ne 'D') {
-              $qry_y_ind  -= $pref + $num - 1 - $ref_y;
-              $ref_yq_ind -= $pref + $num - 1 - $ref_y;
-            }
-            $aln_y_ind  -= $pref + $num - 1 - $ref_y;
-          }
-        }
-        if ($rright > $rlen || $qright > $qlen) {
-          print STDERR "[$.] sam_rbt cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
-          last;
-        }
-        if ($it eq 'D') { $D += $num_in_bounds; }
-        else            { $M += $num_in_bounds; $pqry += $num; }
-        $pref += $num;
-      }
-      elsif ($it eq 'I')                { $pqry += $num; $I += $num_in_bounds; }
-      elsif ($it eq 'N')                { $pref += $num; $E += $num_in_bounds; }
-      elsif ($it eq 'S')                { $pqry += $num; $S += $num_in_bounds; }          # checkme. depends on project_y = project_x - 1
-      elsif ($it eq 'P')                { print STDERR "[$.] Unexpected cigar state P for pair $pair\n"; last; }
-      if ($it ne 'S') {
-        $total_num_in_bounds += $num_in_bounds;
-        $paln += $num;
-      }
-    }
-    if ($qry_x_ind < 0 || $qry_y_ind < 0) {
-      # fixme there are surely applications where below warning is not wanted; but as verbosity perhaps ok.
-      errm(1, "sam_rbt one or both of x ($qry_x_ind) and y ($qry_y_ind) not pegged to read ($pair)");
-    }
-
-    $::LINECACHE{__REG__}{rbt_M} = $M;
-    $::LINECACHE{__REG__}{rbt_D} = $D;
-    $::LINECACHE{__REG__}{rbt_E} = $E;
-    $::LINECACHE{__REG__}{rbt_I} = $I;
-    $::LINECACHE{__REG__}{rbt_S} = $S;
-
-    $::LINECACHE{__REG__}{rbt_qryx}   = $qry_x_ind+1;           # fixme: 0/1-based. Logic between choices, naming.
-    $::LINECACHE{__REG__}{rbt_qryy}   = $qry_y_ind+1;
-    $::LINECACHE{__REG__}{rbt_qrylen} = max(0, $qry_y_ind - $qry_x_ind + 1);
-
-    $::LINECACHE{__REG__}{rbt_refxq}  = $ref_xq_ind+1;          # fixme: what is the user interface (for all produced values) for not available?
-    $::LINECACHE{__REG__}{rbt_refyq}  = $ref_yq_ind+1;          # fixme: what is the user interface (for all produced values) for not available?
-
-    my $qry_ok = $qry_x_ind >= 0 && $qry_y_ind >= 0 ? 1 : 0;
-
-    $::LINECACHE{__REG__}{rbt_qryseq} = $qry_ok ? substr($sam_qry_cache[3], $qry_x_ind, $qry_y_ind - $qry_x_ind + 1) : "";
-
-    $::LINECACHE{__REG__}{rbt_alnx}   = $aln_x_ind;
-    $::LINECACHE{__REG__}{rbt_alnlen} = $aln_y_ind - $aln_x_ind + 1;
-
-    my $aln_ok = $aln_x_ind >= 0 && $aln_y_ind >= 0 ? 1 : 0;
-
-    $::LINECACHE{__REG__}{rbt_alnref} = $aln_ok ? substr($aln_strings[0], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
-    $::LINECACHE{__REG__}{rbt_alnaln} = $aln_ok ? substr($aln_strings[1], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
-    $::LINECACHE{__REG__}{rbt_alnqry} = $aln_ok ? substr($aln_strings[2], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
-    $::LINECACHE{__REG__}{rbt_alnrlr} = $aln_ok ? substr($aln_strings[3], $aln_x_ind, $aln_y_ind - $aln_x_ind + 1) : "";
-
-    $::LINECACHE{__REG__}{rbt_nmatch}  = ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr /\|/\|/);
-    $::LINECACHE{__REG__}{rbt_nedit}   = length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_nmatch};
-
-    { my $aq = $::LINECACHE{__REG__}{rbt_alnqry};
-      my $qs = $::LINECACHE{__REG__}{rbt_qryseq};
-      $aq =~ s/[^a-zA-Z]//g;
-      if ($aq ne $qs) {
-         print STDERR "RBT [$pair] excised sequences for alignment and query not matching:\n++ $aq\n++ $qs\n";
-      }
-      if ($::LINECACHE{__REG__}{rbt_qrylen} != $M + $I) {
-         print STDERR "RBT [$pair] excised sequence counts error $::LINECACHE{__REG__}{rbt_qrylen} != $M + $I\n";
-      }
-    }
-  }
-
   sub getalnposx {
 
     my $indel_report_limit = shift;
@@ -2402,16 +2275,17 @@ while (<>) {
 
   if ($I_AM_SAM) {
 
-    sam_setup_reflendict    if $I_AM_SAM &  8;        # Done only once.
-    sam_normalform      unless $I_AM_SAM & 32;        # Change trailing indels to soft clips
-    sam_adjust_view_extend  if $I_AM_SAM & 16;        # Show trailing parts in alignment
+    $SPUV{input_cigar} = $F[5];
 
-    if ($I_AM_SAM & 6) {                              # Either query or ref sequence needed.
-      if (sam_setup_sequences($I_AM_SAM & 2, $I_AM_SAM & 4)) { $Nsamdisc++; $Ndisc++; next; }
+    sam_check_reflen    if     $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
+    sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips
+    sam_adjust_view_extend  if $I_AM_SAM &  $BIT_SAM_CONTEXT;         # Show trailing parts in alignment
+
+    if ($I_AM_SAM & ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) {                # Either query or ref sequence needed.
+      if (sam_setup_sequences($I_AM_SAM & $BIT_SAM_QSEQ, $I_AM_SAM & $BIT_SAM_RSEQ)) { $Nsamdisc++; $Ndisc++; next; }
     }
-    sam_compute_spuv(1, 1);                           # fixme finer control avoid unused computes.
-    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & 64;
-    ref_bounded_tally_old($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & 128;
+    sam_compute_spuv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);     # fixme: don't always need to do this.
+    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT;
   }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.

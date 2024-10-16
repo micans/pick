@@ -1,1 +1,3 @@
 test/*.test
+align/vs.out.*
+align/mm.out.*

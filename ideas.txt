@@ -1,6 +1,6 @@
 
   !  after the spuv (sam parts unified view) introduction, create control over the subsequence
-     extraction; only do if necessary. Reset/init %SPUV at each row?
+     extraction; only do if necessary. Reset/init %SPUV at each row, or guarantee not necessary.
 
   !  inspect the skip/warn-if-no-reference-or-query logic
 
