@@ -964,7 +964,7 @@ The output is a concatenation (separated by `:`) of items of the following types
 ```
 x=3,c=TC                # A mismatch at position 3, base change T to C
 i=65,n=1,s=T            # An insertion at position 65 of size 1, sequence T
-d=79,n=1,s=ATTA         # A deletion at position 79 of size 4, sequence ATTA
+d=79,n=4,s=ATTA         # A deletion at position 79 of size 4, sequence ATTA
 e=144,n=108             # An 'expected' deletion (intron/splice) event at position 144 of size 108
 ```
 

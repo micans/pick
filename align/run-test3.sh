@@ -10,11 +10,12 @@ for tag in mm vs; do
       oput="$tag.out.0$i"'0.txt'
       cat qry3$tag.sam \
          | ../pick -qqq --sam/"$FASTA" --sam-aln-context=$((i*10)) @@2/none/4 \
+               idpart:=^ref=:3^%20%20qry=:1^%20%20flags=:2,catall  \
                qparts:=^QP,rowno^$i,qry_trail5p_N,qry_matched_N,qry_trail3p_N^%09,joinall \
                rparts:=^RP,rowno^$i,ref_trail5p_N,ref_matched_N,ref_trail3p_N^%09,joinall \
                mod_cigar:=6 \
                input_cigar:=^input_cigar,_spuv \
-            ::input_cigar:mod_cigar:qparts:rparts,aln_all^^%0A,joinall > $tag.out.0$i''0.txt
+            ::idpart:input_cigar:mod_cigar:qparts:rparts,aln_all^^%0A,joinall > $tag.out.0$i''0.txt
       md5=$(md5sum < $oput | cut -f 1 -d ' ')
       echo -e "$tag\t$i\t$md5"
    done
