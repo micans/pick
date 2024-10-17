@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "24-288a";
+my $v_v_v = "24-291a";
 
   #                     Copyright (c) 2022-2024  Stijn van Dongen
   #
@@ -152,8 +152,6 @@ $::sam_max_context = 10000;
 $::sam_rbt_x = 0;
 $::sam_rbt_y = 0;
 
-my %SPUV = ();                    # sam parts unified view
-
 sub errm {
   local $" = '][';
   my $vlevel = shift;
@@ -276,8 +274,21 @@ my %cp_opdefinitions =
      groupno   => [ 0, sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
      groupi    => [ 0, sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
 
-     save      => [ 2, sub { $::LINECACHE{__REG__}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
-     fetch     => [ 1, sub { my $v = $::LINECACHE{__REG__}{$::STACK[-1]}; unless (defined($v)) { errm(0, "no value for $::STACK[-1]"); $v = ""; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
+     save      => [ 2, sub { $::LC{__REG__}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
+
+     debug     => [ 1, sub { stacky('debug', 1); my $query = pop @::STACK;
+                         if ($query eq 'fetch') {
+                           print "---> Line $. fetch keys(\n";
+                           for my $level (sort keys %::LC) {
+                             for (sort keys %{$::LC{$level}}) { print " || $level\t$_\t[$::LC{$level}{$_}]\n"; }
+                           }
+                           print ")\n";
+                         } else {
+                           print "---> Line $. unknown debugging mode $query <---\n";
+                         }
+                       }, "mode\t-\t[fetch] dump internal state\tstate/stack" ],
+
+     fetch     => [ 1, sub { my $v = $::LC{__REG__}{$::STACK[-1]}; unless (defined($v)) { errm(0, "no value for $::STACK[-1]"); $v = "NA"; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
      pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate/stack" ],
                                                                      # see /pload_validate/
 
@@ -389,9 +400,11 @@ sub sam_reflen {
 
 my %cp_samdefs = (
 
-     aln_nmatch      => [ 0, sub { push @::STACK, acigar($SPUV{aln_matched_cgr}, 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
-     aln_nedit       => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance excluding clipping\tsam" ],        # fixme test for vsearch exterior clipping is not included.
-     aln_nmatchx     => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($SPUV{aln_matched_cgr}, 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches within aligned part\tsam" ],
+     aln_nmatch      => [ 0, sub { push @::STACK, acigar($::LC{__SPUV__}{aln_matched_cgr}, 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
+     aln_nedit       => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance from NM:i field\tsam" ],
+     aln_nedit_pia   => [ 0, sub { my $x = &get_aln_strings(1); my $ngood = ($x =~ tr/|=_/|=_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_pia\tEdit distance pick-computed (intron aware)\tsam" ],
+     aln_nedit_piu   => [ 0, sub { my $x = &get_aln_strings(1); my $ngood = ($x =~ tr/|_/|_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_piu\tEdit distance pick-computed (intron unaware)\tsam" ],
+     aln_nmatchx     => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::LC{__SPUV__}{aln_matched_cgr}, 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches within aligned part\tsam" ],
 
      aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\taln_posinfo\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
      aln_ref         => [ 0, sub { push @::STACK, &get_aln_strings(0) }, "-\taln_ref\talignment string for reference\tsam" ],
@@ -404,36 +417,35 @@ my %cp_samdefs = (
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
-     sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
-     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LINECACHE{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
+     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{__REG__}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
-    _spuv            => [ 1, sub { my $r = $SPUV{$::STACK[-1]};  die "no spuv{$::STACK[-1]}" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
+    _spuv            => [ 1, sub { my $r = $::LC{__SPUV__}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
 
-     ref_posx        => [ 0, sub { push @::STACK, $SPUV{ref_posx} }, "-\trefstart\tStart of alignment in ref (1-based)\tsam" ],
-     ref_posy        => [ 0, sub { push @::STACK, $SPUV{ref_posy} }, "-\trefend\tLast base in reference covered by alignment (1-based)\tsam" ],
+     ref_posx        => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_posx} }, "-\trefstart\tStart of alignment in ref (1-based)\tsam" ],
+     ref_posy        => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_posy} }, "-\trefend\tLast base in reference covered by alignment (1-based)\tsam" ],
      ref_len         => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
 
-     ref_trail5p     => [ 0, sub { push @::STACK, $SPUV{ref_trail5p} }, "-\tref_trail5p\t5' unaligned reference sequence\tsam" ],
-     ref_matched     => [ 0, sub { push @::STACK, $SPUV{ref_matched} }, "-\tref_matched\tmatched reference sequence\tsam" ],
-     ref_trail3p     => [ 0, sub { push @::STACK, $SPUV{ref_trail3p} }, "-\tref_trail3p\t3' reference query sequence\tsam" ],
+     ref_trail5p     => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_trail5p} }, "-\tref_trail5p\t5' unaligned reference sequence\tsam" ],
+     ref_matched     => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_matched} }, "-\tref_matched\tmatched reference sequence\tsam" ],
+     ref_trail3p     => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_trail3p} }, "-\tref_trail3p\t3' reference query sequence\tsam" ],
 
-     ref_trail5p_N   => [ 0, sub { push @::STACK, $SPUV{ref_trail5p_N} }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
-     ref_matched_N   => [ 0, sub { push @::STACK, $SPUV{ref_matched_N} }, "-\trefclipl\tNumber of 5p matched reference bases (mismatches and indels allowed)\tsam" ],
-     ref_trail3p_N   => [ 0, sub { push @::STACK, $SPUV{ref_trail3p_N} }, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
+     ref_trail5p_N   => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_trail5p_N} }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
+     ref_matched_N   => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_matched_N} }, "-\trefclipl\tNumber of 5p matched reference bases (mismatches and indels allowed)\tsam" ],
+     ref_trail3p_N   => [ 0, sub { push @::STACK, $::LC{__SPUV__}{ref_trail3p_N} }, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
 
 
-     qry_posx        => [ 0, sub { push @::STACK, $SPUV{qry_posx} }, "-\tqrystart\tStart of alignment in query (1-based)\tsam" ],
-     qry_posy        => [ 0, sub { push @::STACK, $SPUV{qry_posy} }, "-\tqryend\tLast base in query covered by alignment (1-based)\tsam" ],
-     qry_len         => [ 0, sub { push @::STACK, $SPUV{qry_len} },  "-\tqrylen\tLength of query sequence\tsam" ],
+     qry_posx        => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_posx} }, "-\tqrystart\tStart of alignment in query (1-based)\tsam" ],
+     qry_posy        => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_posy} }, "-\tqryend\tLast base in query covered by alignment (1-based)\tsam" ],
+     qry_len         => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_len} },  "-\tqrylen\tLength of query sequence\tsam" ],
 
-     qry_trail5p     => [ 0, sub { push @::STACK, $SPUV{qry_trail5p} }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
-     qry_matched     => [ 0, sub { push @::STACK, $SPUV{qry_matched} }, "-\tqry_matched\tmatched query sequence in reference orientation\tsam" ],
-     qry_trail3p     => [ 0, sub { push @::STACK, $SPUV{qry_trail3p} }, "-\tqry_trail3p\t3' unaligned query sequence in reference orientation\tsam" ],
+     qry_trail5p     => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_trail5p} }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
+     qry_matched     => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_matched} }, "-\tqry_matched\tmatched query sequence in reference orientation\tsam" ],
+     qry_trail3p     => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_trail3p} }, "-\tqry_trail3p\t3' unaligned query sequence in reference orientation\tsam" ],
      qry_seq         => [ 0, sub { push @::STACK, &get_qry();}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
 
-     qry_trail5p_N   => [ 0, sub { push @::STACK, $SPUV{qry_trail5p_N} }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
-     qry_matched_N   => [ 0, sub { push @::STACK, $SPUV{qry_matched_N} }, "-\tqryclipl\tNumber of 5p matched query bases (mismatches and indels allowed)\tsam" ],
-     qry_trail3p_N   => [ 0, sub { push @::STACK, $SPUV{qry_trail3p_N} }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
+     qry_trail5p_N   => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_trail5p_N} }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
+     qry_matched_N   => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_matched_N} }, "-\tqryclipl\tNumber of 5p matched query bases (mismatches and indels allowed)\tsam" ],
+     qry_trail3p_N   => [ 0, sub { push @::STACK, $::LC{__SPUV__}{qry_trail3p_N} }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
 
    );
 
@@ -467,7 +479,7 @@ my %appreciated = qw(
 my %cp_sam_setup_seqs
 = (map { ($_, $BIT_SAM_QSEQ | $BIT_SAM_RSEQ) }
    qw(
-      aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt
+      aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu
    ), map { ($_, $BIT_SAM_QSEQ) }
    qw(
       qry_seq
@@ -1063,7 +1075,7 @@ EOH
        $::sam_max_context = $1;
      }
      elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
-       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_CONTEXT;     # why the context bit here?
+       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_RBT;
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
@@ -1230,8 +1242,8 @@ sub acigar {
    my $key = "cigar::$cigar";
    my @subset = split "", $subset;
 
-   if (!defined($::LINECACHE{$key})) {
-      my $c = $::LINECACHE{$key} =
+   if (!defined($::LC{__CIGAR__}{$key})) {
+      my $c = $::LC{__CIGAR__}{$key} =
         { sum   => { map { ($_, 0)  } split "", 'MINDSHP=X' }
         , max   => { map { ($_, 0)  } split "", 'MINDSHP=X' }
         , count => { map { ($_, 0)  } split "", 'MINDSHP=X' } };
@@ -1246,7 +1258,7 @@ sub acigar {
       }
       errm(-1, "unmatched part in cigar string $cigar at $p") unless $p == length($cigar) && $n == length($cigar);
    }
-   my $cache = $::LINECACHE{$key};
+   my $cache = $::LC{__CIGAR__}{$key};
    if ($mode eq 'max')      { my $max = 0; for my $x (@subset) { $max = $cache->{max}{$x} if $cache->{max}{$x} > $max }; return $max }
    elsif ($mode eq 'sum')   { my $sum = 0; $sum += $cache->{sum}{$_} for @subset; return $sum }
    elsif ($mode eq 'count') { my $count = 0; $count += $cache->{count}{$_} for @subset; return $count }
@@ -1706,7 +1718,7 @@ $::Groupi = 2;    # index within group.
   }
 
 
-   ## Fixfixme. Is this still needed now that SPUV adapts to all variants of exterior representations?
+   ## Fixfixme. Is this still needed now that ::LC{__SPUV__} adapts to all variants of exterior representations?
    ## Is it useful to normalise any exterior sequence of ISX (qry) and DX (ref)?
 
   sub sam_normalform {
@@ -1801,55 +1813,55 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my ($get_ref_parts, $get_qry_parts) = @_;
     # TODO: checks for alnedit, compare NM:i: sam field with internal calculation.
 
-    { $SPUV{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
+    { $::LC{__SPUV__}{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
                                           # fixme: only do this when necessary or in a different appropriately guarded place.
 
-      my $t5 = $SPUV{aln_trail5p_cgr} = $::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '';
-      my $t3 = $SPUV{aln_trail3p_cgr} = $::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '';
-      $SPUV{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
+      my $t5 = $::LC{__SPUV__}{aln_trail5p_cgr} = $::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '';
+      my $t3 = $::LC{__SPUV__}{aln_trail3p_cgr} = $::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '';
+      $::LC{__SPUV__}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
 
-      $SPUV{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_trail_ref($SPUV{aln_trail5p_cgr});
-      $SPUV{ref_matched_N} = acigar($SPUV{aln_matched_cgr}, 'MDN=X', 'sum');
-      $SPUV{ref_trail3p_N} = $SPUV{ref_len} - $SPUV{ref_trail5p_N} - $SPUV{ref_matched_N};
+      $::LC{__SPUV__}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_trail_ref($::LC{__SPUV__}{aln_trail5p_cgr});
+      $::LC{__SPUV__}{ref_matched_N} = acigar($::LC{__SPUV__}{aln_matched_cgr}, 'MDN=X', 'sum');
+      $::LC{__SPUV__}{ref_trail3p_N} = $::LC{__SPUV__}{ref_len} - $::LC{__SPUV__}{ref_trail5p_N} - $::LC{__SPUV__}{ref_matched_N};
 
                              # fixme/testme/docme. for reference, the cigar string just peters ou, so no cgr/N correspondence at 3p end.
 
-      $SPUV{ref_posx}      =  $SPUV{ref_trail5p_N} + 1;
-      $SPUV{ref_posy}      =  $SPUV{ref_posx} + $SPUV{ref_matched_N} - 1;
+      $::LC{__SPUV__}{ref_posx}      =  $::LC{__SPUV__}{ref_trail5p_N} + 1;
+      $::LC{__SPUV__}{ref_posy}      =  $::LC{__SPUV__}{ref_posx} + $::LC{__SPUV__}{ref_matched_N} - 1;
 
       if ($get_ref_parts && length($sam_ref_sequence)) {
-        $SPUV{ref_trail5p} = substr($sam_ref_sequence, 0, $SPUV{ref_trail5p_N});
-        $SPUV{ref_matched} = substr($sam_ref_sequence, $SPUV{ref_trail5p_N}, $SPUV{ref_matched_N});
-        $SPUV{ref_trail3p} = substr($sam_ref_sequence, $SPUV{ref_trail5p_N} + $SPUV{ref_matched_N});
+        $::LC{__SPUV__}{ref_trail5p} = substr($sam_ref_sequence, 0, $::LC{__SPUV__}{ref_trail5p_N});
+        $::LC{__SPUV__}{ref_matched} = substr($sam_ref_sequence, $::LC{__SPUV__}{ref_trail5p_N}, $::LC{__SPUV__}{ref_matched_N});
+        $::LC{__SPUV__}{ref_trail3p} = substr($sam_ref_sequence, $::LC{__SPUV__}{ref_trail5p_N} + $::LC{__SPUV__}{ref_matched_N});
       }
       else {
-        $SPUV{ref_trail5p} = 'N';
-        $SPUV{ref_matched} = 'N';
-        $SPUV{ref_trail3p} = 'N';
+        $::LC{__SPUV__}{ref_trail5p} = 'N';
+        $::LC{__SPUV__}{ref_matched} = 'N';
+        $::LC{__SPUV__}{ref_trail3p} = 'N';
       }
       # fixme/testme: where is skip/warn control if no reference sequence.
     }
 
-    { $SPUV{qry_len} = length($sam_qry_cache[3]);   # fixme/testme: where is skip/control if no query sequence.
+    { $::LC{__SPUV__}{qry_len} = length($sam_qry_cache[3]);   # fixme/testme: where is skip/control if no query sequence.
 
-      $SPUV{qry_trail5p_N} = cgr_sum_trail_qry($SPUV{aln_trail5p_cgr});
-      $SPUV{qry_matched_N} = acigar($SPUV{aln_matched_cgr}, 'MISH=X', 'sum');
-      $SPUV{qry_trail3p_N} = cgr_sum_trail_qry($SPUV{aln_trail3p_cgr});
+      $::LC{__SPUV__}{qry_trail5p_N} = cgr_sum_trail_qry($::LC{__SPUV__}{aln_trail5p_cgr});
+      $::LC{__SPUV__}{qry_matched_N} = acigar($::LC{__SPUV__}{aln_matched_cgr}, 'MISH=X', 'sum');
+      $::LC{__SPUV__}{qry_trail3p_N} = cgr_sum_trail_qry($::LC{__SPUV__}{aln_trail3p_cgr});
 
-      # errm(-1, "Query parts [$SPUV{qry_trail5p_N} + $SPUV{qry_trail3p_N} + $SPUV{qry_matched_N} != $SPUV{qry_len}] [$::Flink->[5]]") unless $SPUV{qry_trail5p_N} + $SPUV{qry_trail3p_N} + $SPUV{qry_matched_N} == $SPUV{qry_len};
+      # errm(-1, "Query parts [$::LC{__SPUV__}{qry_trail5p_N} + $::LC{__SPUV__}{qry_trail3p_N} + $::LC{__SPUV__}{qry_matched_N} != $::LC{__SPUV__}{qry_len}] [$::Flink->[5]]") unless $::LC{__SPUV__}{qry_trail5p_N} + $::LC{__SPUV__}{qry_trail3p_N} + $::LC{__SPUV__}{qry_matched_N} == $::LC{__SPUV__}{qry_len};
 
-      $SPUV{qry_posx}      =  $SPUV{qry_trail5p_N} + 1;
-      $SPUV{qry_posy}      =  $SPUV{qry_posx} + $SPUV{qry_matched_N} - 1;
+      $::LC{__SPUV__}{qry_posx}      =  $::LC{__SPUV__}{qry_trail5p_N} + 1;
+      $::LC{__SPUV__}{qry_posy}      =  $::LC{__SPUV__}{qry_posx} + $::LC{__SPUV__}{qry_matched_N} - 1;
 
       if ($get_qry_parts && length($sam_qry_cache[3])) {
-        $SPUV{qry_trail5p} = substr($sam_qry_cache[3], 0, $SPUV{qry_trail5p_N});
-        $SPUV{qry_matched} = substr($sam_qry_cache[3], $SPUV{qry_trail5p_N}, $SPUV{qry_matched_N});
-        $SPUV{qry_trail3p} = substr($sam_qry_cache[3], $SPUV{qry_trail5p_N} + $SPUV{qry_matched_N});
+        $::LC{__SPUV__}{qry_trail5p} = substr($sam_qry_cache[3], 0, $::LC{__SPUV__}{qry_trail5p_N});
+        $::LC{__SPUV__}{qry_matched} = substr($sam_qry_cache[3], $::LC{__SPUV__}{qry_trail5p_N}, $::LC{__SPUV__}{qry_matched_N});
+        $::LC{__SPUV__}{qry_trail3p} = substr($sam_qry_cache[3], $::LC{__SPUV__}{qry_trail5p_N} + $::LC{__SPUV__}{qry_matched_N});
       }
       else {
-        $SPUV{qry_trail5p} = 'N';
-        $SPUV{qry_matched} = 'N';
-        $SPUV{qry_trail3p} = 'N';
+        $::LC{__SPUV__}{qry_trail5p} = 'N';
+        $::LC{__SPUV__}{qry_matched} = 'N';
+        $::LC{__SPUV__}{qry_trail3p} = 'N';
       }
     }
   }
@@ -1992,8 +2004,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
   sub get_aln_strings {
 
-    if (defined($::LINECACHE{SAM_ALN})) {
-      return map { $::LINECACHE{SAM_ALN}[$_]; } @_;
+    if (defined($::LC{__SAM_ALN__})) {
+      return @_ > 1 ? map { $::LC{__SAM_ALN__}{$_}; } @_ : $::LC{__SAM_ALN__}{$_[0]};
     }
 
     my $qry = $sam_qry_cache[3];
@@ -2011,7 +2023,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
     my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
 
-    my $pref = $::Flink->[3]-1;        # note: the aligned part should use $SPUV{ref_posx} and $SPUV{aln_matched_cgr}
+    my $pref = $::Flink->[3]-1;        # note: the aligned part should use $::LC{__SPUV__}{ref_posx} and $::LC{__SPUV__}{aln_matched_cgr}
                                        # $::Flink->[3] and $::Flnk->[5] may have been changed to accomodate alignment context.
 
     my ($rlen, $qlen) = (length($ref), length($qry));
@@ -2073,17 +2085,18 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        $aln_aln =~ s/^([~-]+)/'_' x length($1)/e;
        $aln_aln =~ s/([~-]+)$/'_' x length($1)/e;
 
-       $aln_ref .= '  ' . ($SPUV{ref_trail5p_N} ? '<' : '[');
-       $aln_ref .=         $SPUV{ref_trail3p_N} ? '>' : ']';
-       $aln_ref .= '  ' . join ', ', map { $SPUV{$_} } qw(ref_trail5p_N ref_matched_N ref_trail3p_N);
+       $aln_ref .= '  ' . ($::LC{__SPUV__}{ref_trail5p_N} ? '<' : '[');
+       $aln_ref .=         $::LC{__SPUV__}{ref_trail3p_N} ? '>' : ']';
+       $aln_ref .= '  ' . join ', ', map { $::LC{__SPUV__}{$_} } qw(ref_trail5p_N ref_matched_N ref_trail3p_N);
 
-       $aln_qry .= '  ' . ($SPUV{qry_trail5p_N} ? '<' : '[');
-       $aln_qry .=         $SPUV{qry_trail3p_N} ? '>' : ']';
-       $aln_qry .= '  ' . join ', ', map { $SPUV{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
+       $aln_qry .= '  ' . ($::LC{__SPUV__}{qry_trail5p_N} ? '<' : '[');
+       $aln_qry .=         $::LC{__SPUV__}{qry_trail3p_N} ? '>' : ']';
+       $aln_qry .= '  ' . join ', ', map { $::LC{__SPUV__}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
 
-       $::LINECACHE{SAM_ALN} = [ $aln_ref, $aln_aln, $aln_qry, $aln_rlr ];
+       @{$::LC{__SAM_ALN__}}{qw(0 1 2 3)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
     }
-    return map { $::LINECACHE{SAM_ALN}[$_]; } @_;
+
+    return @_ > 1 ? map { $::LC{__SAM_ALN__}{$_}; } @_ : $::LC{__SAM_ALN__}{$_[0]};
   }
 
   sub get_qry {
@@ -2099,13 +2112,13 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my $rlen = &sam_reflen;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    $::LINECACHE{__REG__}{rbt_alnref} = "";
-    $::LINECACHE{__REG__}{rbt_alnaln} = "";
-    $::LINECACHE{__REG__}{rbt_alnqry} = "";
-    $::LINECACHE{__REG__}{rbt_alnrlr} = "";
+    $::LC{__REG__}{rbt_alnref} = "";
+    $::LC{__REG__}{rbt_alnaln} = "";
+    $::LC{__REG__}{rbt_alnqry} = "";
+    $::LC{__REG__}{rbt_alnrlr} = "";
 
-    $::LINECACHE{__REG__}{rbt_nmatch} = 0;
-    $::LINECACHE{__REG__}{rbt_nedit}  = $ref_y - $ref_x + 1;
+    $::LC{__REG__}{rbt_nmatch} = 0;
+    $::LC{__REG__}{rbt_nedit}  = $ref_y - $ref_x + 1;
 
     if (!$qlen || !$rlen) {
       errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
@@ -2117,7 +2130,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = @aln_strings;
 
-    $aln_aln =~ s/ /_/g;
+    $aln_aln =~ s/ /_/g;                                 # fixme is this still relevant?
     my $n_ref_insert  = ($aln_aln =~ tr|~|~|);
     my $n_ref_present = length($aln_aln) - $n_ref_insert;
 
@@ -2156,13 +2169,13 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     die "RBT compute error bounds $ref_x $ref_y" unless $x_aln_rbt >= 0 && $y_aln_rbt >= 0;
 
-    $::LINECACHE{__REG__}{rbt_alnref} = substr($aln_strings[0], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
-    $::LINECACHE{__REG__}{rbt_alnaln} = substr(       $aln_aln, $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
-    $::LINECACHE{__REG__}{rbt_alnqry} = substr($aln_strings[2], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
-    $::LINECACHE{__REG__}{rbt_alnrlr} = substr($aln_strings[3], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+    $::LC{__REG__}{rbt_alnref} = substr($aln_strings[0], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+    $::LC{__REG__}{rbt_alnaln} = substr(       $aln_aln, $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);   # fixme
+    $::LC{__REG__}{rbt_alnqry} = substr($aln_strings[2], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
+    $::LC{__REG__}{rbt_alnrlr} = substr($aln_strings[3], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
 
-    { $::LINECACHE{__REG__}{rbt_nmatch} =  ($::LINECACHE{__REG__}{rbt_alnaln} =~ tr/\|/\|/);
-      $::LINECACHE{__REG__}{rbt_nedit}  =  length($::LINECACHE{__REG__}{rbt_alnaln}) - $::LINECACHE{__REG__}{rbt_nmatch};
+    { $::LC{__REG__}{rbt_nmatch} =  ($::LC{__REG__}{rbt_alnaln} =~ tr/\|/\|/);
+      $::LC{__REG__}{rbt_nedit}  =  length($::LC{__REG__}{rbt_alnaln}) - $::LC{__REG__}{rbt_nmatch};
     }
 
   }
@@ -2224,7 +2237,7 @@ LINE:
 
 while (<>) {
 
-  %::LINECACHE = ();
+  %::LC = ();
   my $Nprotect_previous = $Nprotect;
 
   if ($F_ignore) {
@@ -2284,7 +2297,7 @@ while (<>) {
 
   if ($I_AM_SAM) {
 
-    $SPUV{input_cigar} = $F[5];
+    $::LC{__SPUV__}{input_cigar} = $F[5];
 
     sam_check_reflen    if     $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
     sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips
