@@ -67,6 +67,8 @@ sub helphelp {
    exit $status;
 }
 
+sub tmp_debug { local $" = "] ["; print STDERR "[@_]\n"; }
+
 helphelp(0) unless @::spec;
 
 my $PAT_PURGE      = '';    # ::/my style is somewhat intractable. :: tend to be thing accessed in subroutines.
@@ -477,19 +479,18 @@ my %appreciated = qw(
 
    # below bit 2: needs query sequence. bit 4: needs reference sequence.
 my %cp_sam_setup_seqs
-= (map { ($_, $BIT_SAM_QSEQ | $BIT_SAM_RSEQ) }
-   qw(
-      aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu
-   ), map { ($_, $BIT_SAM_QSEQ) }
-   qw(
-      qry_seq
-   ), map { ($_, $BIT_SAM_QSEQ | $BIT_SAM_QPARTS) }
-   qw(
-      qry_trail3p qry_trail5p qry_matched
-   ), map { ($_, $BIT_SAM_RSEQ | $BIT_SAM_RPARTS) }
-   qw(
-      ref_trail3p ref_trail5p ref_matched
- ));
+= (( map { ($_, ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) }
+     qw( aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu),
+   ),
+   ( map { ($_, $BIT_SAM_QSEQ) }
+     qw( qry_seq),
+   ),
+   ( map { ($_, ($BIT_SAM_QSEQ | $BIT_SAM_QPARTS)) }
+     qw( qry_trail3p qry_trail5p qry_matched ),
+   ),
+   ( map { ($_, ($BIT_SAM_RSEQ | $BIT_SAM_RPARTS)) }
+     qw( ref_trail3p ref_trail5p ref_matched)
+  ));
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -1835,6 +1836,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
         $::LC{spuv}{ref_trail3p} = substr($sam_ref_sequence, $::LC{spuv}{ref_trail5p_N} + $::LC{spuv}{ref_matched_N});
       }
       else {
+print STDERR "-> $I_AM_SAM $get_ref_parts $get_qry_parts $sam_ref_sequence\n";
         $::LC{spuv}{ref_trail5p} = 'N';
         $::LC{spuv}{ref_matched} = 'N';
         $::LC{spuv}{ref_trail3p} = 'N';
@@ -2306,7 +2308,7 @@ while (<>) {
     if ($I_AM_SAM & ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) {                # Either query or ref sequence needed.
       if (sam_setup_sequences($I_AM_SAM & $BIT_SAM_QSEQ, $I_AM_SAM & $BIT_SAM_RSEQ)) { $Nsamdisc++; $Ndisc++; next; }
     }
-    sam_compute_spuv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);     # fixme: don't always need to do this.
+    sam_compute_spuv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);
     ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT;
   }
 
