@@ -1,11 +1,5 @@
 
-| !  after the spuv (sam parts unified view) introduction, create control over the subsequence
-|    extraction; only do if necessary. Reset/init %SPUV at each row, or guarantee not necessary.
-|
-|    fetch __REG__ mechanism. aln_all vs rbt_alnall retrieval interface.
-|    _spuv retrieval/inspection
-|
-| !  inspect the skip/warn-if-no-reference-or-query logic
+  !  after the spuv (sam parts unified view) introduction, create further control over the subsequence
 
   /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
   \  elaborate pack/unpack support. 
