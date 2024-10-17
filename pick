@@ -29,6 +29,7 @@ use Digest::MD5 qw(md5_hex);
 use Scalar::Util qw(looks_like_number);
 use List::Util qw(min max);
 use IO::File;
+use Data::Dumper;
 use POSIX;
 # use B::Deparse ();      # seems slow to load. I use it incidentally to pretty-print all code refs.
 
@@ -162,6 +163,11 @@ sub errm {
 
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
+$Data::Dumper::Terse = 1;
+$Data::Dumper::Purity = 1;
+$Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Indent = 1;
+
 my %PNAN =                  # Protect against division by zero etc. Defaults that can be overridden.
 (  PICK_LOG10_INF => -10000
 ,  PICK_LOG2_INF  => -10000
@@ -278,17 +284,10 @@ my %cp_opdefinitions =
 
      save      => [ 2, sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
 
-     debug     => [ 1, sub { stacky('debug', 1); my $query = pop @::STACK;
-                         if ($query eq 'fetch') {
-                           print "---> Line $. fetch keys(\n";
-                           for my $level (sort keys %::LC) {
-                             for (sort keys %{$::LC{$level}}) { print " || $level\t$_\t[$::LC{$level}{$_}]\n"; }
-                           }
-                           print ")\n";
-                         } else {
-                           print "---> Line $. unknown debugging mode $query <---\n";
-                         }
-                       }, "mode\t-\t[fetch] dump internal state\tstate/stack" ],
+     debug     => [ 0, sub { stacky('debug', 1); my $query = pop @::STACK;
+                         if ($query eq 'cache') { print Data::Dumper->Dump([\%::LC]); }
+                         else {                   die "Unknown debugging mode $query"; }
+                       }, "mode\t-\t[cache] dump internal state\tstate/stack" ],
 
      fetch     => [ 1, sub { my $v = $::LC{save}{$::STACK[-1]}; unless (defined($v)) { errm(0, "no value for $::STACK[-1]"); $v = "NA"; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
      pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate/stack" ],
@@ -1811,7 +1810,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
   sub sam_compute_spuv {                  # Sam Parts Unified View.
 
-    my ($get_ref_parts, $get_qry_parts) = @_;
+    my ($get_qry_parts, $get_ref_parts) = @_;
     # TODO: checks for alnedit, compare NM:i: sam field with internal calculation.
 
     { $::LC{spuv}{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
@@ -1850,7 +1849,7 @@ print STDERR "-> $I_AM_SAM $get_ref_parts $get_qry_parts $sam_ref_sequence\n";
       $::LC{spuv}{qry_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MISH=X', 'sum');
       $::LC{spuv}{qry_trail3p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail3p_cgr});
 
-      # errm(-1, "Query parts [$::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N} != $::LC{spuv}{qry_len}] [$::Flink->[5]]") unless $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N} == $::LC{spuv}{qry_len};
+      errm(-1, "Query parts [$::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N} != $::LC{spuv}{qry_len}] [$::Flink->[5]]") unless $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N} == $::LC{spuv}{qry_len};
 
       $::LC{spuv}{qry_posx}      =  $::LC{spuv}{qry_trail5p_N} + 1;
       $::LC{spuv}{qry_posy}      =  $::LC{spuv}{qry_posx} + $::LC{spuv}{qry_matched_N} - 1;
@@ -2006,8 +2005,8 @@ print STDERR "-> $I_AM_SAM $get_ref_parts $get_qry_parts $sam_ref_sequence\n";
 
   sub get_aln_strings {
 
-    if (defined($::LC{samaln})) {
-      return @_ > 1 ? map { $::LC{samaln}{$_}; } @_ : $::LC{samaln}{$_[0]};
+    if (defined($::LC{alnstrings})) {
+      return @_ > 1 ? map { $::LC{alnstrings}{$_}; } @_ : $::LC{alnstrings}{$_[0]};
     }
 
     my $qry = $sam_qry_cache[3];
@@ -2095,10 +2094,10 @@ print STDERR "-> $I_AM_SAM $get_ref_parts $get_qry_parts $sam_ref_sequence\n";
        $aln_qry .=         $::LC{spuv}{qry_trail3p_N} ? '>' : ']';
        $aln_qry .= '  ' . join ', ', map { $::LC{spuv}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
 
-       @{$::LC{samaln}}{qw(0 1 2 3)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
+       @{$::LC{alnstrings}}{qw(0 1 2 3)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
     }
 
-    return @_ > 1 ? map { $::LC{samaln}{$_}; } @_ : $::LC{samaln}{$_[0]};
+    return @_ > 1 ? map { $::LC{alnstrings}{$_}; } @_ : $::LC{alnstrings}{$_[0]};
   }
 
   sub get_qry {
@@ -2239,7 +2238,7 @@ LINE:
 
 while (<>) {
 
-  %::LC = ();
+  %::LC = (  __LINE__ => $. );
   my $Nprotect_previous = $Nprotect;
 
   if ($F_ignore) {
@@ -2261,7 +2260,9 @@ while (<>) {
 
   if ($OFFSET_OMEGA > 0 && @F < $OFFSET_OMEGA) {
     if ($I_AM_SAM && $::Nrows < 5 && (@F < 11 || !looks_like_number($F[1]))) {
-      print STDERR "This does not look like SAM format [$_]\n";
+      print STDERR "Line $. does not look like SAM format [$_]\n";
+      $Nskip++;
+      next LINE;
     }
     push @F, ( ("") x ($OFFSET_OMEGA - @F)) ;
   }
