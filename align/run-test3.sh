@@ -31,13 +31,13 @@ fi
 for tag in vs mm; do
    for part in QP QR; do
       echo -n "$tag $part tests failed: "
-      grep "^$part" $tag.out*.txt | sort -nk 2 | pick -k 2 ::2:4:5:6^-,joinall | datamash -g 2 first 1 count 1 | pick -ck @3/=10 || true
+      grep "^$part" $tag.out*.txt | sort -nk 2 | ../pick -k 2 ::2:4:5:6^-,joinall | datamash -g 2 first 1 count 1 | ../pick -ck @3/=10 || true
    done
 done
 
 
 for tag in vs mm; do
    echo -n "For $tag test { nm:i field } == { pick equivalent } failed: "
-   cat qry3$tag.sam | ../pick -qqq --sam/ref3.fa @@2/none/4 ::,aln_nedit,aln_nedit_pia,sub | pick -ck @1/=0
+   cat qry3$tag.sam | ../pick -qqq --sam/ref3.fa @@2/none/4 ::,aln_nedit,aln_nedit_pia,sub | ../pick -ck @1/=0
 done
 

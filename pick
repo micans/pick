@@ -450,6 +450,12 @@ my %cp_samdefs = (
 
    );
 
+my %spuv_direct_lookup = map { ($_, 1) } qw(
+   ref_posx ref_posy ref_len               qry_posx qry_posy qry_len
+   ref_trail5p ref_matched ref_trail3p     ref_trail5p_N ref_matched_N ref_trail3p_N
+   qry_trail5p qry_matched qry_trail3p     qry_trail5p_N qry_matched_N qry_trail3p_N
+);
+
 my %appreciated = qw(
          alnmatch aln_nmatch
          alnedit  aln_nedit
@@ -1172,6 +1178,7 @@ sub interval_mul {
 my $TYPE_SCALAR = 1;
 my $TYPE_HANDLE = 2;
 my $TYPE_OPATOR = 3;    # (1) rule of six obvs, (2) it makes sense in Dutch.
+my $TYPE_LUSPUV = 4;    #  Look Up spuv.
 
 my %chartypetonum = ( '^', $TYPE_SCALAR, ':', $TYPE_HANDLE, ',', $TYPE_OPATOR );
 
@@ -1194,6 +1201,11 @@ sub parse_compute {
       }
       my $opdef = $cp_opdefinitions{$what};
       die "[$what] is not an operator I know" unless defined($opdef);
+
+                                             # /sam_activate/
+      if (defined($cp_sam_setup_seqs{$what})) {
+         $I_AM_SAM |= $cp_sam_setup_seqs{$what};
+      }
                                              # /pload_validate/
       if ($what eq 'pload') {
          die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
@@ -1202,9 +1214,8 @@ sub parse_compute {
             unless $oplist[-2][0] == $TYPE_SCALAR;
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
-                                             # /sam_activate/
-      elsif (defined($cp_sam_setup_seqs{$what})) {
-         $I_AM_SAM |= $cp_sam_setup_seqs{$what};
+      elsif (defined($spuv_direct_lookup{$what})) {
+         $oplist[-1][0] = $TYPE_LUSPUV;
       }
       elsif ($what eq 'test') {              # /test_validate/
          die "Operator 'test' requires three operands" unless @oplist > 3;
@@ -1638,15 +1649,15 @@ sub do_compute {
 
          if ($type == $TYPE_HANDLE) { push @::STACK, $::Flink->[$what]; }
       elsif ($type == $TYPE_SCALAR) { push @::STACK, $what; }
-      elsif ($type != $TYPE_OPATOR) { die "Really unfortunate!\n"; }
-
-      else {
+      elsif ($type == $TYPE_OPATOR) {
          my ($n_wanted, $code) = @other;
          die "Stack underflow ($spic->[0] item [$what])\n" unless @::STACK >= $n_wanted;
          &{$code};
          $n_wanted--;
          $#::STACK -= $n_wanted if $n_wanted > 0;    # subs put computed element in the right place.
       }
+      elsif ($type == $TYPE_LUSPUV) { push @::STACK, $::LC{spuv}{$what}; }
+      else { die "Really unfortunate."; }
     }
     push @$::Flink, (join "", @::STACK);
   }
