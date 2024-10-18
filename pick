@@ -1842,15 +1842,14 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       # fixme/testme: where is skip/warn control if no reference sequence.
     }
 
-    { $::LC{spuv}{qry_len} = length($sam_qry_cache[3]);   # fixme/testme: where is skip/control if no query sequence.
-
-      $::LC{spuv}{qry_trail5p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail5p_cgr});
+    { $::LC{spuv}{qry_trail5p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail5p_cgr});
       $::LC{spuv}{qry_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MISH=X', 'sum');
       $::LC{spuv}{qry_trail3p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail3p_cgr});
 
       $::LC{spuv}{qry_len} = $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N};
       my $l = length($sam_qry_cache[3]);
-      if ($l > 1 && $l != $::LC{spuv}{qry_len}) {     # $l > 1 avoids '*' case.
+
+      if ($l > 1 && $l != $::LC{spuv}{qry_len}) {     # $l > 1 avoids '*' case.     spot3 qry_len_fixme
          errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{spuv}{qry_len}");
       }
 
@@ -1898,7 +1897,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
          print STDERR "-- [$.] No reference sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_refmiss++;
        }
-       if (!$sam_qry_cache[3]) {
+       if (!$sam_qry_cache[3]) {                                                       # spot4 qry_len_fixme
          print STDERR "-- [$.] No query sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_qrymiss++;
        }
@@ -1910,11 +1909,11 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        elsif ((my $l1 = length($sam_qry_cache[3])) != (my $l2 = acigar($::Flink->[5], 'MIS=X', 'sum'))) {
          print STDERR "-- [$.] Cigar string [$::Flink->[5]] query mismatch [s=$l1 c=$l2] for $pair\n" if $L_verbose >= 1;
          $sam_ref_sequence = '';    # this will abort analysis in align_get_mismatch
-         $Nsam_cigarerr++;
+         $Nsam_cigarerr++;                                                             # spot2 qry_len_fixme
        }
     }
 
-    my ($lq, $lr) = (length($sam_qry_cache[3]), length($sam_ref_sequence));
+    my ($lq, $lr) = (length($sam_qry_cache[3]), length($sam_ref_sequence));            # spot1 qry_len_fixme
     if ((!$lq && $get_query) || (!$lr && $get_ref)) {
       errm(1, "sequence missing: found query/$::Flink->[0] length $lq, ref/$::Flink->[2] length $lr");
       return 1;
@@ -2016,7 +2015,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    if (!length($qry) || !length($ref)) {
+    if (!length($qry) || !length($ref)) {                                  # spot5 qry_len_fixme
       errm(0, "aln_* sequence missing", "pair $pair", "SNH");
       return "";
     }
@@ -2191,7 +2190,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my $ref = $sam_ref_sequence;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    if (!length($qry) || !length($ref)) {
+    if (!length($qry) || !length($ref)) {                               # spot6 qry_len_fixme
       errm(0, "aln_posx sequence missing", "pair $pair", "SNH");
       return "";
     }

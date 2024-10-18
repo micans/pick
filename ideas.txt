@@ -1,4 +1,7 @@
 
+
+  ?  type TYPE_LU_SPUV
+
   !  clean up control over when sequences and sub-parts are compupted.
 
   ?  -@@ and -@ selections allowed among/before command line arguments, to aid purpose self-explanation.
