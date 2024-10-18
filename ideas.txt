@@ -1,18 +1,16 @@
 
-  !  after the spuv (sam parts unified view) introduction, create further control over the subsequence
+  !  clean up control over when sequences and sub-parts are compupted.
+
+  ?  -@@ and -@ selections allowed among/before command line arguments, to aid purpose self-explanation.
+     or even @@ and @.
 
   /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
   \  elaborate pack/unpack support. 
 
   -  implement pick in rust, working name: pluck
 
-  /  add structure to the compile 'data structures', e.g. expanded_compute and ::compute.
-     during compilation perhaps use hashes to increase legibility.
-
   ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/ /sgn1eq/ /sgn1ne/
      /epd/ /omd/
-
-  -  -@@ and -@ selections allowed in/before command line arguments, to aid purpose self-explanation.
 
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
      For /any/ etc we need abs(int()), so depending on perl needs deep dive.
@@ -20,7 +18,7 @@
   ?  val,_setta to set extra argument for /ep/ and /om/ with ,test
      ^3^ep,setp
 
-  x  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
+  X  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
      --sum='list|regex' but again, datamash
 
   ?  protect against log(-1) etc

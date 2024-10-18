@@ -420,7 +420,7 @@ my %cp_samdefs = (
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{save}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
-    _spuv            => [ 1, sub { my $r = $::LC{spuv}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
+     spuv            => [ 1, sub { my $r = $::LC{spuv}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
 
      ref_posx        => [ 0, sub { push @::STACK, $::LC{spuv}{ref_posx} }, "-\trefstart\tStart of alignment in ref (1-based)\tsam" ],
      ref_posy        => [ 0, sub { push @::STACK, $::LC{spuv}{ref_posy} }, "-\trefend\tLast base in reference covered by alignment (1-based)\tsam" ],
@@ -482,7 +482,7 @@ my %cp_sam_setup_seqs
      qw( aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu),
    ),
    ( map { ($_, $BIT_SAM_QSEQ) }
-     qw( qry_seq),
+     qw( qry_seq ),
    ),
    ( map { ($_, ($BIT_SAM_QSEQ | $BIT_SAM_QPARTS)) }
      qw( qry_trail3p qry_trail5p qry_matched ),
@@ -1816,8 +1816,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     { $::LC{spuv}{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
                                           # fixme: only do this when necessary or in a different appropriately guarded place.
 
-      my $t5 = $::LC{spuv}{aln_trail5p_cgr} = $::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '';
-      my $t3 = $::LC{spuv}{aln_trail3p_cgr} = $::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '';
+      my $t5 = $::LC{spuv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '' );
+      my $t3 = $::LC{spuv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '' );
       $::LC{spuv}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
 
       $::LC{spuv}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_trail_ref($::LC{spuv}{aln_trail5p_cgr});
@@ -1835,7 +1835,6 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
         $::LC{spuv}{ref_trail3p} = substr($sam_ref_sequence, $::LC{spuv}{ref_trail5p_N} + $::LC{spuv}{ref_matched_N});
       }
       else {
-print STDERR "-> $I_AM_SAM $get_ref_parts $get_qry_parts $sam_ref_sequence\n";
         $::LC{spuv}{ref_trail5p} = 'N';
         $::LC{spuv}{ref_matched} = 'N';
         $::LC{spuv}{ref_trail3p} = 'N';
@@ -1849,7 +1848,11 @@ print STDERR "-> $I_AM_SAM $get_ref_parts $get_qry_parts $sam_ref_sequence\n";
       $::LC{spuv}{qry_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MISH=X', 'sum');
       $::LC{spuv}{qry_trail3p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail3p_cgr});
 
-      errm(-1, "Query parts [$::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N} != $::LC{spuv}{qry_len}] [$::Flink->[5]]") unless $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N} == $::LC{spuv}{qry_len};
+      $::LC{spuv}{qry_len} = $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N};
+      my $l = length($sam_qry_cache[3]);
+      if ($l > 1 && $l != $::LC{spuv}{qry_len}) {     # $l > 1 avoids '*' case.
+         errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{spuv}{qry_len}");
+      }
 
       $::LC{spuv}{qry_posx}      =  $::LC{spuv}{qry_trail5p_N} + 1;
       $::LC{spuv}{qry_posy}      =  $::LC{spuv}{qry_posx} + $::LC{spuv}{qry_matched_N} - 1;
