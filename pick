@@ -126,6 +126,7 @@ my $BIT_SAM_NONF   =    1 << 5;     # do not convert exterior insertion to softc
 my $BIT_SAM_RBT    =    1 << 6;     # compute region bound tally
 my $BIT_SAM_QPARTS =    1 << 7;     # compute parts for query.
 my $BIT_SAM_RPARTS =    1 << 8;     # compute parts for reference.
+my $BIT_SAM_NOLU   =    1 << 9;     # do not optimise SPUV lookups.
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -1077,26 +1078,19 @@ EOH
        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
      elsif ($options =~ /^sam-aln-context=(\d+)/) {
-       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_CONTEXT;
+       $I_AM_SAM |= $BIT_SAM_CONTEXT;
        $::sam_max_context = $1;
      }
      elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
-       $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_RBT;
+       $I_AM_SAM |= $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_RBT;
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
-     elsif ($options =~ /^sam-rbt-old=(\d+),(\d+)/) {
-       $I_AM_SAM |= 135;
-       $::sam_rbt_x = $1;
-       $::sam_rbt_y = $2;
+     elsif ($options eq 'sam-nonf') {      # no normal form.
+       $I_AM_SAM |= $BIT_SAM_NONF;         #
      }
-     elsif ($options eq 'sam-nf') {        # normal form; the default. This option intended to nudge command lines towards self-documenting.
-                                           # change insertions to soft clips.
-       1;                                  # vsearch uses exterior insertions and deletions to create end-to-end alignments.
-                                           # with normal form, e.g. maxindel:=6^ID,cgmax computes the max indel in the interior of the match.
-     }
-     elsif ($options eq 'sam-aln-nonf') {  # no normal form.
-       $I_AM_SAM |= 33;                    # 1: i-am-sam. 32: leave exterior as is (otherwise change insertions to soft clips)
+     elsif ($options eq 'sam-nolu') {      # no SPUV lookup optimisation.
+       $I_AM_SAM |= $BIT_SAM_NOLU;         #
      }
      else {
        die "Unrecognised long option --$options";
@@ -1214,7 +1208,7 @@ sub parse_compute {
             unless $oplist[-2][0] == $TYPE_SCALAR;
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
-      elsif (defined($spuv_direct_lookup{$what})) {
+      elsif (!($I_AM_SAM & $BIT_SAM_NOLU) && defined($spuv_direct_lookup{$what})) {
          $oplist[-1][0] = $TYPE_LUSPUV;
       }
       elsif ($what eq 'test') {              # /test_validate/
@@ -2311,7 +2305,7 @@ while (<>) {
     }
   }
 
-  if ($I_AM_SAM) {
+  if ($I_AM_SAM & $BIT_HAVE_SAM) {
 
     $::LC{spuv}{input_cigar} = $F[5];
 

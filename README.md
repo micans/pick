@@ -883,7 +883,7 @@ x     mismatching base
 
 By default pick converts exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.
 This can change the CIGAR sequence and the reference offset (column 4 in SAM format).
-To avoid this behaviour use `--sam-aln-nonf` (*no normalform*).
+To avoid this behaviour use `--sam-nonf` (*no normalform*).
 
 
 ### Operators to output alignments
