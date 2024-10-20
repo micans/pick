@@ -1,8 +1,9 @@
 
+  -  larger scale timing of --sam-nolu vs default.
 
-  ?  type TYPE_LU_SPUV
+  -  consider lifting region-bound-tally (rbt) operators into sam-parts-unified-view (spuv).
 
-  !  clean up control over when sequences and sub-parts are compupted.
+  /  clean up control over when sequences and sub-parts are compupted.
 
   ?  -@@ and -@ selections allowed among/before command line arguments, to aid purpose self-explanation.
      or even @@ and @.
@@ -10,7 +11,7 @@
   /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
   \  elaborate pack/unpack support. 
 
-  -  implement pick in rust, working name: pluck
+  o  implement pick in rust, working names: { pluck pak }
 
   ?  inverse of /ep/ and /om/ /ep[ad]/ /om[adi]/ (apart,distance,invert). /sgneq/ /sgnne/ /sgn1eq/ /sgn1ne/
      /epd/ /omd/
@@ -25,6 +26,7 @@
      --sum='list|regex' but again, datamash
 
   ?  protect against log(-1) etc
+
   -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.
         currently: echo -e "_a_\t3\n_b_\t4\naba\t5" | pick -AiK --cdict-foo=a:Alpha,b:Beta x::1^_'(.)'_,get^foo,map 1::1^'_\K(.)(?=_)':x,ed
         where \K is available since Perl 5.10.0, 2007. Requires some perl, doesn't look great, but works.
@@ -32,6 +34,7 @@
         echo -e "_a_\t3\n_b_\t4\n_d_\t8" | pick -AviK --fdict-foo=dict --cdict-foo=a:Alpha,b:Beta,c:Gamma 1::1^'%5E_\K(.)(?=_$)'^foo,edmap
      -> $1 not the right control? You might want to replace more than just $1, using the map of $1.
         the two-step solution will allow this.
+
   ?  get: option to return field if no match? -> covered by ed; get allows filtering on empty string with uie
   ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
   ?  implement in C or Rust (use pcre2). string/float/int the main point of pain.

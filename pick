@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "24-291a";
+my $v_v_v = "24-294a";
 
   #                     Copyright (c) 2022-2024  Stijn van Dongen
   #
@@ -600,7 +600,7 @@ my $help_options=q{Options:
      <pat> allows perl regular expressions, e.g. ^ $ . [] * ? (|) work.
   -v verbose (-vv -vvv increase verbosity)
   -e squash all white-space from computes and selections before parsing them
-  -q quiet
+  -q quiet (-qq -qqq increase quietness)
   -d debug
 
   -f force processing (allows both identical input and output column names)
