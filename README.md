@@ -879,6 +879,12 @@ _     non-aligned / dangling sequence
 x     mismatching base
 ```
 
+`--sam-aln-prefix=<STR>` - put `STR` before each of the alignment lines
+when using* `,aln_all`.  Pick outputs alignments without breaking them up across
+multiple paragraphs. This option can provide a useful hook if you filter the
+pick `,aln_all` output with a script to do just that.
+
+
 ### Clipping exterior insertions and deletions
 
 By default pick converts exterior insertions and deletions (such as produced by *vsearch*) to soft-clipped sequence.

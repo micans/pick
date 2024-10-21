@@ -153,6 +153,7 @@ my $Nsam_lenclash = 0;
 my $errtok = ' !';
 
 $::sam_max_context = 10000;
+$::sam_aln_prefix  = "";
 $::sam_rbt_x = 0;
 $::sam_rbt_y = 0;
 
@@ -413,7 +414,7 @@ my %cp_samdefs = (
      aln_aln         => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_aln\talignment string between reference and query\tsam" ],
      aln_qry         => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_qry\talignment string for query\tsam" ], 
      aln_rlr         => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_rlr\talignment ruler for reference\tsam" ],
-     aln_all         => [ 0, sub { push @::STACK, join "\n", &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
+     aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $_ } &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
   aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", &get_aln_strings(3, 0,1,2) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
      patchiness      => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
@@ -1080,6 +1081,9 @@ EOH
      elsif ($options =~ /^sam-aln-context=(\d+)/) {
        $I_AM_SAM |= $BIT_SAM_CONTEXT;
        $::sam_max_context = $1;
+     }
+     elsif ($options =~ /^sam-aln-prefix=(.*)/) {
+       $::sam_aln_prefix = $1;
      }
      elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
        $I_AM_SAM |= $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_RBT;

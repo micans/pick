@@ -1,6 +1,8 @@
 
   -  larger scale timing of --sam-nolu vs default.
 
+  -  can operator selection for spuv lookup intercept be done by introspection of the subs.
+
   -  consider lifting region-bound-tally (rbt) operators into sam-parts-unified-view (spuv).
 
   /  clean up control over when sequences and sub-parts are compupted.
