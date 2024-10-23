@@ -2123,13 +2123,12 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        my $Oprint = -10;
        my $Nskip  = 0;
        for (my $i=0; $i<length($aln_ref); $i++) {
+         my $N = $::Flink->[3] + $i - $Nskip;
          if (substr($aln_ref, $i, 1) eq '-') {
-            $Nskip++;
+           $Nskip++;
          }
-         elsif ($Oprint + 10 <= $i) {
-           my $N = $::Flink->[3] + $i - $Nskip;
+         elsif ($N % 10 == 0) {
            substr($aln_rlr, $i, length("$N")) = $N;
-           $Oprint = $i;
          }
        }
        substr($aln_rlr, length($aln_ref)) = "";
