@@ -417,6 +417,7 @@ my %cp_samdefs = (
      aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $_ } &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
   aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", &get_aln_strings(3, 0,1,2) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
      patchiness      => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
+     patchiness2     => [ 2, sub { $::STACK[-2] = aln_patchiness2($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
@@ -1932,16 +1933,55 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
 
     #  | and + indicate matching base (+ is a solitary base - not used currently)
-    #  - is a deletion
-    #  = is intronic deletion.
+    #  - is a deletion from reference.
+    #  = is intronic deletion from reference.
+    #  ` is dangling deletion from reference.
     #  ~ is an insertion
+    #  _ is dangling insertion
     # 
     # The patch penalty is measured across a sliding window; a rapid alternation
     # of short stretches of { match, mismatch, insertion, deletion } causes
     # the highest score.
     # 
   BEGIN {
-    my %patchy_penalty = ( '|' => 0, '+' => 1, 'x' => 2, '_' => 1, '-' => 1, '~' => 1, '=' => 0 );
+    my %patchy_penalty = ( '|' => 0, '+' => 1, 'x' => 2, '`' => 0, '_' => 0, '-' => 1, '~' => 1, '=' => 0 );
+
+    sub aln_patchiness2 {
+
+      my ($string, $winsize) = @_;
+      my @pos = ();
+      my $score = 0;
+      my $maxscore = 0;
+      my $p = 0;
+
+      $string =~ s/[()]/|/g;
+      $string =~ s/ /x/g;
+
+      while ($string =~ /((.)\2{0,})/g) {    # \2 (backreference to second parentheses pair) forces a run of the same thing
+
+        my $type = $2;
+        my $stretch = $1;
+        my $len = length($stretch);
+        my $fine = $patchy_penalty{$type};
+        die "No type $type" unless defined($fine);
+
+        $p += $len unless $type =~ /[\_\.\`\~\-]/;
+                                             # This also excludes the case of deletion from reference [`-].
+                                             # Hence the window size is not relative to reference sequence.
+                                             # To be considered.
+
+        push @pos, [$p, $fine];
+        $score += $fine;
+
+        while ($p - $pos[0][0] > $winsize) {
+          my $out = shift @pos;
+          $score -= $out->[1];
+        }
+
+        $maxscore = $score if $score > $maxscore;
+      }
+      return $maxscore;
+    }
 
     sub aln_patchiness {
 
@@ -2056,7 +2096,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
           last;
         }
         my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
-        $aln_aln .= $it eq 'M' || $it eq '=' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : '_' x $num;
+        $aln_aln .= $it eq 'M' || $it eq '=' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : '.' x $num;
         $aln_ref .= $subref;
         $aln_qry .= $subqry;
         $pref += $num; $pqry += $num;
@@ -2094,8 +2134,11 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        }
        substr($aln_rlr, length($aln_ref)) = "";
 
-       $aln_aln =~ s/^([~-]+)/'_' x length($1)/e;
-       $aln_aln =~ s/([~-]+)$/'_' x length($1)/e;
+       $aln_aln =~ s/^(\~+)/'_' x length($1)/e;
+       $aln_aln =~ s/^(\-+)/'`' x length($1)/e;
+
+       $aln_aln =~ s/(\~+)$/'_' x length($1)/e;
+       $aln_aln =~ s/(\-+)$/'`' x length($1)/e;
 
        $aln_ref .= '  ' . ($::LC{spuv}{ref_trail5p_N} ? '<' : '[');
        $aln_ref .=         $::LC{spuv}{ref_trail3p_N} ? '>' : ']';

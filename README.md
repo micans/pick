@@ -871,16 +871,18 @@ In alignments non-aligned parts are indicated in the alignment string with `_`.
 The list of symbols used in the alignment string is
 
 ```
--     deletion
-=     expected (intron) deletion
-~     insertion
-_     non-aligned / dangling sequence
+-     deletion from reference
+=     expected (intron) deletion from reference
+~     insertion to the reference (sequence in query)
+`     non-aligned / dangling sequence in the reference
+.     non-aligned / dangling sequence in both reference and query
+_     non-aligned / dangling sequence in the query
 |     matching base
 x     mismatching base
 ```
 
 `--sam-aln-prefix=<STR>` - put `STR` before each of the alignment lines
-*when using* `,aln_all`.  Pick outputs alignments without breaking them up across
+when using `,aln_all`.  Pick outputs alignments without breaking them up across
 multiple paragraphs. This option can provide a useful hook if you filter the
 pick `,aln_all` output with a script to do just that.
 
