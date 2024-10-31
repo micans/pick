@@ -151,6 +151,7 @@ my $Nsam_lenmiss = 0;
 my $Nsam_lenclash = 0;
 
 my $errtok = ' !';
+my $arttok = ' *';
 
 $::sam_max_context = 10000;
 $::sam_aln_prefix  = "";
@@ -161,6 +162,12 @@ sub errm {
   local $" = '][';
   my $vlevel = shift;
   print STDERR "$errtok [error line $.] [@_]\n" if $L_verbose >= $vlevel;
+}
+
+sub alert {
+  local $" = '][';
+  my $vlevel = shift;
+  print STDERR "$arttok [alert line $.] [@_]\n" if $L_verbose >= $vlevel;
 }
 
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
@@ -269,6 +276,7 @@ my %cp_opdefinitions =
      gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
      rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
+     join      => [ 3, sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
      idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
@@ -412,7 +420,7 @@ my %cp_samdefs = (
      aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\taln_posinfo\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
      aln_ref         => [ 0, sub { push @::STACK, &get_aln_strings(0) }, "-\taln_ref\talignment string for reference\tsam" ],
      aln_aln         => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_aln\talignment string between reference and query\tsam" ],
-     aln_qry         => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_qry\talignment string for query\tsam" ], 
+     aln_qry         => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_qry\talignment string for query\tsam" ],
      aln_rlr         => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_rlr\talignment ruler for reference\tsam" ],
      aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $_ } &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
   aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", &get_aln_strings(3, 0,1,2) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
@@ -421,7 +429,7 @@ my %cp_samdefs = (
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
-     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{save}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
+     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{spuv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
      spuv            => [ 1, sub { my $r = $::LC{spuv}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
 
@@ -486,19 +494,11 @@ my %appreciated = qw(
    );
 
    # below bit 2: needs query sequence. bit 4: needs reference sequence.
-my %cp_sam_setup_seqs
-= (( map { ($_, ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) }
-     qw( aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu),
-   ),
-   ( map { ($_, $BIT_SAM_QSEQ) }
-     qw( qry_seq ),
-   ),
-   ( map { ($_, ($BIT_SAM_QSEQ | $BIT_SAM_QPARTS)) }
-     qw( qry_trail3p qry_trail5p qry_matched ),
-   ),
-   ( map { ($_, ($BIT_SAM_RSEQ | $BIT_SAM_RPARTS)) }
-     qw( ref_trail3p ref_trail5p ref_matched)
-  ));
+my %cp_sam_setup_seqs = ();
+  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)    for qw( aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu);
+  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_QSEQ                )    for qw( qry_seq );
+  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_QSEQ | $BIT_SAM_QPARTS)  for qw( qry_trail3p qry_trail5p qry_matched );
+  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_RSEQ | $BIT_SAM_RPARTS)  for qw( ref_trail3p ref_trail5p ref_matched );
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -1806,31 +1806,43 @@ print STDERR "-- $::Flink->[0] cigar IN  $::Flink->[5]\n" if $B_debug;
 print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   }
 
-  sub cgr_sum_trail_ref {
+  sub cgr_sum_ref {
     my $s = 0;
-    while ($_[0] =~ /(\d+)[DX]/g) { $s += $1; }
+    while ($_[0] =~ /(\d+)[NDM=X]/g) { $s += $1; }
     return $s;
   }
 
-  sub cgr_sum_trail_qry {
+  sub cgr_sum_qry {
     my $s = 0;
-    while ($_[0] =~ /(\d+)[IXS]/g) { $s += $1; }
+    while ($_[0] =~ /(\d+)[ISM=X]/g) { $s += $1; }
     return $s;
   }
 
-  sub sam_compute_spuv {                  # Sam Parts Unified View.
+  sub cgr_nsoft {
+    my $s = 0;
+    while ($_[0] =~ /(\d+)S/g) { $s += $1; }
+    return $s;
+  }
+
+  sub sam_compute_spuv {                  # Sam Parts Unified View. Needs to be run after sam_adjust_view_extend
 
     my ($get_qry_parts, $get_ref_parts) = @_;
     # TODO: checks for alnedit, compare NM:i: sam field with internal calculation.
 
     { $::LC{spuv}{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
                                           # fixme: only do this when necessary or in a different appropriately guarded place.
+                                          # TODO: require soft clipping to be exterior always.
 
       my $t5 = $::LC{spuv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '' );
       my $t3 = $::LC{spuv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '' );
       $::LC{spuv}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
 
-      $::LC{spuv}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_trail_ref($::LC{spuv}{aln_trail5p_cgr});
+      $::LC{spuv}{qry_soft5p_N}  = cgr_nsoft($t5);
+      $::LC{spuv}{qry_soft3p_N}  = cgr_nsoft($t3);
+      $::LC{spuv}{ref_soft5p_N}  = $::Flink->[3] -1;
+      $::LC{spuv}{ref_soft3p_N}  = $::LC{spuv}{ref_len} - $::LC{spuv}{ref_soft5p_N} - cgr_sum_ref($::Flink->[5]);
+
+      $::LC{spuv}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_ref($::LC{spuv}{aln_trail5p_cgr});
       $::LC{spuv}{ref_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MDN=X', 'sum');
       $::LC{spuv}{ref_trail3p_N} = $::LC{spuv}{ref_len} - $::LC{spuv}{ref_trail5p_N} - $::LC{spuv}{ref_matched_N};
 
@@ -1852,9 +1864,9 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       # fixme/testme: where is skip/warn control if no reference sequence.
     }
 
-    { $::LC{spuv}{qry_trail5p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail5p_cgr});
+    { $::LC{spuv}{qry_trail5p_N} = cgr_sum_qry($::LC{spuv}{aln_trail5p_cgr});
       $::LC{spuv}{qry_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MISH=X', 'sum');
-      $::LC{spuv}{qry_trail3p_N} = cgr_sum_trail_qry($::LC{spuv}{aln_trail3p_cgr});
+      $::LC{spuv}{qry_trail3p_N} = cgr_sum_qry($::LC{spuv}{aln_trail3p_cgr});
 
       $::LC{spuv}{qry_len} = $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N};
       my $l = length($sam_qry_cache[3]);
@@ -1938,11 +1950,11 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     #  ` is dangling deletion from reference.
     #  ~ is an insertion
     #  _ is dangling insertion
-    # 
+    #
     # The patch penalty is measured across a sliding window; a rapid alternation
     # of short stretches of { match, mismatch, insertion, deletion } causes
     # the highest score.
-    # 
+    #
   BEGIN {
     my %patchy_penalty = ( '|' => 0, '+' => 1, 'x' => 2, '`' => 0, '_' => 0, '-' => 1, '~' => 1, '=' => 0 );
 
@@ -2087,8 +2099,6 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       my $qright = $pqry + $num;
 
                   # Note I use 'X' with sam_adjust_view_extend to indicate dangling non-aligned sequence.
-                  # in default view this is a space; with sam_rbtaln it becomes an underscore.
-                  # This may evolve in the future.
                   #
       if ($it eq 'M' || $it eq 'X' || $it eq '=') {
         if ($rright > $rlen || $qright > $qlen) {
@@ -2157,82 +2167,132 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     return $sam_qry_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
   }
 
+  my %cigarchomp = (       # 1: consumes ref, 2: consumes query. 4: consumes alignment
+   M => 7,
+ '=' => 7,
+   X => 7,
+   I => 6,
+   N => 5,
+   D => 5,
+   S => 2,
+   P => 0,
+   H => 0,
+  );
+
+
+
+ #    deletion           deletion         deletion          no sequence       no sequence   no sequence            trailing      |
+ #     ,      ,         ,  ,                ,     ,          ,      ,         ,  ,             ,  ,                 ,      ,     |
+ #  TACGTCGTACCGGTA   TACGTCGTACCGGTA   TTACCGGTACGTCGA   TACGTCGTACCGGTA   TACGTCGTACCGG    TACGTCGTACCGGTATA   TACGTCGTACCGGTA |
+ #  |------||||||||   |------||||||||   ||||||||------|   ```````||||||||   -------||||||    ```````||||||||||   .......|||||||| |
+ #  T------TACCGGTA   T------TACCGGTA   TTACCGGT------A   -------TACCGGTA   -------TACCGG    -------TACCGGTATA   GCTAACATACCGGTA |
+ #     ^      ^         ^  ^                ^     ^          ^      ^         ^  ^             ^  ^                 ^      ^     |
+ #         x  y      yx                     x  y                 x  y      yx-before del    x,y=1,0                     x  y     |
+ #                                                                         ^note: x exists                        note: x forced |
+ #                                                                          not a trail del                       by alignment (uu)
+ #
+
+ #                 Find offset of true alignment in stored alignment.
+ #                 Refers to 'true' alignment. Stored alignment (get_aln_strings) may contain trailing sequence.
+ #                /
+ #      ref_trail5p_N
+ #    <----------------->       stored alignment (may include I D X cigar for trailing sequences)
+ #                  ,----------------------------------------,
+ #   ref_soft5p_N  /        ____ true alignment ____          \
+ #    <---------->|       /                          \         |
+ #    \___________|rrrrrr[x    r e f e r e n c e     y]rrrrrrrr|_________/          reference coordinates
+ #                |                                            |
+ #                |>>>>>>[x   [uu HHHHHHHHHH vv]      ]  . . . |                    alignment coordinates coord_aln_uu coord_aln_vv
+ #                |       ^^^^^                                |
+ #        ________|qqqqqq[       q  u  e  r  y        ]qqqqqqqq|______________      query coordinates
+ #       /        |                                            |              \
+ #       <------->|                                            |
+ #  qry_soft_5p_N |                                            |
+ #                |                                            |
+ #        <-------------->
+ #          qry_trail5p_N
+ #
+
   sub ref_bounded_tally {
 
-    my ($ref_x, $ref_y) = map { $_ - 1; } @_;     # go to zero-based coordinates BUT ref_y is still inclusive.
-    my $ref_offset = $::Flink->[3] - 1;
+    my ($coord_ref_u,  $coord_ref_v)  =  map { $_ - 1; } @_;               # zero-based inclusive
+    my ($coord_ref_uu, $coord_ref_vv) =  ($coord_ref_u, $coord_ref_v);     # will be updated/restricted to the alignment interval if necessary.
+    my ($coord_ref_x,  $coord_ref_y)  =  ($::LC{spuv}{ref_trail5p_N}, $::LC{spuv}{ref_trail5p_N} + $::LC{spuv}{ref_matched_N} -1);  # zero based inclusive.
+
+    my ($coord_aln_uu, $coord_aln_vv) =  (-1, -1);
+    my ($coord_qry_uu, $coord_qry_vv) =  (-1, -1);
 
     my $qlen = length($sam_qry_cache[3]);
     my $rlen = &sam_reflen;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    $::LC{save}{rbt_alnref} = "";
-    $::LC{save}{rbt_alnaln} = "";
-    $::LC{save}{rbt_alnqry} = "";
-    $::LC{save}{rbt_alnrlr} = "";
+    $::LC{spuv}{rbt_alnref} = "";                               # The excision
+    $::LC{spuv}{rbt_alnaln} = "";                               #   of the alignment
+    $::LC{spuv}{rbt_alnqry} = "";                               #     corresponding
+    $::LC{spuv}{rbt_alnrlr} = "";                               #       to uu and vv.
 
-    $::LC{save}{rbt_nmatch} = 0;
-    $::LC{save}{rbt_nedit}  = $ref_y - $ref_x + 1;
+    $::LC{spuv}{rbt_nmatch} =  0;
+    $::LC{spuv}{rbt_nedit}  =  $coord_ref_v - $coord_ref_u + 1;
+    $::LC{spuv}{rbt_qryx}   =  1;
+    $::LC{spuv}{rbt_qryy}   =  0;
 
     if (!$qlen || !$rlen) {
       errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
-      return "";
-      # fixme. this return is meaningless / not picked up.
+      return "";                                                # fixme. this return is meaningless / not picked up.
     }
 
-    my @aln_strings = get_aln_strings(0, 1, 2, 3);
+    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = get_aln_strings(0, 1, 2, 3);
 
-    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = @aln_strings;
-
-    $aln_aln =~ s/ /_/g;                                 # fixme is this still relevant?
-    my $n_ref_insert  = ($aln_aln =~ tr|~|~|);
-    my $n_ref_present = length($aln_aln) - $n_ref_insert;
-
-    my $x_aln_ref = $ref_offset;                         # zero based.
-    my $y_aln_ref = $x_aln_ref + $n_ref_present - 1;     # zero based, inclusive
-
-    if ($x_aln_ref > $ref_x || $y_aln_ref < $ref_y) {
-      errm(0, "sam_rbt request (0-based) [$ref_x $ref_y] not in alignment bounds [$x_aln_ref $y_aln_ref] -- adjusting bounds to overlap");
-      $ref_x = max($ref_x, $x_aln_ref);
-      $ref_y = min($ref_y, $y_aln_ref);
-      if ($ref_x > $ref_y) {
-        errm(0, "sam_rbt request (0-based) [$ref_x $ref_y] zero overlap with alignment bounds [$x_aln_ref $y_aln_ref], result is empty");
+    if ($coord_ref_x > $coord_ref_u || $coord_ref_y < $coord_ref_v) {
+      ($coord_ref_uu, $coord_ref_vv) = (max($coord_ref_u, $coord_ref_x),  min($coord_ref_v, $coord_ref_y));
+      alert(0, "sam_rbt request (0-based) adjusting [$coord_ref_u $coord_ref_v] to [$coord_ref_uu $coord_ref_vv]");
+      if ($coord_ref_uu > $coord_ref_vv) {
+        alert(0, "sam_rbt request (0-based) [$coord_ref_u $coord_ref_v] zero overlap with alignment bounds [$coord_ref_x $coord_ref_y], result is empty");
         return "";
       }
     }
 
-#print STDERR "have $x_aln_ref $y_aln_ref\n";
-    my ($x_aln_rbt, $y_aln_rbt, $nmatch) = (-1, -1, 0);        # where ref_x and ref_y are mapped to in the alignment string.
+    my $cigar = $::Flink->[5];
 
-#print STDERR "$aln_aln\n";
-    while ($aln_aln =~ /([^~]+)/g) {
-      $nmatch += length($1);
-      if ($ref_offset + $nmatch >= $ref_x+1) {
-        if ($x_aln_rbt < 0) {
-#print "$aln_rlr\n$aln_ref\n$aln_aln\n$aln_qry\n";
-#print "pos=" . pos($aln_aln) . " offset=$ref_offset nmatch=$nmatch refx=$ref_x\n";
-          $x_aln_rbt = pos($aln_aln) - ($ref_offset + $nmatch - $ref_x);
-        }
+    my ($cur_ref_p, $cur_aln_p, $cur_qry_p) = ($::LC{spuv}{ref_soft5p_N}, 0, 0);       # query soft5p N is represented in cigar string.
+
+    while ($cigar =~ /(\d+)([MINDSHP=X])/ig) {
+      my ($num, $it) = ($1, $2);
+
+      $cur_ref_p += $num if $cigarchomp{$it} & 1;
+      $cur_aln_p += $num if $cigarchomp{$it} & 4;
+      $cur_qry_p += $num if $cigarchomp{$it} & 2;
+
+      if ($coord_aln_uu < 0 && $cur_ref_p > $coord_ref_uu) {
+         $coord_aln_uu  =  $cur_aln_p - ($cur_ref_p - $coord_ref_uu);
+         $coord_qry_uu  =  (2 & $cigarchomp{$it}) ?  $cur_qry_p - ($cur_ref_p - $coord_ref_uu) : $cur_qry_p;
+                           # if query consumed
       }
-      if ($ref_offset + $nmatch >= $ref_y+1) {
-        if ($y_aln_rbt < 0) {
-          $y_aln_rbt = pos($aln_aln) - ($ref_offset + $nmatch - $ref_y);
-        }
+
+      if ($coord_aln_vv < 0 && $cur_ref_p > $coord_ref_vv) {
+         $coord_aln_vv  =  $cur_aln_p - ($cur_ref_p - $coord_ref_vv);
+         $coord_qry_vv  =  (1 & $cigarchomp{$it}) ?  $cur_qry_p - ($cur_ref_p - $coord_ref_vv) : $cur_qry_p;
+                           # if ref consumed
+         last;
       }
     }
 
-    die "RBT compute error bounds $ref_x $ref_y" unless $x_aln_rbt >= 0 && $y_aln_rbt >= 0;
+    if ($coord_aln_uu >= 0 && $coord_aln_vv >= 0) {
+      $::LC{spuv}{rbt_alnref} = substr($aln_ref, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{spuv}{rbt_alnaln} = substr($aln_aln, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{spuv}{rbt_alnqry} = substr($aln_qry, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{spuv}{rbt_alnrlr} = substr($aln_rlr, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{spuv}{rbt_refx}   = $coord_ref_uu;
+      $::LC{spuv}{rbt_refy}   = $coord_ref_vv;
 
-    $::LC{save}{rbt_alnref} = substr($aln_strings[0], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
-    $::LC{save}{rbt_alnaln} = substr(       $aln_aln, $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);   # fixme
-    $::LC{save}{rbt_alnqry} = substr($aln_strings[2], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
-    $::LC{save}{rbt_alnrlr} = substr($aln_strings[3], $x_aln_rbt, $y_aln_rbt - $x_aln_rbt + 1);
-
-    { $::LC{save}{rbt_nmatch} =  ($::LC{save}{rbt_alnaln} =~ tr/\|/\|/);
-      $::LC{save}{rbt_nedit}  =  length($::LC{save}{rbt_alnaln}) - $::LC{save}{rbt_nmatch};
+      $::LC{spuv}{rbt_nmatch} = 0;
+      $::LC{spuv}{rbt_nedit}  = $coord_ref_v - $coord_ref_u + 1;
+      $::LC{spuv}{rbt_qryx}   = $coord_qry_uu + 1;
+      $::LC{spuv}{rbt_qryy}   = $coord_qry_vv + 1;
+      $::LC{spuv}{rbt_qrylen} = $coord_qry_vv  - $coord_qry_uu + 1;
     }
-
   }
+
 
   sub getalnposx {
 
