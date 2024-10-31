@@ -2275,7 +2275,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       if ($coord_aln_vv < 0 && $cur_ref_p > $coord_ref_vv) {
          $coord_aln_vv  =  $cur_aln_p - ($cur_ref_p - $coord_ref_vv);
          $coord_qry_vv  =  (2 & $cigarchomp{$it}) ?  $cur_qry_p - ($cur_ref_p - $coord_ref_vv) : $cur_qry_p - 1;
-                           # if ref consumed
+                           # if query consumed
          last;
       }
     }
