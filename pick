@@ -149,6 +149,7 @@ my $Nsam_qryunmapped = 0;
 my $Nsam_cigarerr = 0;
 my $Nsam_lenmiss = 0;
 my $Nsam_lenclash = 0;
+my $Nsam_rbtmiss  = 0;
 
 my $errtok = ' !';
 my $arttok = ' *';
@@ -431,7 +432,7 @@ my %cp_samdefs = (
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
      rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{spuv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
-     spuv            => [ 1, sub { my $r = $::LC{spuv}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam part unified view lookup\tsam" ],
+     suv             => [ 1, sub { my $r = $::LC{spuv}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam unified view lookup\tsam" ],
 
      ref_posx        => [ 0, sub { push @::STACK, $::LC{spuv}{ref_posx} }, "-\trefstart\tStart of alignment in ref (1-based)\tsam" ],
      ref_posy        => [ 0, sub { push @::STACK, $::LC{spuv}{ref_posy} }, "-\trefend\tLast base in reference covered by alignment (1-based)\tsam" ],
@@ -2235,9 +2236,10 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LC{spuv}{rbt_nedit}  =  $coord_ref_v - $coord_ref_u + 1;
     $::LC{spuv}{rbt_qryx}   =  1;
     $::LC{spuv}{rbt_qryy}   =  0;
+    $::LC{spuv}{rbt_qry}    =  "";
 
     if (!$qlen || !$rlen) {
-      errm(0, "sam_rbt sequence missing", "pair $pair", "SNH");
+      errm(-1, "sam_rbt", "sequence missing", "pair $pair", "SNH");
       return "";                                                # fixme. this return is meaningless / not picked up.
     }
 
@@ -2245,9 +2247,10 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     if ($coord_ref_x > $coord_ref_u || $coord_ref_y < $coord_ref_v) {
       ($coord_ref_uu, $coord_ref_vv) = (max($coord_ref_u, $coord_ref_x),  min($coord_ref_v, $coord_ref_y));
-      alert(0, "sam_rbt request (0-based) adjusting [$coord_ref_u $coord_ref_v] to [$coord_ref_uu $coord_ref_vv]");
+      alert(3, "sam_rbt request (0-based) adjusting [$coord_ref_u $coord_ref_v] to [$coord_ref_uu $coord_ref_vv]");
       if ($coord_ref_uu > $coord_ref_vv) {
-        alert(0, "sam_rbt request (0-based) [$coord_ref_u $coord_ref_v] zero overlap with alignment bounds [$coord_ref_x $coord_ref_y], result is empty");
+        alert(3, "sam_rbt request (0-based) [$coord_ref_u $coord_ref_v] zero overlap with alignment bounds [$coord_ref_x $coord_ref_y], result is empty");
+        $Nsam_rbtmiss++;
         return "";
       }
     }
@@ -2271,7 +2274,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
       if ($coord_aln_vv < 0 && $cur_ref_p > $coord_ref_vv) {
          $coord_aln_vv  =  $cur_aln_p - ($cur_ref_p - $coord_ref_vv);
-         $coord_qry_vv  =  (1 & $cigarchomp{$it}) ?  $cur_qry_p - ($cur_ref_p - $coord_ref_vv) : $cur_qry_p;
+         $coord_qry_vv  =  (2 & $cigarchomp{$it}) ?  $cur_qry_p - ($cur_ref_p - $coord_ref_vv) : $cur_qry_p - 1;
                            # if ref consumed
          last;
       }
@@ -2290,6 +2293,12 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $::LC{spuv}{rbt_qryx}   = $coord_qry_uu + 1;
       $::LC{spuv}{rbt_qryy}   = $coord_qry_vv + 1;
       $::LC{spuv}{rbt_qrylen} = $coord_qry_vv  - $coord_qry_uu + 1;
+      $::LC{spuv}{rbt_qry}    = substr($sam_qry_cache[3], $coord_qry_uu, $::LC{spuv}{rbt_qrylen});
+
+      my $tmp = $::LC{spuv}{rbt_alnqry}; $tmp =~ tr/ACGTN//cd;
+      if ($tmp ne $::LC{spuv}{rbt_qry}) {
+         errm(-1, "sam_rbt", "result mismatch", "pair $pair", $tmp, $::LC{spuv}{rbt_qry}, "SNH");
+      }
     }
   }
 
@@ -2494,6 +2503,7 @@ print STDERR "-- $Nsam_qryunmapped times a query sequence was unmapped\n" if $Ns
 print STDERR "-- $Nsam_lenmiss times a reference sequence length lookup failed\n" if $Nsam_lenmiss;
 print STDERR "-- $Nsam_lenclash times a reference sequence difference between SAM header and fasta file $sam_refdictname\n" if $Nsam_lenclash;
 print STDERR "-- $Nsam_cigarerr times a cigar string did not match the query sequence\n" if $Nsam_cigarerr;
+print STDERR "-- $Nsam_rbtmiss times a region bound tally query (sam_rbt) had zero overlap\n" if $Nsam_rbtmiss;
 
 my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup;
