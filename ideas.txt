@@ -1,5 +1,5 @@
 
-  -  _ in alignment string (dangling sequence) can refer to both reference and query. Let's make ^ for reference.
+  -  rbt query deltas; e.g. ^rbt_qryx,suv  qry_posx
 
   -  larger scale timing of --sam-nolu vs default.
 
@@ -42,6 +42,8 @@
   ?  predefine constants (e.g. log10, pi). new syntax, e.g. ^^PI ^^LOG10 ^^E ^^PHI - no real need.
   ?  implement in C or Rust (use pcre2). string/float/int the main point of pain.
   #  -T pushes column; slightly inelegant but inevitable. -N -L fixed as rowno lineno operators.
+
+  #  _ in alignment string (dangling sequence) can refer to both reference and query. Let's make ` for reference.
 
   x  similar to --sam also --fastq (columns 1 2 3 4), --fasta (1 2) ?  unlikely, use bioawk for that.
      note --fasta-dict-NAME= and --fastq-dict-NAME= to make sequences available.

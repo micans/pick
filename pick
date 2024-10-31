@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "24-294a";
+my $v_v_v = "24-305a";
 
   #                     Copyright (c) 2022-2024  Stijn van Dongen
   #
@@ -150,6 +150,7 @@ my $Nsam_cigarerr = 0;
 my $Nsam_lenmiss = 0;
 my $Nsam_lenclash = 0;
 my $Nsam_rbtmiss  = 0;
+my $Nsam_rbterr  = 0;
 
 my $errtok = ' !';
 my $arttok = ' *';
@@ -1945,7 +1946,10 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   }
 
 
-    #  | and + indicate matching base (+ is a solitary base - not used currently)
+    #  Alignment legend
+    #
+    #  | indicates matching base
+    #  x is mismatch
     #  - is a deletion from reference.
     #  = is intronic deletion from reference.
     #  ` is dangling deletion from reference.
@@ -2227,16 +2231,21 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my $rlen = &sam_reflen;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    $::LC{spuv}{rbt_alnref} = "";                               # The excision
-    $::LC{spuv}{rbt_alnaln} = "";                               #   of the alignment
-    $::LC{spuv}{rbt_alnqry} = "";                               #     corresponding
-    $::LC{spuv}{rbt_alnrlr} = "";                               #       to uu and vv.
+    $::LC{spuv}{rbt_alnref} = '*';                               # The excision
+    $::LC{spuv}{rbt_alnaln} = '*';                               #   of the alignment
+    $::LC{spuv}{rbt_alnqry} = '*';                               #     corresponding
+    $::LC{spuv}{rbt_alnrlr} = '*';                               #       to uu and vv.
 
-    $::LC{spuv}{rbt_nmatch} =  0;
-    $::LC{spuv}{rbt_nedit}  =  $coord_ref_v - $coord_ref_u + 1;
     $::LC{spuv}{rbt_qryx}   =  1;
     $::LC{spuv}{rbt_qryy}   =  0;
-    $::LC{spuv}{rbt_qry}    =  "";
+    $::LC{spuv}{rbt_qry}    =  '*';
+    $::LC{spuv}{rbt_qrylen} =  0;
+
+    $::LC{spuv}{rbt_nmatchx} =  0;
+    $::LC{spuv}{rbt_nmatch} =  0;
+    $::LC{spuv}{rbt_ndel}   =  0;
+    $::LC{spuv}{rbt_nins}   =  0;
+    $::LC{spuv}{rbt_nedit}  =  $coord_ref_v - $coord_ref_u + 1;
 
     if (!$qlen || !$rlen) {
       errm(-1, "sam_rbt", "sequence missing", "pair $pair", "SNH");
@@ -2288,16 +2297,25 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $::LC{spuv}{rbt_refx}   = $coord_ref_uu;
       $::LC{spuv}{rbt_refy}   = $coord_ref_vv;
 
-      $::LC{spuv}{rbt_nmatch} = 0;
-      $::LC{spuv}{rbt_nedit}  = $coord_ref_v - $coord_ref_u + 1;
       $::LC{spuv}{rbt_qryx}   = $coord_qry_uu + 1;
       $::LC{spuv}{rbt_qryy}   = $coord_qry_vv + 1;
       $::LC{spuv}{rbt_qrylen} = $coord_qry_vv  - $coord_qry_uu + 1;
       $::LC{spuv}{rbt_qry}    = substr($sam_qry_cache[3], $coord_qry_uu, $::LC{spuv}{rbt_qrylen});
 
+                        my $t = $::LC{spuv}{rbt_alnaln};
+
+      $::LC{spuv}{rbt_nmatchx} = ($t =~ tr/x/x/);
+      $::LC{spuv}{rbt_ndel}   = ($t =~ tr/\-\=/\-\=/);
+      $::LC{spuv}{rbt_nins}   = ($t =~ tr/\~/\~/);
+
+      $::LC{spuv}{rbt_nmatch} = ($t =~ tr/\|/\|/) + $::LC{spuv}{rbt_nmatchx};
+
+      $::LC{spuv}{rbt_nedit}  =  $::LC{spuv}{rbt_ndel} + $::LC{spuv}{rbt_nins} + $::LC{spuv}{rbt_nmatchx};
+
       my $tmp = $::LC{spuv}{rbt_alnqry}; $tmp =~ tr/ACGTN//cd;
       if ($tmp ne $::LC{spuv}{rbt_qry}) {
          errm(-1, "sam_rbt", "result mismatch", "pair $pair", $tmp, $::LC{spuv}{rbt_qry}, "SNH");
+         $Nsam_rbterr++;
       }
     }
   }
@@ -2504,6 +2522,10 @@ print STDERR "-- $Nsam_lenmiss times a reference sequence length lookup failed\n
 print STDERR "-- $Nsam_lenclash times a reference sequence difference between SAM header and fasta file $sam_refdictname\n" if $Nsam_lenclash;
 print STDERR "-- $Nsam_cigarerr times a cigar string did not match the query sequence\n" if $Nsam_cigarerr;
 print STDERR "-- $Nsam_rbtmiss times a region bound tally query (sam_rbt) had zero overlap\n" if $Nsam_rbtmiss;
+if ($Nsam_rbterr) {
+   print STDERR "-- $Nsam_rbterr times a query rbt bound did not match the alignment extraction\n";
+   exit 1;
+}
 
 my $B_header = 1 - $B_headless;
 print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup;
