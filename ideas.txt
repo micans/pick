@@ -1,5 +1,4 @@
 
-  -  check all suv and rbt keys and what/when they activate.
   -  sort out patchiness/patchiness2; one documented choice:
        document what was used for screen4.
        ^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'

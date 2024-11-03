@@ -129,18 +129,12 @@ my $BIT_SAM_QPARTS =    1 <<  8;     # compute parts for query.
 my $BIT_SAM_RPARTS =    1 <<  9;     # compute parts for reference.
 my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
 
-my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;
+my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;                # collect bits that SAM_RPARTS depends on.
 my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
 
 my $DEP_SAM_ALN    =    $BIT_SAM_ALN | $BIT_SAM_RSEQ | $BIT_SAM_QSEQ ;
 my $DEP_SAM_RBT    =    $BIT_SAM_RBT | $DEP_SAM_ALN;
 my $DEP_SAM_RBT_CLXY =  $BIT_SAM_RBT_CLXY | $DEP_SAM_RBT;
-
-# $BIT_SAM_RPARTS   |=    $BIT_SAM_RSEQ;
-# $BIT_SAM_QPARTS   |=    $BIT_SAM_QSEQ;
-# $BIT_SAM_ALN      |=  ( $BIT_SAM_RSEQ | $BIT_SAM_QSEQ );       #  Not as clear as I'd like;
-# $BIT_SAM_RBT      |=    $BIT_SAM_ALN;                          #  'rbt' implies 'aln' implies  '[qr]seq'
-# $BIT_SAM_RBT_CLXY |=    $BIT_SAM_RBT;
 
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
@@ -918,6 +912,14 @@ EOH
     printf "%-12s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
     print  '-' x 80 . "\n";
     # my $deparse = B::Deparse->new;
+
+    if ($filter eq 'sam') {
+      for my $op (keys %suv_direct_lookup) {
+         @{cp_opdefinitions{$op}} = [ $op, sub { }, "-\t$op\t$suv_direct_lookup{$op}[0]\tsam" ];
+                     # ^ dangersign the above is just to sort all the sam operators together.
+                     # This is knowing we exit at the end of this -l option block.
+      }
+    }
     for my $op (sort keys %cp_opdefinitions) {
       my $opdef = $cp_opdefinitions{$op};
       my @help = split "\t", $opdef->[2];
@@ -925,11 +927,6 @@ EOH
       next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
       printf "%-14s%-12s%-20s%s [%s]\n", $op, @help;
       # print $deparse->coderef2text($opdef->[1]), "\n\n\n" if $elliness > 1;
-    }
-    if ($filter eq 'sam') {
-      for my $op (sort keys %suv_direct_lookup) {
-         printf "%-22s    %s\n", $op, $suv_direct_lookup{$op}[0];
-      }
     }
     if ($filter eq 'regex') {
       print "\n$regexpointers";
@@ -1226,12 +1223,13 @@ sub parse_compute {
       }
       my $opdef = $cp_opdefinitions{$what};
 
-      my $use_sam_shortcut = defined($suv_direct_lookup{$what}) ? 1 : 0;
+      my $use_sam_shortcut = ($I_AM_SAM & 1) && defined($suv_direct_lookup{$what}) ? 1 : 0;
       my $sambits = 0;
 
       $::LC{suv}{__sam_rbt__} = 1 if $what eq 'sam_rbt';
 
-      die "[$what] is not an operator I know" unless defined($opdef) || $use_sam_shortcut;
+      my $hint = defined($suv_direct_lookup{$what}) || defined($cp_samdefs{$what}) ? " ( use --sam or --sam/ref.fa )" : "";
+      die "[$what] is not an operator I know$hint" unless defined($opdef) || $use_sam_shortcut;
 
                                              # /sam_activate/
       if (defined($cp_sam_setup_seqs{$what})) {
