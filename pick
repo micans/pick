@@ -117,16 +117,31 @@ my $index_demux    = -1;
 
 my $I_AM_SAM       = 0;     # Set with --sam or --sam-h; used for caching of some values. Bit flag variable.
 
-my $BIT_HAVE_SAM   =    1 << 0;     # dealing with sam input
-my $BIT_SAM_QSEQ   =    1 << 1;     # an operator is used that requires the query sequence
-my $BIT_SAM_RSEQ   =    1 << 2;     # an operator is used that requires the reference sequence
-my $BIT_SAM_CHECKLEN =  1 << 3;     # check sequence lengths between header and supplied fasta
-my $BIT_SAM_CONTEXT =   1 << 4;     # show wider context around alignment
-my $BIT_SAM_NONF   =    1 << 5;     # do not convert exterior insertion to softclip
-my $BIT_SAM_RBT    =    1 << 6;     # compute region bound tally
-my $BIT_SAM_QPARTS =    1 << 7;     # compute parts for query.
-my $BIT_SAM_RPARTS =    1 << 8;     # compute parts for reference.
-my $BIT_SAM_NOLU   =    1 << 9;     # do not optimise SPUV lookups.
+my $BIT_HAVE_SAM   =    1 <<  0;     # dealing with sam input
+my $BIT_SAM_QSEQ   =    1 <<  1;     # an operator is used that requires the query sequence
+my $BIT_SAM_RSEQ   =    1 <<  2;     # an operator is used that requires the reference sequence
+my $BIT_SAM_CHECKLEN =  1 <<  3;     # check sequence lengths between header and supplied fasta
+my $BIT_SAM_CONTEXT =   1 <<  4;     # show wider context around alignment
+my $BIT_SAM_NONF   =    1 <<  5;     # do not convert exterior insertion to softclip
+my $BIT_SAM_RBT    =    1 <<  6;     # compute region bound tally
+my $BIT_SAM_RBT_CLXY =    1 <<  7;     # x and y specified on command line
+my $BIT_SAM_QPARTS =    1 <<  8;     # compute parts for query.
+my $BIT_SAM_RPARTS =    1 <<  9;     # compute parts for reference.
+my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
+
+my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;
+my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
+
+my $DEP_SAM_ALN    =    $BIT_SAM_ALN | $BIT_SAM_RSEQ | $BIT_SAM_QSEQ ;
+my $DEP_SAM_RBT    =    $BIT_SAM_RBT | $DEP_SAM_ALN;
+my $DEP_SAM_RBT_CLXY =  $BIT_SAM_RBT_CLXY | $DEP_SAM_RBT;
+
+# $BIT_SAM_RPARTS   |=    $BIT_SAM_RSEQ;
+# $BIT_SAM_QPARTS   |=    $BIT_SAM_QSEQ;
+# $BIT_SAM_ALN      |=  ( $BIT_SAM_RSEQ | $BIT_SAM_QSEQ );       #  Not as clear as I'd like;
+# $BIT_SAM_RBT      |=    $BIT_SAM_ALN;                          #  'rbt' implies 'aln' implies  '[qr]seq'
+# $BIT_SAM_RBT_CLXY |=    $BIT_SAM_RBT;
+
 
 my $REGEXP_CHARS   = '[({\\\*?^$';
 my $DUMMY_NAME     = 'PICKAAAAA';
@@ -413,60 +428,73 @@ sub sam_reflen {
 
 my %cp_samdefs = (
 
-     aln_nmatch      => [ 0, sub { push @::STACK, acigar($::LC{spuv}{aln_matched_cgr}, 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
+     aln_nmatch      => [ 0, sub { push @::STACK, acigar($::LC{suv}{aln_matched_cgr}, 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
      aln_nedit       => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance from NM:i field\tsam" ],
-     aln_nedit_pia   => [ 0, sub { my $x = &get_aln_strings(1); my $ngood = ($x =~ tr/|=_/|=_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_pia\tEdit distance pick-computed (intron aware)\tsam" ],
-     aln_nedit_piu   => [ 0, sub { my $x = &get_aln_strings(1); my $ngood = ($x =~ tr/|_/|_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_piu\tEdit distance pick-computed (intron unaware)\tsam" ],
-     aln_nmatchx     => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::LC{spuv}{aln_matched_cgr}, 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches within aligned part\tsam" ],
+     aln_nedit_pia   => [ 0, sub { my $x = $::LC{suv}{aln_aln}; my $ngood = ($x =~ tr/|=_/|=_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_pia\tEdit distance pick-computed (intron aware)\tsam" ],
+     aln_nedit_piu   => [ 0, sub { my $x = $::LC{suv}{aln_aln}; my $ngood = ($x =~ tr/|_/|_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_piu\tEdit distance pick-computed (intron unaware)\tsam" ],
+     aln_nmatchx     => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::LC{suv}{aln_matched_cgr}, 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches within aligned part\tsam" ],
 
-     aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "idsmn\taln_posinfo\tMismatch positions; indel sequences reported up to length idsmn\tsam" ],
-     aln_ref         => [ 0, sub { push @::STACK, &get_aln_strings(0) }, "-\taln_ref\talignment string for reference\tsam" ],
-     aln_aln         => [ 0, sub { push @::STACK, &get_aln_strings(1) }, "-\taln_aln\talignment string between reference and query\tsam" ],
-     aln_qry         => [ 0, sub { push @::STACK, &get_aln_strings(2) }, "-\taln_qry\talignment string for query\tsam" ],
-     aln_rlr         => [ 0, sub { push @::STACK, &get_aln_strings(3) }, "-\taln_rlr\talignment ruler for reference\tsam" ],
-     aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $_ } &get_aln_strings(3, 0,1,2) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
-  aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", &get_aln_strings(3, 0,1,2) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
+     aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "n\taln_posinfo\tMismatch positions; indel sequences reported up to length n\tsam" ],
+     aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
      patchiness      => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      patchiness2     => [ 2, sub { $::STACK[-2] = aln_patchiness2($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
-     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{spuv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
+     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
-     suv             => [ 1, sub { my $r = $::LC{spuv}{$::STACK[-1]};  die "no SPUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tspuv\tsam unified view lookup\tsam" ],
+     suv             => [ 1, sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
 
-     ref_posx        => [ 0, sub { push @::STACK, $::LC{spuv}{ref_posx} }, "-\trefstart\tStart of alignment in ref (1-based)\tsam" ],
-     ref_posy        => [ 0, sub { push @::STACK, $::LC{spuv}{ref_posy} }, "-\trefend\tLast base in reference covered by alignment (1-based)\tsam" ],
-     ref_len         => [ 0, sub { push @::STACK, &sam_reflen }, "-\treflen\tLength of reference sequence (requires samtools view -h)\tsam" ],
-
-     ref_trail5p     => [ 0, sub { push @::STACK, $::LC{spuv}{ref_trail5p} }, "-\tref_trail5p\t5' unaligned reference sequence\tsam" ],
-     ref_matched     => [ 0, sub { push @::STACK, $::LC{spuv}{ref_matched} }, "-\tref_matched\tmatched reference sequence\tsam" ],
-     ref_trail3p     => [ 0, sub { push @::STACK, $::LC{spuv}{ref_trail3p} }, "-\tref_trail3p\t3' reference query sequence\tsam" ],
-
-     ref_trail5p_N   => [ 0, sub { push @::STACK, $::LC{spuv}{ref_trail5p_N} }, "-\trefclipl\tNumber of 5p trailing reference bases\tsam" ],
-     ref_matched_N   => [ 0, sub { push @::STACK, $::LC{spuv}{ref_matched_N} }, "-\trefclipl\tNumber of 5p matched reference bases (mismatches and indels allowed)\tsam" ],
-     ref_trail3p_N   => [ 0, sub { push @::STACK, $::LC{spuv}{ref_trail3p_N} }, "-\trefclipr\tNumber of 3p trailing reference bases\tsam" ],
-
-
-     qry_posx        => [ 0, sub { push @::STACK, $::LC{spuv}{qry_posx} }, "-\tqrystart\tStart of alignment in query (1-based)\tsam" ],
-     qry_posy        => [ 0, sub { push @::STACK, $::LC{spuv}{qry_posy} }, "-\tqryend\tLast base in query covered by alignment (1-based)\tsam" ],
-     qry_len         => [ 0, sub { push @::STACK, $::LC{spuv}{qry_len} },  "-\tqrylen\tLength of query sequence\tsam" ],
-
-     qry_trail5p     => [ 0, sub { push @::STACK, $::LC{spuv}{qry_trail5p} }, "-\tqry_trail5p\t5' unaligned query sequence in reference orientation\tsam" ],
-     qry_matched     => [ 0, sub { push @::STACK, $::LC{spuv}{qry_matched} }, "-\tqry_matched\tmatched query sequence in reference orientation\tsam" ],
-     qry_trail3p     => [ 0, sub { push @::STACK, $::LC{spuv}{qry_trail3p} }, "-\tqry_trail3p\t3' unaligned query sequence in reference orientation\tsam" ],
      qry_seq         => [ 0, sub { push @::STACK, &get_qry();}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
-
-     qry_trail5p_N   => [ 0, sub { push @::STACK, $::LC{spuv}{qry_trail5p_N} }, "-\tqryclipl\tNumber of 5p trailing query bases\tsam" ],
-     qry_matched_N   => [ 0, sub { push @::STACK, $::LC{spuv}{qry_matched_N} }, "-\tqryclipl\tNumber of 5p matched query bases (mismatches and indels allowed)\tsam" ],
-     qry_trail3p_N   => [ 0, sub { push @::STACK, $::LC{spuv}{qry_trail3p_N} }, "-\tqryclipr\tNumber of 3p trailing query bases\tsam" ]
-
    );
 
-my %spuv_direct_lookup = map { ($_, 1) } qw(
-   ref_posx ref_posy ref_len               qry_posx qry_posy qry_len
-   ref_trail5p ref_matched ref_trail3p     ref_trail5p_N ref_matched_N ref_trail3p_N
-   qry_trail5p qry_matched qry_trail3p     qry_trail5p_N qry_matched_N qry_trail3p_N
+my %cp_sam_setup_seqs = map { $_ => 0 } keys %cp_samdefs;
+
+  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo aln_all aln_nedit_pia aln_nedit_piu );
+  $cp_sam_setup_seqs{$_} |=  $BIT_SAM_QSEQ   for qw( qry_seq );
+  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_RBT    for qw( rbt_alnall sam_rbt );
+
+
+my %suv_direct_lookup =
+(  ref_posx         =>  [ 'Start position of alignment in ref (1-based)',   0  ]
+,  ref_posy         =>  [ 'End position of alignment in ref (1-based)',     0  ]
+,  ref_len          =>  [ 'Length of reference sequence',                   0  ]
+,  qry_posx         =>  [ 'Start position of alignment in query (1-based)', 0  ]
+,  qry_posy         =>  [ 'End position of alignment in query (1-based)',   0  ]
+,  qry_len          =>  [ 'Length of query sequence',                       0  ]
+,  ref_trail5p      =>  [ '5\' unaligned reference sequence',               $DEP_SAM_RPARTS ]
+,  ref_matched      =>  [ 'Matched reference sequence',                     $DEP_SAM_RPARTS ]
+,  ref_trail3p      =>  [ '3\' unaligned reference sequence',               $DEP_SAM_RPARTS ]
+,  ref_trail5p_N    =>  [ 'Length of 5\' unaligned reference sequence',     0  ]
+,  ref_matched_N    =>  [ 'Length of Matched reference sequence',           0  ]
+,  ref_trail3p_N    =>  [ 'Length of 3\' unaligned reference sequence',     0  ]
+,  qry_trail5p      =>  [ '5\' unaligned query sequence',                   $DEP_SAM_QPARTS ]
+,  qry_matched      =>  [ 'Matched query sequence',                         $DEP_SAM_QPARTS ]
+,  qry_trail3p      =>  [ '3\' unaligned query sequence',                   $DEP_SAM_QPARTS ]
+,  qry_trail5p_N    =>  [ 'Length of 5\' unaligned query sequence',         0  ]
+,  qry_matched_N    =>  [ 'Length of Matched query sequence',               0  ]
+,  qry_trail3p_N    =>  [ 'Length of 3\' unaligned query sequence',         0  ]
+
+,  aln_ref          =>  [ 'Alignment string for reference',                 $DEP_SAM_ALN ]
+,  aln_aln          =>  [ 'Alignment string between reference and query',   $DEP_SAM_ALN ]
+,  aln_qry          =>  [ 'Alignment string for query',                     $DEP_SAM_ALN ]
+,  aln_rlr          =>  [ 'Alignment ruler for reference',                  $DEP_SAM_ALN ]
+
+,  rbt_alnref       =>  [ 'Reference string (rbt)',                         $DEP_SAM_RBT   ]
+,  rbt_alnaln       =>  [ 'Alignment string (rbt)',                         $DEP_SAM_RBT   ]
+,  rbt_alnqry       =>  [ 'Query string (rbt)',                             $DEP_SAM_RBT   ]
+,  rbt_alnrlr       =>  [ 'Ruler string (rbt)',                             $DEP_SAM_RBT   ]
+,  rbt_refx         =>  [ 'Reference start position (rbt)',                 $DEP_SAM_RBT   ]
+,  rbt_refy         =>  [ 'Reference end position (rbt)',                   $DEP_SAM_RBT   ]
+,  rbt_qryx         =>  [ 'Query start position (rbt)',                     $DEP_SAM_RBT   ]
+,  rbt_qryy         =>  [ 'Query end position (rbt)',                       $DEP_SAM_RBT   ]
+,  rbt_qry          =>  [ 'Query sequence (rbt)',                           $DEP_SAM_RBT   ]
+,  rbt_qrylen       =>  [ 'Query sequence length (rbt)',                    $DEP_SAM_RBT   ]
+,  rbt_nmatchx      =>  [ 'Number of aligned mismatched bases (rbt)',       $DEP_SAM_RBT   ]
+,  rbt_nmatch       =>  [ 'Number of aligned bases (rbt)',                  $DEP_SAM_RBT   ]
+,  rbt_ndel         =>  [ 'Number of deletions (rbt)',                      $DEP_SAM_RBT   ]
+,  rbt_nins         =>  [ 'Number of insertions (rbt)',                     $DEP_SAM_RBT   ]
+,  rbt_nedit        =>  [ 'Number of edits (rbt)',                          $DEP_SAM_RBT   ]
 );
 
 my %appreciated = qw(
@@ -494,13 +522,6 @@ my %appreciated = qw(
          lsh      bitlsh
          rsh      bitrsh
    );
-
-   # below bit 2: needs query sequence. bit 4: needs reference sequence.
-my %cp_sam_setup_seqs = ();
-  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)    for qw( aln_posinfo aln_ref aln_aln aln_qry aln_rlr aln_all sam_rbt aln_nedit_pia aln_nedit_piu);
-  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_QSEQ                )    for qw( qry_seq );
-  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_QSEQ | $BIT_SAM_QPARTS)  for qw( qry_trail3p qry_trail5p qry_matched );
-  $cp_sam_setup_seqs{$_} |= ($BIT_SAM_RSEQ | $BIT_SAM_RPARTS)  for qw( ref_trail3p ref_trail5p ref_matched );
 
             # sub { } :
             # $_[0] is $F[$i]
@@ -902,8 +923,13 @@ EOH
       my @help = split "\t", $opdef->[2];
       die "Error in description @help\n" unless @help == 4;
       next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
-      printf "%-12s%-12s%-20s%s [%s]\n", $op, @help;
+      printf "%-14s%-12s%-20s%s [%s]\n", $op, @help;
       # print $deparse->coderef2text($opdef->[1]), "\n\n\n" if $elliness > 1;
+    }
+    if ($filter eq 'sam') {
+      for my $op (sort keys %suv_direct_lookup) {
+         printf "%-22s    %s\n", $op, $suv_direct_lookup{$op}[0];
+      }
     }
     if ($filter eq 'regex') {
       print "\n$regexpointers";
@@ -1089,15 +1115,12 @@ EOH
        $::sam_aln_prefix = $1;
      }
      elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
-       $I_AM_SAM |= $BIT_SAM_RSEQ | $BIT_SAM_QSEQ | $BIT_SAM_RBT;
+       $I_AM_SAM |= $DEP_SAM_RBT_CLXY;
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
      }
      elsif ($options eq 'sam-nonf') {      # no normal form.
        $I_AM_SAM |= $BIT_SAM_NONF;         #
-     }
-     elsif ($options eq 'sam-nolu') {      # no SPUV lookup optimisation.
-       $I_AM_SAM |= $BIT_SAM_NOLU;         #
      }
      else {
        die "Unrecognised long option --$options";
@@ -1189,6 +1212,7 @@ sub parse_compute {
   my $p = 0;
   $spec = ":$spec" if substr($spec, 0, 1) !~ /[,^:]/;
   my $l = length($spec);
+  my $sam_rbt_in_use = 0;
 
   while ($spec =~ /([,^:])([^,^:]*)/g) {
     my ($type, $what) = ($chartypetonum{$1}, $2);
@@ -1201,31 +1225,44 @@ sub parse_compute {
         $what = $appreciated{$what};
       }
       my $opdef = $cp_opdefinitions{$what};
-      die "[$what] is not an operator I know" unless defined($opdef);
+
+      my $use_sam_shortcut = defined($suv_direct_lookup{$what}) ? 1 : 0;
+      my $sambits = 0;
+
+      $::LC{suv}{__sam_rbt__} = 1 if $what eq 'sam_rbt';
+
+      die "[$what] is not an operator I know" unless defined($opdef) || $use_sam_shortcut;
 
                                              # /sam_activate/
       if (defined($cp_sam_setup_seqs{$what})) {
-         $I_AM_SAM |= $cp_sam_setup_seqs{$what};
+         $sambits   = $cp_sam_setup_seqs{$what};
+         $I_AM_SAM |= $sambits;
       }
                                              # /pload_validate/
-      if ($what eq 'pload') {
+      elsif ($what eq 'pload') {
          die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
          die "Operator 'pload' requires operand" unless @oplist > 1;
          die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
             unless $oplist[-2][0] == $TYPE_SCALAR;
          $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
-      elsif (!($I_AM_SAM & $BIT_SAM_NOLU) && defined($spuv_direct_lookup{$what})) {
+      elsif ($use_sam_shortcut) {
          $oplist[-1][0] = $TYPE_LUSPUV;
+         $sambits = $suv_direct_lookup{$what}[1];
+         $I_AM_SAM |= $sambits;
       }
       elsif ($what eq 'test') {              # /test_validate/
          die "Operator 'test' requires three operands" unless @oplist > 3;
          die "Operator 'test' requires third operand to be a known test (you supplied $oplist[-2][1])"
             unless $oplist[-2][0] == $TYPE_SCALAR && defined($sel_opdefinitions{$oplist[-2][1]});
       }
+
+      if (($sambits & $BIT_SAM_RBT) && !$::LC{suv}{__sam_rbt__} && !($I_AM_SAM & $BIT_SAM_RBT_CLXY)) {
+         die "Operator $what is used without prior ,sam_rbt or --sam-rbt=x,y instruction";
+      }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
-print STDERR "ddd $handle >> type=$type op=$what N=$opdef->[0], code=$what:$opdef->[1]\n" if $B_debug;
+print STDERR "ddd $handle >> type=$type op=$what N=$opdef->[0]\n" if $B_debug;
     }
     else {
 print STDERR "ddd $type $what >>\n" if $B_debug;
@@ -1633,6 +1670,7 @@ print STDERR "-- List contains items from newly computed columns\n" if @::comput
        print $fh_other @::OUTPUT_HEADER; print $fh_other "\n";
     }
   }
+print STDERR "-- i_am_sam bits $I_AM_SAM\n" if $B_debug;
 
 }
 
@@ -1657,7 +1695,7 @@ sub do_compute {
          $n_wanted--;
          $#::STACK -= $n_wanted if $n_wanted > 0;    # subs put computed element in the right place.
       }
-      elsif ($type == $TYPE_LUSPUV) { push @::STACK, $::LC{spuv}{$what}; }
+      elsif ($type == $TYPE_LUSPUV) { push @::STACK, $::LC{suv}{$what}; }
       else { die "Really unfortunate."; }
     }
     push @$::Flink, (join "", @::STACK);
@@ -1730,7 +1768,7 @@ $::Groupi = 2;    # index within group.
   }
 
 
-   ## Fixfixme. Is this still needed now that ::LC{spuv} adapts to all variants of exterior representations?
+   ## Fixfixme. Is this still needed now that ::LC{suv} adapts to all variants of exterior representations?
    ## Is it useful to normalise any exterior sequence of ISX (qry) and DX (ref)?
 
   sub sam_normalform {
@@ -1744,7 +1782,7 @@ $::Groupi = 2;    # index within group.
 
 
      ## This adjustment does not affect any of the quantities computed related to
-     ## trail5p, matched and trail3p (by sam_compute_spuv). The view adjustment is achieved
+     ## trail5p, matched and trail3p (by sam_compute_suv). The view adjustment is achieved
      ## optionally changing SAM field 3 (reference position) and changing exterior parts
      ## of the CIGAR string (using X, D, I, S to affect what's output and what the alignment
      ## status is).
@@ -1826,69 +1864,69 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     return $s;
   }
 
-  sub sam_compute_spuv {                  # Sam Parts Unified View. Needs to be run after sam_adjust_view_extend
+  sub sam_compute_suv {                  # Sam Parts Unified View. Needs to be run after sam_adjust_view_extend
 
     my ($get_qry_parts, $get_ref_parts) = @_;
     # TODO: checks for alnedit, compare NM:i: sam field with internal calculation.
 
-    { $::LC{spuv}{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
+    { $::LC{suv}{ref_len} = &sam_reflen;       # note: $sam_ref_sequence is conditionally available in this (sam functionality) block.
                                           # fixme: only do this when necessary or in a different appropriately guarded place.
                                           # TODO: require soft clipping to be exterior always.
 
-      my $t5 = $::LC{spuv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '' );
-      my $t3 = $::LC{spuv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '' );
-      $::LC{spuv}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
+      my $t5 = $::LC{suv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '' );
+      my $t3 = $::LC{suv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '' );
+      $::LC{suv}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
 
-      $::LC{spuv}{qry_soft5p_N}  = cgr_nsoft($t5);
-      $::LC{spuv}{qry_soft3p_N}  = cgr_nsoft($t3);
-      $::LC{spuv}{ref_soft5p_N}  = $::Flink->[3] -1;
-      $::LC{spuv}{ref_soft3p_N}  = $::LC{spuv}{ref_len} - $::LC{spuv}{ref_soft5p_N} - cgr_sum_ref($::Flink->[5]);
+      $::LC{suv}{qry_soft5p_N}  = cgr_nsoft($t5);
+      $::LC{suv}{qry_soft3p_N}  = cgr_nsoft($t3);
+      $::LC{suv}{ref_soft5p_N}  = $::Flink->[3] -1;
+      $::LC{suv}{ref_soft3p_N}  = $::LC{suv}{ref_len} - $::LC{suv}{ref_soft5p_N} - cgr_sum_ref($::Flink->[5]);
 
-      $::LC{spuv}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_ref($::LC{spuv}{aln_trail5p_cgr});
-      $::LC{spuv}{ref_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MDN=X', 'sum');
-      $::LC{spuv}{ref_trail3p_N} = $::LC{spuv}{ref_len} - $::LC{spuv}{ref_trail5p_N} - $::LC{spuv}{ref_matched_N};
+      $::LC{suv}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_ref($::LC{suv}{aln_trail5p_cgr});
+      $::LC{suv}{ref_matched_N} = acigar($::LC{suv}{aln_matched_cgr}, 'MDN=X', 'sum');
+      $::LC{suv}{ref_trail3p_N} = $::LC{suv}{ref_len} - $::LC{suv}{ref_trail5p_N} - $::LC{suv}{ref_matched_N};
 
                              # fixme/testme/docme. for reference, the cigar string just peters ou, so no cgr/N correspondence at 3p end.
 
-      $::LC{spuv}{ref_posx}      =  $::LC{spuv}{ref_trail5p_N} + 1;
-      $::LC{spuv}{ref_posy}      =  $::LC{spuv}{ref_posx} + $::LC{spuv}{ref_matched_N} - 1;
+      $::LC{suv}{ref_posx}      =  $::LC{suv}{ref_trail5p_N} + 1;
+      $::LC{suv}{ref_posy}      =  $::LC{suv}{ref_posx} + $::LC{suv}{ref_matched_N} - 1;
 
       if ($get_ref_parts && length($sam_ref_sequence)) {
-        $::LC{spuv}{ref_trail5p} = substr($sam_ref_sequence, 0, $::LC{spuv}{ref_trail5p_N});
-        $::LC{spuv}{ref_matched} = substr($sam_ref_sequence, $::LC{spuv}{ref_trail5p_N}, $::LC{spuv}{ref_matched_N});
-        $::LC{spuv}{ref_trail3p} = substr($sam_ref_sequence, $::LC{spuv}{ref_trail5p_N} + $::LC{spuv}{ref_matched_N});
+        $::LC{suv}{ref_trail5p} = substr($sam_ref_sequence, 0, $::LC{suv}{ref_trail5p_N});
+        $::LC{suv}{ref_matched} = substr($sam_ref_sequence, $::LC{suv}{ref_trail5p_N}, $::LC{suv}{ref_matched_N});
+        $::LC{suv}{ref_trail3p} = substr($sam_ref_sequence, $::LC{suv}{ref_trail5p_N} + $::LC{suv}{ref_matched_N});
       }
       else {
-        $::LC{spuv}{ref_trail5p} = 'N';
-        $::LC{spuv}{ref_matched} = 'N';
-        $::LC{spuv}{ref_trail3p} = 'N';
+        $::LC{suv}{ref_trail5p} = '*';
+        $::LC{suv}{ref_matched} = '*';
+        $::LC{suv}{ref_trail3p} = '*';
       }
       # fixme/testme: where is skip/warn control if no reference sequence.
     }
 
-    { $::LC{spuv}{qry_trail5p_N} = cgr_sum_qry($::LC{spuv}{aln_trail5p_cgr});
-      $::LC{spuv}{qry_matched_N} = acigar($::LC{spuv}{aln_matched_cgr}, 'MISH=X', 'sum');
-      $::LC{spuv}{qry_trail3p_N} = cgr_sum_qry($::LC{spuv}{aln_trail3p_cgr});
+    { $::LC{suv}{qry_trail5p_N} = cgr_sum_qry($::LC{suv}{aln_trail5p_cgr});
+      $::LC{suv}{qry_matched_N} = acigar($::LC{suv}{aln_matched_cgr}, 'MISH=X', 'sum');
+      $::LC{suv}{qry_trail3p_N} = cgr_sum_qry($::LC{suv}{aln_trail3p_cgr});
 
-      $::LC{spuv}{qry_len} = $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_trail3p_N} + $::LC{spuv}{qry_matched_N};
+      $::LC{suv}{qry_len} = $::LC{suv}{qry_trail5p_N} + $::LC{suv}{qry_trail3p_N} + $::LC{suv}{qry_matched_N};
       my $l = length($sam_qry_cache[3]);
 
-      if ($l > 1 && $l != $::LC{spuv}{qry_len}) {     # $l > 1 avoids '*' case.     spot3 qry_len_fixme
-         errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{spuv}{qry_len}");
+      if ($l > 1 && $l != $::LC{suv}{qry_len}) {     # $l > 1 avoids '*' case.     spot3 qry_len_fixme
+         errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{suv}{qry_len}");
       }
 
-      $::LC{spuv}{qry_posx}      =  $::LC{spuv}{qry_trail5p_N} + 1;
-      $::LC{spuv}{qry_posy}      =  $::LC{spuv}{qry_posx} + $::LC{spuv}{qry_matched_N} - 1;
+      $::LC{suv}{qry_posx}      =  $::LC{suv}{qry_trail5p_N} + 1;
+      $::LC{suv}{qry_posy}      =  $::LC{suv}{qry_posx} + $::LC{suv}{qry_matched_N} - 1;
 
       if ($get_qry_parts && length($sam_qry_cache[3])) {
-        $::LC{spuv}{qry_trail5p} = substr($sam_qry_cache[3], 0, $::LC{spuv}{qry_trail5p_N});
-        $::LC{spuv}{qry_matched} = substr($sam_qry_cache[3], $::LC{spuv}{qry_trail5p_N}, $::LC{spuv}{qry_matched_N});
-        $::LC{spuv}{qry_trail3p} = substr($sam_qry_cache[3], $::LC{spuv}{qry_trail5p_N} + $::LC{spuv}{qry_matched_N});
+        $::LC{suv}{qry_trail5p} = substr($sam_qry_cache[3], 0, $::LC{suv}{qry_trail5p_N});
+        $::LC{suv}{qry_matched} = substr($sam_qry_cache[3], $::LC{suv}{qry_trail5p_N}, $::LC{suv}{qry_matched_N});
+        $::LC{suv}{qry_trail3p} = substr($sam_qry_cache[3], $::LC{suv}{qry_trail5p_N} + $::LC{suv}{qry_matched_N});
       }
       else {
-        $::LC{spuv}{qry_trail5p} = 'N';
-        $::LC{spuv}{qry_matched} = 'N';
-        $::LC{spuv}{qry_trail3p} = 'N';
+        $::LC{suv}{qry_trail5p} = '*';
+        $::LC{suv}{qry_matched} = '*';
+        $::LC{suv}{qry_trail3p} = '*';
       }
     }
   }
@@ -2071,11 +2109,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   }
 
 
-  sub get_aln_strings {
-
-    if (defined($::LC{alnstrings})) {
-      return @_ > 1 ? map { $::LC{alnstrings}{$_}; } @_ : $::LC{alnstrings}{$_[0]};
-    }
+  sub sam_compute_aln {
 
     my $qry = $sam_qry_cache[3];
     my $ref = $sam_ref_sequence;
@@ -2083,7 +2117,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     if (!length($qry) || !length($ref)) {                                  # spot5 qry_len_fixme
       errm(0, "aln_* sequence missing", "pair $pair", "SNH");
-      return "";
+      return 1;                                                      # this should be impossible (sam_setup_sequences is checked).
     }
 
     $qry =~ tr/uU/tT/;
@@ -2092,7 +2126,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
     my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
 
-    my $pref = $::Flink->[3]-1;        # note: the aligned part should use $::LC{spuv}{ref_posx} and $::LC{spuv}{aln_matched_cgr}
+    my $pref = $::Flink->[3]-1;        # note: the aligned part should use $::LC{suv}{ref_posx} and $::LC{suv}{aln_matched_cgr}
                                        # $::Flink->[3] and $::Flnk->[5] may have been changed to accomodate alignment context.
 
     my ($rlen, $qlen) = (length($ref), length($qry));
@@ -2154,19 +2188,19 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        $aln_aln =~ s/(\~+)$/'_' x length($1)/e;
        $aln_aln =~ s/(\-+)$/'`' x length($1)/e;
 
-       $aln_ref .= '  ' . ($::LC{spuv}{ref_trail5p_N} ? '<' : '[');
-       $aln_ref .=         $::LC{spuv}{ref_trail3p_N} ? '>' : ']';
-       $aln_ref .= '  ' . join ', ', map { $::LC{spuv}{$_} } qw(ref_trail5p_N ref_matched_N ref_trail3p_N);
+       $aln_ref .= '  ' . ($::LC{suv}{ref_trail5p_N} ? '<' : '[');
+       $aln_ref .=         $::LC{suv}{ref_trail3p_N} ? '>' : ']';
+       $aln_ref .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(ref_trail5p_N ref_matched_N ref_trail3p_N);
 
-       $aln_qry .= '  ' . ($::LC{spuv}{qry_trail5p_N} ? '<' : '[');
-       $aln_qry .=         $::LC{spuv}{qry_trail3p_N} ? '>' : ']';
-       $aln_qry .= '  ' . join ', ', map { $::LC{spuv}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
+       $aln_qry .= '  ' . ($::LC{suv}{qry_trail5p_N} ? '<' : '[');
+       $aln_qry .=         $::LC{suv}{qry_trail3p_N} ? '>' : ']';
+       $aln_qry .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
 
-       @{$::LC{alnstrings}}{qw(0 1 2 3)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
+       @{$::LC{suv}}{qw(aln_ref aln_aln aln_qry aln_rlr)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
     }
-
-    return @_ > 1 ? map { $::LC{alnstrings}{$_}; } @_ : $::LC{alnstrings}{$_[0]};
+    return 0;
   }
+
 
   sub get_qry {
     return $sam_qry_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
@@ -2198,7 +2232,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
  #
 
  #                 Find offset of true alignment in stored alignment.
- #                 Refers to 'true' alignment. Stored alignment (get_aln_strings) may contain trailing sequence.
+ #                 Refers to 'true' alignment. Stored alignment may contain trailing sequence.
  #                /
  #      ref_trail5p_N
  #    <----------------->       stored alignment (may include I D X cigar for trailing sequences)
@@ -2222,7 +2256,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     my ($coord_ref_u,  $coord_ref_v)  =  map { $_ - 1; } @_;               # zero-based inclusive
     my ($coord_ref_uu, $coord_ref_vv) =  ($coord_ref_u, $coord_ref_v);     # will be updated/restricted to the alignment interval if necessary.
-    my ($coord_ref_x,  $coord_ref_y)  =  ($::LC{spuv}{ref_trail5p_N}, $::LC{spuv}{ref_trail5p_N} + $::LC{spuv}{ref_matched_N} -1);  # zero based inclusive.
+    my ($coord_ref_x,  $coord_ref_y)  =  ($::LC{suv}{ref_trail5p_N}, $::LC{suv}{ref_trail5p_N} + $::LC{suv}{ref_matched_N} -1);  # zero based inclusive.
 
     my ($coord_aln_uu, $coord_aln_vv) =  (-1, -1);
     my ($coord_qry_uu, $coord_qry_vv) =  (-1, -1);
@@ -2231,31 +2265,31 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     my $rlen = &sam_reflen;
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
-    $::LC{spuv}{rbt_alnref} = '*';                               # The excision
-    $::LC{spuv}{rbt_alnaln} = '*';                               #   of the alignment
-    $::LC{spuv}{rbt_alnqry} = '*';                               #     corresponding
-    $::LC{spuv}{rbt_alnrlr} = '*';                               #       to uu and vv.
+    $::LC{suv}{rbt_alnref} = '*';                               # The excision
+    $::LC{suv}{rbt_alnaln} = '*';                               #   of the alignment
+    $::LC{suv}{rbt_alnqry} = '*';                               #     corresponding
+    $::LC{suv}{rbt_alnrlr} = '*';                               #       to uu and vv.
 
-    $::LC{spuv}{rbt_refx}   =  1;
-    $::LC{spuv}{rbt_refy}   =  0;
+    $::LC{suv}{rbt_refx}   =  1;
+    $::LC{suv}{rbt_refy}   =  0;
 
-    $::LC{spuv}{rbt_qryx}   =  1;
-    $::LC{spuv}{rbt_qryy}   =  0;
-    $::LC{spuv}{rbt_qry}    =  '*';
-    $::LC{spuv}{rbt_qrylen} =  0;
+    $::LC{suv}{rbt_qryx}   =  1;
+    $::LC{suv}{rbt_qryy}   =  0;
+    $::LC{suv}{rbt_qry}    =  '*';
+    $::LC{suv}{rbt_qrylen} =  0;
 
-    $::LC{spuv}{rbt_nmatchx} =  0;
-    $::LC{spuv}{rbt_nmatch} =  0;
-    $::LC{spuv}{rbt_ndel}   =  0;
-    $::LC{spuv}{rbt_nins}   =  0;
-    $::LC{spuv}{rbt_nedit}  =  $coord_ref_v - $coord_ref_u + 1;
+    $::LC{suv}{rbt_nmatchx} =  0;
+    $::LC{suv}{rbt_nmatch} =  0;
+    $::LC{suv}{rbt_ndel}   =  0;
+    $::LC{suv}{rbt_nins}   =  0;
+    $::LC{suv}{rbt_nedit}  =  $coord_ref_v - $coord_ref_u + 1;
 
     if (!$qlen || !$rlen) {
       errm(-1, "sam_rbt", "sequence missing", "pair $pair", "SNH");
       return "";                                                # fixme. this return is meaningless / not picked up.
     }
 
-    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = get_aln_strings(0, 1, 2, 3);
+    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = map { $::LC{suv}{$_} } qw(aln_ref aln_aln aln_qry aln_rlr);
 
     if ($coord_ref_x > $coord_ref_u || $coord_ref_y < $coord_ref_v) {
       ($coord_ref_uu, $coord_ref_vv) = (max($coord_ref_u, $coord_ref_x),  min($coord_ref_v, $coord_ref_y));
@@ -2269,7 +2303,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     my $cigar = $::Flink->[5];
 
-    my ($cur_ref_p, $cur_aln_p, $cur_qry_p) = ($::LC{spuv}{ref_soft5p_N}, 0, 0);       # query soft5p N is represented in cigar string.
+    my ($cur_ref_p, $cur_aln_p, $cur_qry_p) = ($::LC{suv}{ref_soft5p_N}, 0, 0);       # query soft5p N is represented in cigar string.
 
     while ($cigar =~ /(\d+)([MINDSHP=X])/ig) {
       my ($num, $it) = ($1, $2);
@@ -2293,31 +2327,31 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     }
 
     if ($coord_aln_uu >= 0 && $coord_aln_vv >= 0) {
-      $::LC{spuv}{rbt_alnref} = substr($aln_ref, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
-      $::LC{spuv}{rbt_alnaln} = substr($aln_aln, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
-      $::LC{spuv}{rbt_alnqry} = substr($aln_qry, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
-      $::LC{spuv}{rbt_alnrlr} = substr($aln_rlr, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
-      $::LC{spuv}{rbt_refx}   = $coord_ref_uu;
-      $::LC{spuv}{rbt_refy}   = $coord_ref_vv;
+      $::LC{suv}{rbt_alnref} = substr($aln_ref, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{suv}{rbt_alnaln} = substr($aln_aln, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{suv}{rbt_alnqry} = substr($aln_qry, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{suv}{rbt_alnrlr} = substr($aln_rlr, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{suv}{rbt_refx}   = $coord_ref_uu;
+      $::LC{suv}{rbt_refy}   = $coord_ref_vv;
 
-      $::LC{spuv}{rbt_qryx}   = $coord_qry_uu + 1;
-      $::LC{spuv}{rbt_qryy}   = $coord_qry_vv + 1;
-      $::LC{spuv}{rbt_qrylen} = $coord_qry_vv  - $coord_qry_uu + 1;
-      $::LC{spuv}{rbt_qry}    = substr($sam_qry_cache[3], $coord_qry_uu, $::LC{spuv}{rbt_qrylen});
+      $::LC{suv}{rbt_qryx}   = $coord_qry_uu + 1;
+      $::LC{suv}{rbt_qryy}   = $coord_qry_vv + 1;
+      $::LC{suv}{rbt_qrylen} = $coord_qry_vv  - $coord_qry_uu + 1;
+      $::LC{suv}{rbt_qry}    = substr($sam_qry_cache[3], $coord_qry_uu, $::LC{suv}{rbt_qrylen});
 
-                        my $t = $::LC{spuv}{rbt_alnaln};
+                        my $t = $::LC{suv}{rbt_alnaln};
 
-      $::LC{spuv}{rbt_nmatchx} = ($t =~ tr/x/x/);
-      $::LC{spuv}{rbt_ndel}   = ($t =~ tr/\-\=/\-\=/);
-      $::LC{spuv}{rbt_nins}   = ($t =~ tr/\~/\~/);
+      $::LC{suv}{rbt_nmatchx} = ($t =~ tr/x/x/);
+      $::LC{suv}{rbt_ndel}   = ($t =~ tr/\-\=/\-\=/);
+      $::LC{suv}{rbt_nins}   = ($t =~ tr/\~/\~/);
 
-      $::LC{spuv}{rbt_nmatch} = ($t =~ tr/\|/\|/) + $::LC{spuv}{rbt_nmatchx};
+      $::LC{suv}{rbt_nmatch} = ($t =~ tr/\|/\|/) + $::LC{suv}{rbt_nmatchx};
 
-      $::LC{spuv}{rbt_nedit}  =  $::LC{spuv}{rbt_ndel} + $::LC{spuv}{rbt_nins} + $::LC{spuv}{rbt_nmatchx};
+      $::LC{suv}{rbt_nedit}  =  $::LC{suv}{rbt_ndel} + $::LC{suv}{rbt_nins} + $::LC{suv}{rbt_nmatchx};
 
-      my $tmp = $::LC{spuv}{rbt_alnqry}; $tmp =~ tr/ACGTN//cd;
-      if ($tmp ne $::LC{spuv}{rbt_qry}) {
-         errm(-1, "sam_rbt", "result mismatch", "pair $pair", $tmp, $::LC{spuv}{rbt_qry}, "SNH");
+      my $tmp = $::LC{suv}{rbt_alnqry}; $tmp =~ tr/ACGTN//cd;
+      if ($tmp ne $::LC{suv}{rbt_qry}) {
+         errm(-1, "sam_rbt", "result mismatch", "pair $pair", $tmp, $::LC{suv}{rbt_qry}, "SNH");
          $Nsam_rbterr++;
       }
     }
@@ -2441,9 +2475,9 @@ while (<>) {
     }
   }
 
-  if ($I_AM_SAM & $BIT_HAVE_SAM) {
+  if ($I_AM_SAM) {
 
-    $::LC{spuv}{input_cigar} = $F[5];
+    $::LC{suv}{input_cigar} = $F[5];
 
     sam_check_reflen    if     $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
     sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips
@@ -2452,8 +2486,9 @@ while (<>) {
     if ($I_AM_SAM & ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) {                # Either query or ref sequence needed.
       if (sam_setup_sequences($I_AM_SAM & $BIT_SAM_QSEQ, $I_AM_SAM & $BIT_SAM_RSEQ)) { $Nsamdisc++; $Ndisc++; next; }
     }
-    sam_compute_spuv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);
-    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT;
+    sam_compute_suv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);
+    sam_compute_aln()   if $I_AM_SAM & $BIT_SAM_ALN;
+    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT_CLXY;
   }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
@@ -2543,4 +2578,5 @@ demux_tally() if $index_demux >= 0;
 if (@::preselect && !$B_select_and && !@::select) {
    print STDERR "---> You've used -o with @@ preselection, did you want -s? <---\n";
 }
+
 

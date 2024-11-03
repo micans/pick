@@ -1,5 +1,8 @@
 
-  -  rbt query deltas; e.g. ^rbt_qryx,suv  qry_posx
+  -  check all suv and rbt keys and what/when they activate.
+  -  sort out patchiness/patchiness2; one documented choice:
+       document what was used for screen4.
+       ^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'
 
   -  larger scale timing of --sam-nolu vs default.
 
