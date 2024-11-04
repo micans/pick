@@ -430,11 +430,12 @@ my %cp_samdefs = (
 
      aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "n\taln_posinfo\tMismatch positions; indel sequences reported up to length n\tsam" ],
      aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
+  aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
      patchiness      => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      patchiness2     => [ 2, sub { $::STACK[-2] = aln_patchiness2($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
-     sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tPut read tallies in rbt_[MIDNS] and rbt_qry_{x,y,xylen} registers (region-bound-tally)\tsam" ],
+     sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tcompute region-bound-tally quantities for reference positions [x-y]\tsam" ],
      rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
 
      suv             => [ 1, sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
@@ -444,10 +445,12 @@ my %cp_samdefs = (
 
 my %cp_sam_setup_seqs = map { $_ => 0 } keys %cp_samdefs;
 
-  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo aln_all aln_nedit_pia aln_nedit_piu );
+  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo all_all_pack aln_all aln_nedit_pia aln_nedit_piu );
   $cp_sam_setup_seqs{$_} |=  $BIT_SAM_QSEQ   for qw( qry_seq );
   $cp_sam_setup_seqs{$_} |=  $DEP_SAM_RBT    for qw( rbt_alnall sam_rbt );
 
+
+# The only suv you'll ever need. Sam Unified View.
 
 my %suv_direct_lookup =
 (  ref_posx         =>  [ 'Start position of alignment in ref (1-based)',   0  ]
@@ -490,6 +493,9 @@ my %suv_direct_lookup =
 ,  rbt_nins         =>  [ 'Number of insertions (rbt)',                     $DEP_SAM_RBT   ]
 ,  rbt_nedit        =>  [ 'Number of edits (rbt)',                          $DEP_SAM_RBT   ]
 );
+
+
+# The values are deprecated.
 
 my %appreciated = qw(
          alnmatch aln_nmatch
@@ -909,15 +915,18 @@ EOH
     $filter =~ s/,/|/g;
     print "\nSelect comparison operators:\n  @opsf\n\n";
     exit 0 if $filter eq 'selection';
-    printf "%-12s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
+    printf "%-14s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
     print  '-' x 80 . "\n";
     # my $deparse = B::Deparse->new;
 
     if ($filter eq 'sam') {
       for my $op (keys %suv_direct_lookup) {
-         @{cp_opdefinitions{$op}} = [ $op, sub { }, "-\t$op\t$suv_direct_lookup{$op}[0]\tsam" ];
+        @{cp_opdefinitions{$op}} = [ $op, sub { }, "-\t$op\t$suv_direct_lookup{$op}[0]\tsam" ];
                      # ^ dangersign the above is just to sort all the sam operators together.
                      # This is knowing we exit at the end of this -l option block.
+      }
+      if (!$I_AM_SAM & $BIT_HAVE_SAM) {
+        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
       }
     }
     for my $op (sort keys %cp_opdefinitions) {
@@ -930,6 +939,9 @@ EOH
     }
     if ($filter eq 'regex') {
       print "\n$regexpointers";
+    }
+    if ($filter eq 'sam' && !($I_AM_SAM & $BIT_HAVE_SAM)) {
+      print STDERR "\n-- For sam functionality you must use --sam or --sam/<fastafile> --\n";
     }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
     else { print "\nAll operators in section(s) matching <$filter>\nSections: $opsections\n" }
@@ -1223,13 +1235,14 @@ sub parse_compute {
       }
       my $opdef = $cp_opdefinitions{$what};
 
-      my $use_sam_shortcut = ($I_AM_SAM & 1) && defined($suv_direct_lookup{$what}) ? 1 : 0;
+      my $use_sam_shortcut = ($I_AM_SAM & $BIT_HAVE_SAM) && defined($suv_direct_lookup{$what}) ? 1 : 0;
       my $sambits = 0;
 
       $::LC{suv}{__sam_rbt__} = 1 if $what eq 'sam_rbt';
 
-      my $hint = defined($suv_direct_lookup{$what}) || defined($cp_samdefs{$what}) ? " ( use --sam or --sam/ref.fa )" : "";
-      die "[$what] is not an operator I know$hint" unless defined($opdef) || $use_sam_shortcut;
+      my $offer = "know";
+      $offer = "have available ( use --sam or --sam/<fastafile> )" if defined($suv_direct_lookup{$what}) || defined($cp_samdefs{$what});
+      die "[$what] is not an operator I $offer" unless defined($opdef) || $use_sam_shortcut;
 
                                              # /sam_activate/
       if (defined($cp_sam_setup_seqs{$what})) {

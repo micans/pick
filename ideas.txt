@@ -1,9 +1,10 @@
 
-  -  sort out patchiness/patchiness2; one documented choice:
-       document what was used for screen4.
-       ^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'^'
+  -  automate operator descriptions in README.md
 
-  -  larger scale timing of --sam-nolu vs default.
+  -  make patchiness work with --sam-aln-context=posnum ?
+
+  -  sort out patchiness/patchiness2; one documented choice.
+      patchiness2 improves by not increasing the current window size for insertions.
 
   -  can operator selection for spuv lookup intercept be done by introspection of the subs without incurring B::Deparse overhead.
   -  luspuv could be done by direct addressing rather than hash lookup.
