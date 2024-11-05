@@ -2355,7 +2355,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
                         my $t = $::LC{suv}{rbt_alnaln};
 
       $::LC{suv}{rbt_nmatchx} = ($t =~ tr/x/x/);
-      $::LC{suv}{rbt_ndel}   = ($t =~ tr/\-\=/\-\=/);
+      $::LC{suv}{rbt_ndel}   = ($t =~ tr/\-/\-/);
       $::LC{suv}{rbt_nins}   = ($t =~ tr/\~/\~/);
 
       $::LC{suv}{rbt_nmatch} = ($t =~ tr/\|/\|/) + $::LC{suv}{rbt_nmatchx};
