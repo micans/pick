@@ -1,21 +1,17 @@
 
   -  automate operator descriptions in README.md
 
-  -  make patchiness work with --sam-aln-context=posnum ?
-
-  -  sort out patchiness/patchiness2; one documented choice.
-      patchiness2 improves by not increasing the current window size for insertions.
+  ?  make patchiness work with --sam-aln-context=posnum.
+  -  patchiness/patchiness2:
+      patchiness2 improves by not increasing the current window size for insertions. test a bit more.
 
   -  can operator selection for spuv lookup intercept be done by introspection of the subs without incurring B::Deparse overhead.
   -  luspuv could be done by direct addressing rather than hash lookup.
-  -  consider lifting region-bound-tally (rbt) operators into sam-parts-unified-view (spuv).
-
-  /  clean up control over when sequences and sub-parts are compupted.
 
   ?  @@ and @ selections allowed among command line arguments, to aid purpose self-explanation.
 
   /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
-  \  elaborate pack/unpack support. 
+  \  elaborate pack/unpack support. ^3,^%01,nspack  ^%01,spackall  val^%01,unspack
 
   o  implement pick in rust, working names: { pluck pak }
 

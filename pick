@@ -925,7 +925,7 @@ EOH
                      # ^ dangersign the above is just to sort all the sam operators together.
                      # This is knowing we exit at the end of this -l option block.
       }
-      if (!$I_AM_SAM & $BIT_HAVE_SAM) {
+      if (!($I_AM_SAM & $BIT_HAVE_SAM)) {
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
       }
     }
@@ -1224,6 +1224,7 @@ sub parse_compute {
   my $sam_rbt_in_use = 0;
 
   while ($spec =~ /([,^:])([^,^:]*)/g) {
+
     my ($type, $what) = ($chartypetonum{$1}, $2);
     $what = urldecode($what) if $type == $TYPE_SCALAR || $type == $TYPE_HANDLE;     # @urldecode ^const :handle
     push @oplist, [$type, $what];
@@ -1232,6 +1233,7 @@ sub parse_compute {
       if (defined($appreciated{$what})) {
         print STDERR "$errtok Deprecated: <$what>, please use <$appreciated{$what}> instead\n";
         $what = $appreciated{$what};
+        $oplist[-1][1] = $what;
       }
       my $opdef = $cp_opdefinitions{$what};
 
@@ -1341,7 +1343,7 @@ sub expand_list_range_and_regex {
       elsif (@parts == 2) {   # to specify just prefix, one needs p/spec/
         ($spec, $suffix) = @parts;
         if ($suffix =~ /[:$REGEXP_CHARS]/) {       # ':' is there as we split on that.
-print STDERR "Suffix [$suffix] contains regex/list characters, did you mean '$spec/$suffix/'?\n";
+print STDERR "Suffix [$suffix] contains regex/list characters, did you want '$spec/$suffix/'?\n";
         }
       }
    }
