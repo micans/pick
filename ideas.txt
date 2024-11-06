@@ -5,7 +5,7 @@
   -  patchiness/patchiness2:
       patchiness2 improves by not increasing the current window size for insertions. test a bit more.
 
-  -  can operator selection for spuv lookup intercept be done by introspection of the subs without incurring B::Deparse overhead.
+  -  can operator selection for suv lookup intercept be done by introspection of the subs without incurring B::Deparse overhead.
   -  luspuv could be done by direct addressing rather than hash lookup.
 
   ?  @@ and @ selections allowed among command line arguments, to aid purpose self-explanation.

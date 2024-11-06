@@ -483,6 +483,8 @@ my %suv_direct_lookup =
 ,  rbt_alnrlr       =>  [ 'Ruler string (rbt)',                             $DEP_SAM_RBT   ]
 ,  rbt_refx         =>  [ 'Reference start position (rbt)',                 $DEP_SAM_RBT   ]
 ,  rbt_refy         =>  [ 'Reference end position (rbt)',                   $DEP_SAM_RBT   ]
+,  rbt_dx           =>  [ 'x adjustment if rbt_refx < ref_posx',            $DEP_SAM_RBT   ]
+,  rbt_dy           =>  [ 'y adjustment if rbt_refy > ref_posy',            $DEP_SAM_RBT   ]
 ,  rbt_qryx         =>  [ 'Query start position (rbt)',                     $DEP_SAM_RBT   ]
 ,  rbt_qryy         =>  [ 'Query end position (rbt)',                       $DEP_SAM_RBT   ]
 ,  rbt_qry          =>  [ 'Query sequence (rbt)',                           $DEP_SAM_RBT   ]
@@ -1211,11 +1213,12 @@ sub interval_mul {
 my $TYPE_SCALAR = 1;
 my $TYPE_HANDLE = 2;
 my $TYPE_OPATOR = 3;    # (1) rule of six obvs, (2) it makes sense in Dutch.
-my $TYPE_LUSPUV = 4;    #  Look Up spuv.
+my $TYPE_LUSPUV = 4;    # Look up s(p)uv. sam (parts) unified view.
 
 my %chartypetonum = ( '^', $TYPE_SCALAR, ':', $TYPE_HANDLE, ',', $TYPE_OPATOR );
 
 sub parse_compute {
+
   my ($handle, $spec) = @_;
   my @oplist = ();
   my $p = 0;
@@ -2285,6 +2288,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     $::LC{suv}{rbt_refx}   =  1;
     $::LC{suv}{rbt_refy}   =  0;
+    $::LC{suv}{rbt_dx}     =  0;       # adjustment needed if rbt x value less than alignment x (start) value.
+    $::LC{suv}{rbt_dy}     =  0;       # adjustment needed if rbt y value greater than alignment y (end) value
 
     $::LC{suv}{rbt_qryx}   =  1;
     $::LC{suv}{rbt_qryy}   =  0;
@@ -2340,12 +2345,16 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     }
 
     if ($coord_aln_uu >= 0 && $coord_aln_vv >= 0) {
+
       $::LC{suv}{rbt_alnref} = substr($aln_ref, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
       $::LC{suv}{rbt_alnaln} = substr($aln_aln, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
       $::LC{suv}{rbt_alnqry} = substr($aln_qry, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
       $::LC{suv}{rbt_alnrlr} = substr($aln_rlr, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
-      $::LC{suv}{rbt_refx}   = $coord_ref_uu;
-      $::LC{suv}{rbt_refy}   = $coord_ref_vv;
+
+      $::LC{suv}{rbt_refx}   = $coord_ref_uu + 1;
+      $::LC{suv}{rbt_refy}   = $coord_ref_vv + 1;
+      $::LC{suv}{rbt_dx}     = $coord_ref_uu - $coord_ref_u;
+      $::LC{suv}{rbt_dy}     = $coord_ref_v - $coord_ref_vv;
 
       $::LC{suv}{rbt_qryx}   = $coord_qry_uu + 1;
       $::LC{suv}{rbt_qryy}   = $coord_qry_vv + 1;
