@@ -5,7 +5,14 @@
 
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
-Entire scripts can be replaced by concise command line invocations. Some examples:
+Entire scripts can be replaced by concise command line invocations.
+Each line is treated as a collection of named registers.
+The registers are the row entries.  Their names are the column names.  You can
+- perform computations with the registers to make new (named) registers
+- filter rows based on boolean clauses operating on registers
+- for output take any subset from existing and newly computed registers.
+
+Some examples:
 
 ```
 pick -c < data.txt                  # Count rows and validate table file.
