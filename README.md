@@ -8,6 +8,8 @@
 Entire scripts can be replaced by concise command line invocations. Some examples:
 
 ```
+pick -c < data.txt                  # Count rows and validate table file.
+
 pick foo bar                        # pick columns named foo and bar (header included)
 
 pick -h ::end:start,sub^1,add       # compute new column with inclusive interval length, omit header
