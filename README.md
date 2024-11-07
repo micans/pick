@@ -61,8 +61,9 @@ sequences where needed. Alignments can be queried and printed limited to an inte
 > has **extensive support for SAM format and alignment-related queries**,
 > and has miscellaneous features such as simultaneous transformations of
 > multiple columns, demultiplexing rows to different files, and mapping values
-> using dictionaries.  Think of it as one of these weirdly evolved deep-sea
-> creatures (one that is pretty).
+> using dictionaries.  I used to recommend thinking of a weirdly evolved deep-sea creature,
+> but perhaps it is more akin to a highly streamlined and specialised shark.
+
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
 having to load the entire data set into memory.
