@@ -9,7 +9,7 @@ for tag in mm vs; do
    for i in 0 1 2 3 4 5 6 7 8 9; do
       oput="$tag.out.0$i"'0.txt'
       cat qry3$tag.sam \
-         | ../pick -qqq --sam/"$FASTA" --sam-aln-context=$((i*10)) @@2/none/4 \
+         | ../pick -qqq --sam/"$FASTA" --sam-aln-mrk --sam-aln-context=$((i*10)) @@2/none/4 \
                idpart:=^ref=:3^%20%20qry=:1^%20%20flags=:2,catall  \
                qparts:=^QP,rowno^$i,qry_trail5p_N,qry_matched_N,qry_trail3p_N^%09,joinall \
                rparts:=^RP,rowno^$i,ref_trail5p_N,ref_matched_N,ref_trail3p_N^%09,joinall \

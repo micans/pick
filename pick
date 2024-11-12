@@ -128,6 +128,7 @@ my $BIT_SAM_RBT_CLXY =    1 <<  7;     # x and y specified on command line
 my $BIT_SAM_QPARTS =    1 <<  8;     # compute parts for query.
 my $BIT_SAM_RPARTS =    1 <<  9;     # compute parts for reference.
 my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
+my $BIT_SAM_ALN_MRK  =  1 << 11;     # print markers for trailing parts in alignment
 
 my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;                # collect bits that SAM_RPARTS depends on.
 my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
@@ -1120,18 +1121,21 @@ EOH
        $I_AM_SAM |= $BIT_HAVE_SAM | $BIT_SAM_CHECKLEN;
        for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
      }
-     elsif ($options =~ /^sam-aln-context=(\d+)/) {
+     elsif ($options =~ /^sam-aln-context=(\d+)$/) {
        $I_AM_SAM |= $BIT_SAM_CONTEXT;
        $::sam_max_context = $1;
      }
-     elsif ($options =~ /^sam-aln-xy=(\d+),(\d+)/) {
+     elsif ($options eq 'sam-aln-mrk') {
+       $I_AM_SAM |= $BIT_SAM_ALN_MRK;
+     }
+     elsif ($options =~ /^sam-aln-xy=(\d+),(\d+)$/) {
        $I_AM_SAM |= $BIT_SAM_CONTEXT;
        ($::sam_context_x, $::sam_context_y) = ($1, $2);
      }
      elsif ($options =~ /^sam-aln-prefix=(.*)/) {
        $::sam_aln_prefix = $1;
      }
-     elsif ($options =~ /^sam-rbt=(\d+),(\d+)/) {
+     elsif ($options =~ /^sam-rbt=(\d+),(\d+)$/) {
        $I_AM_SAM |= $DEP_SAM_RBT_CLXY;
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
@@ -2220,14 +2224,15 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        $aln_aln =~ s/(\~+)$/'_' x length($1)/e;
        $aln_aln =~ s/(\-+)$/'`' x length($1)/e;
 
-       $aln_ref .= '  ' . ($::LC{suv}{ref_trail5p_N} ? '<' : '[');
-       $aln_ref .=         $::LC{suv}{ref_trail3p_N} ? '>' : ']';
-       $aln_ref .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(ref_trail5p_N ref_matched_N ref_trail3p_N);
+       if ($I_AM_SAM & $BIT_SAM_ALN_MRK) {
+         $aln_ref .= '  ' . ($::LC{suv}{ref_trail5p_N} ? '<' : '[');
+         $aln_ref .=         $::LC{suv}{ref_trail3p_N} ? '>' : ']';
+         $aln_ref .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(ref_trail5p_N ref_matched_N ref_trail3p_N);
 
-       $aln_qry .= '  ' . ($::LC{suv}{qry_trail5p_N} ? '<' : '[');
-       $aln_qry .=         $::LC{suv}{qry_trail3p_N} ? '>' : ']';
-       $aln_qry .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
-
+         $aln_qry .= '  ' . ($::LC{suv}{qry_trail5p_N} ? '<' : '[');
+         $aln_qry .=         $::LC{suv}{qry_trail3p_N} ? '>' : ']';
+         $aln_qry .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
+       }
        @{$::LC{suv}}{qw(aln_ref aln_aln aln_qry aln_rlr)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
     }
     return 0;
