@@ -474,6 +474,8 @@ my %suv_direct_lookup =
 ,  qry_trail5p_N    =>  [ 'Length of 5\' unaligned query sequence',         0  ]
 ,  qry_matched_N    =>  [ 'Length of Matched query sequence',               0  ]
 ,  qry_trail3p_N    =>  [ 'Length of 3\' unaligned query sequence',         0  ]
+,  ref_trail5p_V    =>  [ 'Length of displayed 5\' unaligned reference sequence',     0  ]
+,  ref_trail3p_V    =>  [ 'Length of displayed 3\' unaligned reference sequence',     0  ]
 
 ,  aln_ref          =>  [ 'Alignment string for reference',                 $DEP_SAM_ALN ]
 ,  aln_aln          =>  [ 'Alignment string between reference and query',   $DEP_SAM_ALN ]
@@ -1909,8 +1911,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
                                           # fixme: only do this when necessary or in a different appropriately guarded place.
                                           # TODO: require soft clipping to be exterior always.
 
-      my $t5 = $::LC{suv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDXI])+)/  ? $1 : '' );
-      my $t3 = $::LC{suv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDXI])+)$/ ? $1 : '' );
+      my $t5 = $::LC{suv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDNXI])+)/  ? $1 : '' );
+      my $t3 = $::LC{suv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDNXI])+)$/ ? $1 : '' );
       $::LC{suv}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
 
       $::LC{suv}{qry_soft5p_N}  = cgr_nsoft($t5);
@@ -1921,6 +1923,9 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $::LC{suv}{ref_trail5p_N} = $::Flink->[3] - 1 + cgr_sum_ref($::LC{suv}{aln_trail5p_cgr});
       $::LC{suv}{ref_matched_N} = acigar($::LC{suv}{aln_matched_cgr}, 'MDN=X', 'sum');
       $::LC{suv}{ref_trail3p_N} = $::LC{suv}{ref_len} - $::LC{suv}{ref_trail5p_N} - $::LC{suv}{ref_matched_N};
+
+      $::LC{suv}{ref_trail5p_V} = $::LC{suv}{ref_trail5p_N} - ($::Flink->[3] - 1);
+      $::LC{suv}{ref_trail3p_V} = cgr_sum_ref($::LC{suv}{aln_trail3p_cgr});
 
                              # fixme/testme/docme. for reference, the cigar string just peters ou, so no cgr/N correspondence at 3p end.
 
