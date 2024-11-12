@@ -1784,8 +1784,10 @@ $::Groupi = 2;    # index within group.
   }
 
 
-   ## Fixfixme. Is this still needed now that ::LC{suv} adapts to all variants of exterior representations?
-   ## Is it useful to normalise any exterior sequence of ISX (qry) and DX (ref)?
+   ## Note: ::LC{suv} adapts to all variants of alignment trailing parts representation.
+   ## As default I deem it useful to normalise any exterior sequence of ISX (qry) and DX.
+   ## Note that --sam-aln-context uses ISX and DX to force more context into the alignment
+   ## (performed by sam_adjust_view_extend below).
 
   sub sam_normalform {
 
@@ -2508,9 +2510,9 @@ while (<>) {
     if ($I_AM_SAM & ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) {                # Either query or ref sequence needed.
       if (sam_setup_sequences($I_AM_SAM & $BIT_SAM_QSEQ, $I_AM_SAM & $BIT_SAM_RSEQ)) { $Nsamdisc++; $Ndisc++; next; }
     }
-    sam_compute_suv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);
+    sam_compute_suv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);         # this runs always e.g. qry_trail5p_N et al
     sam_compute_aln()   if $I_AM_SAM & $BIT_SAM_ALN;
-    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT_CLXY;
+    ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT_CLXY;    # --sam-rbt=x,y was used.
   }
 
   do_compute if @::compute;         # this pushes compute onto @F if present.
