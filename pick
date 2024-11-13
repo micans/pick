@@ -1254,10 +1254,10 @@ sub parse_compute {
         $what = $appreciated{$what};
         $oplist[-1][1] = $what;
       }
-      my $opdef = $cp_opdefinitions{$what};
-
       my $use_sam_shortcut = ($I_AM_SAM & $BIT_HAVE_SAM) && defined($suv_direct_lookup{$what}) ? 1 : 0;
       my $sambits = 0;
+
+      my $opdef = $use_sam_shortcut ? [ 0, sub { }, "dummy-string" ] : $cp_opdefinitions{$what};
 
       $::LC{suv}{__sam_rbt__} = 1 if $what eq 'sam_rbt';
 
@@ -1410,7 +1410,7 @@ print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_
 
 sub compile_select {
 
-  my ($caller, $select, $limit_handle) = @_;
+  my ($caller, $select, $presel_handle) = @_;
 
   for my $sel (@$select) {
 
@@ -1424,19 +1424,20 @@ sub compile_select {
       print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
     }
     else {
-      die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$name});
-      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($limit_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
+      die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
+      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($presel_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
     }
 
     my $opdef = $sel_opdefinitions{$op};
     die "The impossible happened ($op)\n" unless defined($opdef);
-    $sel->[0] = $opdef->[1];             # fixme overwrite inelegant
 
-    $sel->[3] = $::handle_map{$name};    # fixme overwrite inelegant
+    $sel->[0] = $opdef->[1];             # fixme overwrite inelegant
+    $sel->[3] = $presel_handle ? $presel_handle->{$name} : $::handle_map{$name};    # fixme overwrite inelegant
+
     if ($indirection) {
        if ($caller eq 'select') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
-       else                     { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$val}); }
-       $sel->[2] = $limit_handle ? $limit_handle->{$val} : $::handle_map{$val};  # fixme overwrite inelegant
+       else                     { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$val}); }
+       $sel->[2] = $presel_handle ? $presel_handle->{$val} : $::handle_map{$val};  # fixme overwrite inelegant
     }
     { my ($code, $indirection, $val, $name, $arg) = @$sel;
 print STDERR "ddd select code=$code ind=$indirection val=$val name=$name arg=$arg --\n" if $B_debug; }
