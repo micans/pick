@@ -444,6 +444,7 @@ my %cp_samdefs = (
      suv             => [ 1, sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
 
      qry_seq         => [ 0, sub { push @::STACK, &get_qry();}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
+     qry_qual        => [ 0, sub { push @::STACK, &get_qual();}, "-\tqry_qual\tquery quality string in reference orientation\tsam" ],
    );
 
 my %cp_sam_setup_seqs = map { $_ => 0 } keys %cp_samdefs;
@@ -1767,7 +1768,7 @@ my $Nkeep = 0;
 
 $::Groupi = 2;    # index within group.
 
-{ my @sam_qry_cache = ("no-readname", "no-refname", -1, '');       # Read name, refname, strand, read sequence
+{ my @sam_qry_cache = ("no-readname", "no-refname", -1, '', '');       # Read name, refname, strand, read sequence, read quality
                                    # ^ fixme: more maintainable to stick this in LINECACHE.
   my @sam_qry_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
@@ -1980,8 +1981,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     my ($get_query, $get_ref) = @_;
 
-    @sam_qry_cache_prev = @sam_qry_cache[0..3];              # no danger of using 4..6, but still.
-    @sam_qry_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9]);
+    @sam_qry_cache_prev = @sam_qry_cache[0..4];              # no danger of using 4..6, but still.
+    @sam_qry_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9], $::Flink->[10]);
                     # 0     read name
                     # 1     ref name
                     # 2     reverse strand = 1
@@ -1989,10 +1990,12 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     if ($sam_qry_cache[3] eq '*') {
       if ($sam_qry_cache[0] eq $sam_qry_cache_prev[0]) {     # same read name.
-        $sam_qry_cache[3] = $sam_qry_cache[2] != $sam_qry_cache_prev[2] ? rc($sam_qry_cache_prev[3]) : $sam_qry_cache_prev[3];
+        $sam_qry_cache[3] = $sam_qry_cache[2] != $sam_qry_cache_prev[2] ?      rc($sam_qry_cache_prev[3]) : $sam_qry_cache_prev[3];
+        $sam_qry_cache[4] = $sam_qry_cache[2] != $sam_qry_cache_prev[2] ? reverse($sam_qry_cache_prev[4]) : $sam_qry_cache_prev[4];
       }
       else {
         $sam_qry_cache[3] = '';
+        $sam_qry_cache[4] = '';
       }
     }
     {  $sam_ref_sequence =  $sam_qry_cache[1] eq '*' || ! $sam_refdictname
@@ -2247,9 +2250,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   }
 
 
-  sub get_qry {
-    return $sam_qry_cache[3];                     # this is/shouldbe in reference orientation; see strandcheck
-  }
+  sub get_qry  { return $sam_qry_cache[3]; } # this is in reference orientation.
+  sub get_qual { return $sam_qry_cache[4]; } # this is in reference orientation.
 
   my %cigarchomp = (       # 1: consumes ref, 2: consumes query. 4: consumes alignment
    M => 7,
