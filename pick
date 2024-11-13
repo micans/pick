@@ -1435,8 +1435,8 @@ sub compile_select {
     $sel->[3] = $::handle_map{$name};    # fixme overwrite inelegant
     if ($indirection) {
        if ($caller eq 'select') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
-       else                  { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$val}); }
-       $sel->[2] = $::handle_map{$val};  # fixme overwrite inelegant
+       else                     { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($limit_handle->{$val}); }
+       $sel->[2] = $limit_handle ? $limit_handle->{$val} : $::handle_map{$val};  # fixme overwrite inelegant
     }
     { my ($code, $indirection, $val, $name, $arg) = @$sel;
 print STDERR "ddd select code=$code ind=$indirection val=$val name=$name arg=$arg --\n" if $B_debug; }
@@ -1567,7 +1567,9 @@ sub compile_command {
 
   $::N = @::HEADER;
   @::INPUT_HEADER = @::HEADER;
-  my %in_input_header = map { ($_, 1) } @::INPUT_HEADER;
+
+  my $x = 0; my %in_input_header = ();
+  $in_input_header{$_} = $x++ for @::INPUT_HEADER;
 
   for (my $i=0; $i<@::HEADER; $i++) {
     my $name = $::HEADER[$i];
@@ -1656,7 +1658,6 @@ print STDERR "ddd output columns @::output_os --\n" if $B_debug;
 
   #
   ##  In select list replace names by offsets into field array.
-  ##  todo preselect: use in_input_header -> can pass references into subroutine.
   #
 
   &compile_select('select', \@::select, undef);
