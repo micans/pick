@@ -433,6 +433,7 @@ my %cp_samdefs = (
 
      aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "n\taln_posinfo\tMismatch positions; indel sequences reported up to length n\tsam" ],
      aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
+     aln_allq        => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry aln_qlt) }, "-\taln_all\talignment ruler+ref+aln+query+quality\tsam" ],
   aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
      patchiness      => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
      patchiness2     => [ 2, sub { $::STACK[-2] = aln_patchiness2($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
@@ -449,7 +450,7 @@ my %cp_samdefs = (
 
 my %cp_sam_setup_seqs = map { $_ => 0 } keys %cp_samdefs;
 
-  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo all_all_pack aln_all aln_nedit_pia aln_nedit_piu );
+  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo all_all_pack aln_all aln_allq aln_nedit_pia aln_nedit_piu );
   $cp_sam_setup_seqs{$_} |=  $BIT_SAM_QSEQ   for qw( qry_seq );
   $cp_sam_setup_seqs{$_} |=  $DEP_SAM_RBT    for qw( rbt_alnall sam_rbt );
 
@@ -2161,7 +2162,9 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   sub sam_compute_aln {
 
     my $qry = $sam_qry_cache[3];
+    my $qlt = $sam_qry_cache[4];
     my $ref = $sam_ref_sequence;
+
     my $pair = "$::Flink->[0] $::Flink->[2]";
 
     if (!length($qry) || !length($ref)) {                                  # spot5 qry_len_fixme
@@ -2172,13 +2175,15 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $qry =~ tr/uU/tT/;
     $ref =~ tr/uU/tT/;
 
-    my ($aln_ref, $aln_aln, $aln_qry) = ("", "", "");
+    my ($aln_ref, $aln_aln, $aln_qry, $aln_qlt) = ("", "", "", "");
     my ($pqry, $sqry) = (0, 0);             # position query, start query, end query
 
     my $pref = $::Flink->[3]-1;        # note: the aligned part should use $::LC{suv}{ref_posx} and $::LC{suv}{aln_matched_cgr}
                                        # $::Flink->[3] and $::Flnk->[5] may have been changed to accomodate alignment context.
 
     my ($rlen, $qlen) = (length($ref), length($qry));
+
+    $qlt = '!' x $qlen if length($qlt) < 2;        # fixme less casual please and nail this down. (this is cases '' and '*').
 
     while ($::Flink->[5] =~ m/(\d+)([MIDNSHP=X])/ig) {
       my ($num, $it) = ($1, $2);
@@ -2193,29 +2198,31 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
           print STDERR "[$.] aln_strings cigar bound exceeded (ref $rright/$rlen qry $qright/$qlen pair $pair)\n";
           last;
         }
-        my ($subref, $subqry) = (substr($ref, $pref, $num), substr($qry, $pqry, $num));
+        my ($subref, $subqry, $subqlt) = (substr($ref, $pref, $num), substr($qry, $pqry, $num), substr($qlt, $pqry, $num));
         $aln_aln .= $it eq 'M' || $it eq '=' ? align_get_matchregion(uc $subref, uc $subqry, $pref) : '.' x $num;
         $aln_ref .= $subref;
         $aln_qry .= $subqry;
+        $aln_qlt .= $subqlt;
         $pref += $num; $pqry += $num;
       }
       elsif ($it eq 'I') {
         $aln_ref .= '-' x $num;
         $aln_aln .= '~' x $num;
         $aln_qry .= substr($qry, $pqry, $num);
+        $aln_qlt .= substr($qlt, $pqry, $num);
         $pqry += $num;
       }
       elsif ($it eq 'D' || $it eq 'N')  {
         $aln_qry .= '-' x $num;
+        $aln_qlt .= ' ' x $num;
         $aln_aln .= ($it eq 'D' ? '-' : '=') x $num;
         $aln_ref .= substr($ref, $pref, $num);
         $pref += $num;
       }
       elsif ($it eq 'S') {
-        # fixme noteme: under some circumstances include this case and extend strings?
         $pqry += $num;
       }
-      elsif ($it =~ /[X=P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
+      elsif ($it =~ /[P]/)            { print STDERR "[$.] Unexpected cigar state $it for pair $pair\n"; last; }
     }
     {  my $aln_rlr = ' ' x length($aln_ref);
        my $Oprint = -10;
@@ -2231,11 +2238,11 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
        }
        substr($aln_rlr, length($aln_ref)) = "";
 
-       $aln_aln =~ s/^(\~+)/'_' x length($1)/e;
-       $aln_aln =~ s/^(\-+)/'`' x length($1)/e;
+       $aln_aln =~ s/^(\~+)/'_' x length($1)/e;    # trail5p query sequence.
+       $aln_aln =~ s/^(\-+)/'`' x length($1)/e;    # trail5p reference sequence.
 
-       $aln_aln =~ s/(\~+)$/'_' x length($1)/e;
-       $aln_aln =~ s/(\-+)$/'`' x length($1)/e;
+       $aln_aln =~ s/(\~+)$/'_' x length($1)/e;    # trail3p query sequence.
+       $aln_aln =~ s/(\-+)$/'`' x length($1)/e;    # trail3p reference sequence.
 
        if ($I_AM_SAM & $BIT_SAM_ALN_MRK) {
          $aln_ref .= '  ' . ($::LC{suv}{ref_trail5p_N} ? '<' : '[');
@@ -2246,7 +2253,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
          $aln_qry .=         $::LC{suv}{qry_trail3p_N} ? '>' : ']';
          $aln_qry .= '  ' . join ', ', map { $::LC{suv}{$_} } qw(qry_trail5p_N qry_matched_N qry_trail3p_N);
        }
-       @{$::LC{suv}}{qw(aln_ref aln_aln aln_qry aln_rlr)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr);
+       @{$::LC{suv}}{qw(aln_ref aln_aln aln_qry aln_rlr aln_qlt)} = ($aln_ref, $aln_aln, $aln_qry, $aln_rlr, $aln_qlt);
     }
     return 0;
   }

@@ -1,8 +1,6 @@
 
   -  automate operator descriptions in README.md
 
-  -  support sam quality string (track, rev when necessary)
-     -> support printing in alignment? Interesting for nanopore.
   ?  use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
 
   ?  make patchiness work with --sam-aln-context=posnum.
