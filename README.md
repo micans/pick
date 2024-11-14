@@ -272,6 +272,13 @@ inf
 0.625
 ```
 
+The following example swaps two columns, and checks the value of column 6 both before
+and after the swap - these checks are both passed:
+```
+> echo {1..10} | tr ' ' '\t' | ./pick -qqq -k -i @6=5 @@6=6 x:=5 5::6 6::x ::1-10^-,joinall
+6	5	1-2-3-4-6-5-7-8-9-10
+```
+
 <details><summary>Further selection examples</summary>
 
 where `tim` is the string `flub123`:
