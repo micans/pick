@@ -879,9 +879,15 @@ include the computation and extraction of quantities for quality control.
 
 `--sam-aln-context=<N>` - show additional context of reference sequence and
 (soft-clipped) query sequence in printed alignments, e.g. with `,aln_all`, up to an additional
-length of `N` bases. This is implemented by changing the CIGAR sequence itself and introducing `X` segments (mismatched sequence),
+length of `N` bases.
+
+`--sam-aln-xy=<X>,<Y>` - extend the alignment to include the reference segment from `X` to `Y` inclusive (1-based coordinates).
+This option will never reduce the alignment (in case the aligned segment is not contained within `X-Y`).
+
+These behaviours are implemented by changing the CIGAR sequence itself and introducing `X` segments (mismatched sequence),
 `I` segments (additional query sequence) and `D` segments (additional reference sequence), as well as optionally
 adjusting the reference offset (column 4 in SAM format).
+
 Sam operators provided by pick (such as `aln_nmatch`) are aware of these changes and will use the substring of
 the CIGAR sequence that corresponds to the aligned parts.
 In alignments non-aligned parts are indicated in the alignment string with `_`.
