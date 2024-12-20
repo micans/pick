@@ -275,6 +275,20 @@ sub boxit {
    return $n;
 }
 
+sub fmtall {
+   my $fmt = shift;
+   my $fmt2 = $fmt;
+   my $n = 0;
+   $fmt =~ s/#/\x01#/g;
+   while ($fmt =~ s/\x01#/$::STACK[0]/) {
+      shift @::STACK;
+      last unless @::STACK;
+   }
+   if ($n = ($fmt =~ s/\x01//g)) { errm(0, "Format string $fmt2 not exhausted"); }
+   elsif (@::STACK)              { errm(0, "Format string $fmt2 did not consume stack"); }
+   return $fmt;
+}
+
                             # Nearly all of the below push 1 item on the stack after consuming X.
                             # Only X is specified; X = 0 indicate exceptional cases.
                             # Potentially neatify this by adding Y (number of pushed items).
@@ -290,6 +304,7 @@ my %cp_opdefinitions =
      gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
      rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
+     fmtall    => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tInterpolate-stack-into-f\tIn f replace # instances by stack\tstring/devour" ],
      join      => [ 3, sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],

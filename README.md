@@ -890,18 +890,18 @@ adjusting the reference offset (column 4 in SAM format).
 
 Sam operators provided by pick (such as `aln_nmatch`) are aware of these changes and will use the substring of
 the CIGAR sequence that corresponds to the aligned parts.
-In alignments non-aligned parts are indicated in the alignment string with `_`.
+In alignments non-aligned parts are indicated in the alignment string with one or more of `_`, `\`` and `.`.
 The list of symbols used in the alignment string is
 
 ```
 -     deletion from reference
 =     expected (intron) deletion from reference
 ~     insertion to the reference (sequence in query)
+|     matching base
+x     mismatching base
 `     non-aligned / dangling sequence in the reference
 .     non-aligned / dangling sequence in both reference and query
 _     non-aligned / dangling sequence in the query
-|     matching base
-x     mismatching base
 ```
 
 `--sam-aln-prefix=<STR>` - put `STR` before each of the alignment lines
