@@ -1,4 +1,6 @@
 
+  -  limit amount of errors output by hash key (errm, alert): further errors supressed.
+
   -  automate operator descriptions in README.md
 
   ?  use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
