@@ -41,7 +41,7 @@ wget https://raw.githubusercontent.com/micans/pick/main/pick
 Pick allows database-style queries (*select*) and filters (*where*)
 on a single text file or stream using its column names (or indexes if no names are present).
 Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
-Output can be demuxed into different files and dictionaries can be loaded to map data.
+Output can be demuxed into different files and dictionaries can be loaded to map or filter data.
 
 `pick` is **robust** and **intuitive** by supporting column names as handles.
 It is **lightweight** as it processes data per-line without the need to load the table into memory.
@@ -1165,6 +1165,40 @@ These will be URL-decoded:
 - In selection filters `@<name><op><:name|constant>` both `<name>` and `<:name|constant>`.
 - In `--cdict-NAME/default=k1:v1,k2:v2` all keys (`k1` etc) and values (`v1` etc).
 
+
+### Formatting data
+
+
+`,fmtall` takes a formatting string as first argument and replaces each instance of `#` with the remaining elements on the stack, in order.
+It will complain if the counts of the placeholder character `#` is different from the number of
+elements on the stack. To include a literal placeholder either escape it with a backslash
+or put a placeholder character in the stack of values.
+In the first case beware of shell quoting rules; within quotes a single backslash is needed,
+outside quotes it needs to be doubled.
+
+
+```
+> echo -e 'a\tb\tc' | ./pick -k ::^'col1=# col2=# col3=#':1:2:3,fmtall
+col1=a col2=b col3=c
+
+> echo -e 'a\tb\tc' | ./pick -k ::^'\# col1=# col2=# col3=#':1:2:3,fmtall
+# col1=a col2=b col3=c
+
+> echo -e 'a\tb\tc' | ./pick -k ::^'# col1=# col2=# col3=#'^#:1:2:3,fmtall
+# col1=a col2=b col3=c
+```
+
+`,joinall` takes a string as last argument and produces a string of the rest of the values
+interleaved with that string.
+
+```
+> echo -e 'a\tb\tc' | ./pick -k ::'.*'^-,joinall
+a-b-c
+```
+
+`,catall` concatenates all stack elements, `,cat` concatenates the last two elements.
+
+
 ### Maps can be useful to update (subsets of) data
 
 The following idiom updates (a subset of) rows in file `data.txt` using the mapping found in file `update.txt`.
@@ -1208,12 +1242,12 @@ This has now been simplified to
 pick  -h ::key:sequence,fasta > out.fa
 ```
 The `,fasta` operator requires two string values on the stack. To add further
-annotation to the identifier line construct the required sequence of strings
-and then apply for example `,catall`. The example below constructs a template
-` (zut=#)` and then replaces the placeholder character `#` with the column/variable `zut`.
-The template is quoted to avoid shell interpretation of parenthesis and hash sign.
+annotation to the identifier line use `,fmtall`.
+The example below constructs a template
+`# (zut=#)` and then replaces the placeholder character `#` with the columns `key` and `zut`.
+The template is quoted to avoid shell interpretation of parentheses.
 ```
-pick  -h ::key^' (zut=#)^#':zut,ed,catall:sequence,fasta > out.fa
+pick  -h ::^'# (zut=#)':key:zut,fmtall:sequence,fasta > out.fa
 ```
 
 The `,fastq` operator works in exactly the same way as the `,fasta` operator.

@@ -279,11 +279,13 @@ sub fmtall {
    my $fmt = shift;
    my $fmt2 = $fmt;
    my $n = 0;
-   $fmt =~ s/#/\x01#/g;
-   while ($fmt =~ s/\x01#/$::STACK[0]/) {
+   $fmt =~ s/\\#/\x02/g;
+   $fmt =~ s/#/\x01/g;
+   while ($fmt =~ s/\x01/$::STACK[0]/) {
       shift @::STACK;
       last unless @::STACK;
    }
+   $fmt =~ s/\x02/#/g;
    if ($n = ($fmt =~ s/\x01//g)) { errm(0, "Format string $fmt2 not exhausted"); }
    elsif (@::STACK)              { errm(0, "Format string $fmt2 did not consume stack"); }
    return $fmt;

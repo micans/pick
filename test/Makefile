@@ -3,7 +3,10 @@ SHELL=/bin/bash
 
 p=../pick
 
-all: runpick rundiff
+.PHONY: test runpick rundiff
+
+test: runpick rundiff
+	@echo "--- All tests passed ---"
 
 rundiff: $(wildcard *.ref)
 
