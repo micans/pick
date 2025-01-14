@@ -370,8 +370,11 @@ my %cp_opdefinitions =
      map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
                            "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
                   ],
+     dord      => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dord{$d}; die "Dictionary $d (dord) does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : POSIX::DBL_MAX; },
+                           "x D\tord-of-x\tUse order of x in dictionary D\tstring/dictionary"
+                  ],
      tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
-                           "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found; cf --table-dict-D=\tstring/dictionary"
+                           "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found); cf --table-dict-D=\tstring/dictionary"
                   ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
      head      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:k-1]\tInitial part of string x, of length k\tstring" ],
@@ -760,17 +763,21 @@ my @opsf = sort { $sel_opdefinitions{$a}[0] <=> $sel_opdefinitions{$b}[0] } keys
 my $nameslist = "";
 
 %::dict = ();
+%::dord = ();
 %::dictnotfound = ();
 
 sub read_dict {
    my ($name, $fname, $mode) = @_;
    open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
    my $n_novalue = 0;
+   $::dict{$name} = {} unless $::dict{$name};
+   $::dord{$name} = {} unless $::dord{$name};
    while(<D>) {
       chomp; my @F = split "\t";
       my $value = 1;
       if (@F >= 2 && $mode eq 'f') { $value = $F[1]; } else { $n_novalue++; }
       $::dict{$name}{$F[0]} = $value;
+      $::dord{$name}{$F[0]} = $.;
    } close(D);
    my $n = keys %{$::dict{$name}};
 print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
@@ -899,6 +906,7 @@ print STDERR "-- range expansion produced some indexes out of range (now dropped
 
 sub parse_dict {
    my ($name, $string) = @_;
+   my $L = 1;
    for my $pair (split ",", $string) {
       my ($k, $v) = map { urldecode($_) } split ':', $pair, -1;        # @urldecode --cdict-NAME=
       if (!defined($v)) {
@@ -906,6 +914,7 @@ sub parse_dict {
          $v = 1;
       }
       $::dict{$name}{$k} = $v;
+      $::dord{$name}{$k} = $L++;
    }
    my $n = keys %{$::dict{$name}};
 print STDERR "-- dictionary $name has $n keys after parsing string\n" if $L_verbose >= 1;

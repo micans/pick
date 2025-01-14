@@ -1246,7 +1246,7 @@ The `,fasta` operator requires two string values on the stack. To add further
 annotation to the identifier line use `,fmtall`.
 The example below constructs a template
 `# (zut=#)` and then replaces the placeholder character `#` with the columns `key` and `zut`.
-The template is quoted to avoid shell interpretation of parentheses.
+The template is quoted to avoid shell interpretation of space and parenthesis characters.
 ```
 pick  -h ::^'# (zut=#)':key:zut,fmtall:sequence,fasta > out.fa
 ```
