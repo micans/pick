@@ -3,6 +3,8 @@
 
   -  automate operator descriptions in README.md
 
+  -  way to set not-found sort order for ,dord operator. (currently INT_MAX).
+
   ?  use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
 
   ?  make patchiness work with --sam-aln-context=posnum.

@@ -370,7 +370,7 @@ my %cp_opdefinitions =
      map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
                            "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
                   ],
-     dord      => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dord{$d}; die "Dictionary $d (dord) does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : POSIX::DBL_MAX; },
+     dord      => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dord{$d}; die "Dictionary $d (dord) does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : ~0; },
                            "x D\tord-of-x\tUse order of x in dictionary D\tstring/dictionary"
                   ],
      tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
