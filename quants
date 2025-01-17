@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use Scalar::Util qw(looks_like_number);
+my @data = ();
+my $n_weird = 0;
+
+my $n_quant = shift;
+die "Need number > 1 of quantiles as argument" unless defined($n_quant) && looks_like_number($n_quant) && $n_quant > 1;
+
+while (<>) {
+  chomp;
+  if (looks_like_number($_)) {
+    push @data, $_;
+  }
+  else {
+    $n_weird++;
+  }
+}
+
+print STDERR "$n_weird items did not look like a number\n" if $n_weird;
+
+if (2 * $n_quant > @data) {
+  my $n = $n_quant;
+  $n_quant = (scalar @data) >> 1;
+  print STDERR "Lowering quant size from $n to $n_quant\n";
+}
+
+my $k = @data / $n_quant;
+
+print STDERR "Using $k for step size\n";
+
+@data = sort { $a <=> $b } @data;
+
+for (my $i=1; $i < $n_quant; $i++) {
+  print "$data[$i*$k-1]\n";
+}
+

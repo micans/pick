@@ -377,7 +377,7 @@ my %cp_opdefinitions =
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found); cf --table-dict-D=\tstring/dictionary"
                   ],
      qn        => [ 2, sub { $::STACK[-2] = get_quant(0, @::STACK[-2,-1]) }, "x Q\tQ(x)/#Q\t0-1 normalised quantile-of-x\tmath" ],
-     qnr       => [ 2, sub { $::STACK[-2] = get_quant(1, @::STACK[-2,-1]) }, "x 1-Q\tQ(x)/#Q\t0-1 reverse normalised quantile-of-x\tmath" ],
+     qnr       => [ 2, sub { $::STACK[-2] = get_quant(1, @::STACK[-2,-1]) }, "x Q\t1-Q(x)/#Q\t0-1 reverse normalised quantile-of-x\tmath" ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
      head      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:k-1]\tInitial part of string x, of length k\tstring" ],
      tail      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], length($::STACK[-2]) - $n) },  "x k\tx[#x-k:#x-1]\tTrailing part of string x, of length k\tstring" ],
@@ -783,7 +783,8 @@ sub read_quant {
       $cur = $_;
    } close(D);
    my $n = @{$::quant{$name}};
-   die "Need at least one level (have none from $fname)" unless $n > 0;
+   die "Need at least one quant mark (have none from $fname)" unless $n > 0;
+   $n++;
 print STDERR "-- quant $name has $n levels after reading $fname\n" if $L_verbose >= 0;
 }
 
@@ -857,6 +858,7 @@ sub get_quant {
   if (!$q) {
     die("Quant $name not found");
   }
+# print STDERR "query $val\n";
   if ($val > $q->[0]) {
     my $L = 0;
     my $R = @$q;
@@ -870,7 +872,7 @@ sub get_quant {
         $L = $i;
         $i = ($R+$i) >> 1;
       }
-      # print STDERR "$val\ti=$i\tq=$q->[$i]\n";
+# print STDERR "$L - $R\n";
     }
     $i++;
   }
