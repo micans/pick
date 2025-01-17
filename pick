@@ -376,8 +376,8 @@ my %cp_opdefinitions =
      tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
                            "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found); cf --table-dict-D=\tstring/dictionary"
                   ],
-     qn        => [ 2, sub { $::STACK[-2] = get_quant(0, @::STACK[-2,-1]) }, "x Q\tQ(x)/#Q\t0-1 normalised quantile-of-x\tmath" ],
-     qnr       => [ 2, sub { $::STACK[-2] = get_quant(1, @::STACK[-2,-1]) }, "x Q\t1-Q(x)/#Q\t0-1 reverse normalised quantile-of-x\tmath" ],
+     qn        => [ 2, sub { $::STACK[-2] = get_quant(@::STACK[-2,-1]) }, "x Q\tQ(x)/#Q\t0-1 normalised quantile-of-x\tmath" ],
+     qnr       => [ 2, sub { $::STACK[-2] = get_revquant(@::STACK[-2,-1]) }, "x Q\t1-Q(x)/#Q\t0-1 reverse normalised quantile-of-x\tmath" ],
      substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
      head      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:k-1]\tInitial part of string x, of length k\tstring" ],
      tail      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], length($::STACK[-2]) - $n) },  "x k\tx[#x-k:#x-1]\tTrailing part of string x, of length k\tstring" ],
@@ -851,34 +851,45 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
    }
 }
 
-sub get_quant {
-  my ($reverse, $val, $name) = @_;
+
+sub get_revquant {
+  my ($val, $name) = @_;
   my $q = $::quant{$name};
-  my $i = 0;
-  if (!$q) {
-    die("Quant $name not found");
-  }
-# print STDERR "query $val\n";
-  if ($val > $q->[0]) {
+  die("Quant $name not found") unless $q;
+  my $i = @$q;
+                                  # find lowest i such that val <= q[i]
+  if ($val <= $q->[-1]) {
     my $L = 0;
     my $R = @$q;
     $i =  ($R+$L) >> 1;
     while ($L < $i && $i < $R) {
-      if ($val <= $q->[$i]) {     # Thus can lower R to i.
-        $R = $i;
-        $i = ($L+$i) >> 1;
-      }
-      else {
-        $L = $i;
-        $i = ($R+$i) >> 1;
-      }
-# print STDERR "$L - $R\n";
+      if ($val >= $q->[$i]) { $L = $i; $i = ($R+$i) >> 1; }
+      else                  { $R = $i; $i = ($L+$i) >> 1; }
     }
+    $i-- while $i > 0 && $val == $q->[$i-1];
+  }
+  return (@$q+1-$i) / (@$q+1);
+}
+
+
+sub get_quant {
+  my ($val, $name) = @_;
+  my $q = $::quant{$name};
+  my $i = 0;
+  die("Quant $name not found") unless $q;
+                                  # find highest i such that val >= q[i]
+  if ($val >= $q->[0]) {
+    my $L = 0;
+    my $R = @$q;
+    $i =  ($R+$L) >> 1;
+    while ($L < $i && $i < $R) {
+      if ($val <= $q->[$i]) { $R = $i; $i = ($L+$i) >> 1; }
+      else                  { $L = $i; $i = ($R+$i) >> 1; }
+    }
+    $i++ while $i+1 < @$q && $val == $q->[$i+1];
     $i++;
   }
-  $i = @$q-$i if $reverse;
-  my $ans = ($i+1) / (@$q+1);
-  return $ans;
+  return ($i+1) / (@$q+1);
 }
 
 sub read_fqdict {
