@@ -770,6 +770,7 @@ my $nameslist = "";
 
 %::quant = ();
 
+                    # noteme. If there are many ties a counted storage would be preferable.
 sub read_quant {
    my ($name, $fname) = @_;
    open(D, "gunzip -cf $fname|") || die "cannot open $fname for quant reading";
@@ -851,7 +852,8 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
    }
 }
 
-                     # Find the largest i/N in 1-index where q[i] <= $val.
+                     # Find the largest i st q[i-1] <= $val.
+                     # Return i/N.
                      # Never returns 0
                      # Returns 1 at and beyond highest quant level.
 sub get_quant {
@@ -860,47 +862,41 @@ sub get_quant {
   die("Quant $name not found") unless $q;
   my $L = 0;
 
-                                 # find highest i such that q[i] <= val 
-  if ($q->[$L] <= $val) {        # q[L] < val is invariant.
+                                 # find highest i such that q[i-1] <= val
+  if ($q->[0] <= $val) {         # q[L-1] <= val is invariant.
+    $L = 1;
     my $R = @$q;
-    while ($L + 1 < $R) {
+    while ($L < $R) {
       my $i = ($R+$L) >> 1;
-      if ($q->[$i] <= $val) { $L = $i; }
+      if ($q->[$i] <= $val) { $L = $i+1; }
       else                  { $R = $i; }
     }
-    $L++ while $L+1 < @$q && $val == $q->[$L+1];
-    $L++;
   }
   return ($L+1) / (@$q+1);
 }
 
-                     # Finds the smallest i/N in 1-index where q[i] >= $val
-                     # Find the lowest j such that q[j] == q[i].
-                     # Return (N+1-j) / N.
+                     # Finds the smallest i st q[i+1] >= $val
+                     # Return (N+1-i) / N.
                      # Never returns 0
                      # Returns 1 at and before lowest quant level.
 sub get_revquant {
   my ($val, $name) = @_;
   my $q = $::quant{$name};
   die("Quant $name not found") unless $q;
-  my $R = @$q;
-
-  if ($q->[0] > $val) {
-    $R = 0;
-  }
-                                  # find lowest i such that q[i] >= val
-  elsif ($q->[$R-1] >= $val) {       # q[R] >= val is invariant.
+  my $R = @$q-1;
+                                  # find lowest i such that q[i+1] >= val
+  if ($q->[$R] >= $val) {         # q[R+1] >= val is invariant.
     $R--;
     my $L = 0;
-    while ($L +1 < $R) {
+    while ($L < $R) {
       my $i = ($R+$L) >> 1;
-      if ($q->[$i] >= $val) { $R = $i; }
-      else                  { $L = $i; }
+      if ($q->[$i] >= $val) { $R = $i-1; }
+      else                  { $L = $i;   }
     }
-    $R-- while $R > 0 && $val == $q->[$R-1];
   }
   return (@$q+1-$R) / (@$q+1);
 }
+
 
 sub read_fqdict {
    my ($name, $fname) = @_;
