@@ -105,7 +105,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Choosing and finding from pick's arsenal of operators](#choosing-and-finding-from-picks-arsenal-of-operators)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
-[Transform values via quantisation and normalisation](#transform-values-via-quantisation-and-normalisation)
+[Transform values via quantisation and normalisation](#transform-values-via-quantisation-and-normalisation)  
 [Operators for testing and choice](#operators-for-testing-and-choice)  
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-format-support)  
