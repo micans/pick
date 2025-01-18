@@ -851,45 +851,55 @@ print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" i
    }
 }
 
+                     # Find the largest i/N in 1-index where q[i] <= $val.
+                     # Never returns 0
+                     # Returns 1 at and beyond highest quant level.
+sub get_quant {
+  my ($val, $name) = @_;
+  my $q = $::quant{$name};
+  die("Quant $name not found") unless $q;
+  my $L = 0;
 
+                                 # find highest i such that q[i] <= val 
+  if ($q->[$L] <= $val) {        # q[L] < val is invariant.
+    my $R = @$q;
+    while ($L + 1 < $R) {
+      my $i = ($R+$L) >> 1;
+      if ($q->[$i] <= $val) { $L = $i; }
+      else                  { $R = $i; }
+    }
+    $L++ while $L+1 < @$q && $val == $q->[$L+1];
+    $L++;
+  }
+  return ($L+1) / (@$q+1);
+}
+
+                     # Finds the smallest i/N in 1-index where q[i] >= $val
+                     # Find the lowest j such that q[j] == q[i].
+                     # Return (N+1-j) / N.
+                     # Never returns 0
+                     # Returns 1 at and before lowest quant level.
 sub get_revquant {
   my ($val, $name) = @_;
   my $q = $::quant{$name};
   die("Quant $name not found") unless $q;
-  my $i = @$q;
-                                  # find lowest i such that val <= q[i]
-  if ($val <= $q->[-1]) {
-    my $L = 0;
-    my $R = @$q;
-    $i =  ($R+$L) >> 1;
-    while ($L < $i && $i < $R) {
-      if ($val >= $q->[$i]) { $L = $i; $i = ($R+$i) >> 1; }
-      else                  { $R = $i; $i = ($L+$i) >> 1; }
-    }
-    $i-- while $i > 0 && $val == $q->[$i-1];
-  }
-  return (@$q+1-$i) / (@$q+1);
-}
+  my $R = @$q;
 
-
-sub get_quant {
-  my ($val, $name) = @_;
-  my $q = $::quant{$name};
-  my $i = 0;
-  die("Quant $name not found") unless $q;
-                                  # find highest i such that val >= q[i]
-  if ($val >= $q->[0]) {
-    my $L = 0;
-    my $R = @$q;
-    $i =  ($R+$L) >> 1;
-    while ($L < $i && $i < $R) {
-      if ($val <= $q->[$i]) { $R = $i; $i = ($L+$i) >> 1; }
-      else                  { $L = $i; $i = ($R+$i) >> 1; }
-    }
-    $i++ while $i+1 < @$q && $val == $q->[$i+1];
-    $i++;
+  if ($q->[0] > $val) {
+    $R = 0;
   }
-  return ($i+1) / (@$q+1);
+                                  # find lowest i such that q[i] >= val
+  elsif ($q->[$R-1] >= $val) {       # q[R] >= val is invariant.
+    $R--;
+    my $L = 0;
+    while ($L +1 < $R) {
+      my $i = ($R+$L) >> 1;
+      if ($q->[$i] >= $val) { $R = $i; }
+      else                  { $L = $i; }
+    }
+    $R-- while $R > 0 && $val == $q->[$R-1];
+  }
+  return (@$q+1-$R) / (@$q+1);
 }
 
 sub read_fqdict {
