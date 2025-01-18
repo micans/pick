@@ -105,6 +105,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Choosing and finding from pick's arsenal of operators](#choosing-and-finding-from-picks-arsenal-of-operators)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
+[Transform values via quantisation and normalisation](#transform-values-via-quantisation-and-normalisation)
 [Operators for testing and choice](#operators-for-testing-and-choice)  
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-format-support)  
@@ -737,6 +738,42 @@ c    8
 ```
 
 Use `--fdict-dictNAME/STRING=FILENAME` if you want to read the dictionary values from file instead.
+
+
+## Transform values via quantisation and normalisation
+
+Pick can read quantisation steps from a file and use these to transform column values into
+quantised and normalised values in the range `1/N, 2/N ... 1.0` where `N` is the number of quantiles.
+
+The result of `,qn` for a value `x` is the fraction of data values (encoded in the quantile steps)
+that are equal to or smaller than `x`, assuming `x` is the largest value in its allotted bucket.
+
+The result of `,qnr` for a value `x` is the fraction of data values (encoded in the quantile steps)
+that are equal to or larger than `x`, assuming `x` is the smallest value in its allotted bucket.
+
+The script `quants` can be used to create the required `N-1` quantile steps.
+An example:
+
+```
+> seq 1 1 100 | ./quants 10 > q.txt
+Using 10 for step size
+> seq 2 13 100 | ./pick -k -q --quant-Q=q.txt 1 ::1^Q,qn
+2	0.1
+15	0.2
+28	0.3
+41	0.5
+54	0.6
+67	0.7
+80	0.8
+93	1
+```
+
+The result from the `,qn` operator is the normalised rank of the highest quantile bucket such
+that the next quantile step is the first to exceed the value provided. The lowest quantile
+bucket (everything to the left of the first quantile step) has rank 1. 
+Hence, the lowest value returned by `,qn` is `1/N` and the highest value is `1.0`.
+Similar considerations apply to `,qnr`, reversing all comparisons.
+
 
 
 ## Operators for testing and choice
