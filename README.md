@@ -739,14 +739,20 @@ Use `--fdict-dictNAME/STRING=FILENAME` if you want to read the dictionary values
 
 ## Transform values via quantisation and normalisation
 
-Pick can read quantisation steps from a file and use these to transform column values into
-quantised and normalised values in the range `1/N, 2/N ... 1.0` where `N` is the number of quantiles.
+Pick can read `N-1` quantisation steps from a file and use these to transform column values into
+quantised and normalised values in the range `1/N, 2/N ... 1.0` where `N` is
+the number of quantiles.  The quantile steps, which must be non-decreasing, are
+assumed to divide the data into (approximately) equal-sized buckets.
 
 The result of `,qn` for a value `x` is the fraction of data values (encoded in the quantile steps)
 that are equal to or smaller than `x`, assuming `x` is the largest value in its allotted bucket.
 
 The result of `,qnr` for a value `x` is the fraction of data values (encoded in the quantile steps)
 that are equal to or larger than `x`, assuming `x` is the smallest value in its allotted bucket.
+
+Usage of `qn` and `qnr` is similar to that of dictionaries. Quantile steps are read from a file
+and given a name similar to dictionaries, and `qn` and `qnr` take in a numerical value and a quantisation name
+similar to how `map` takes a string value and a dictionary name.
 
 The script `quants` can be used to create the required `N-1` quantile steps.
 An example:
