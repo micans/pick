@@ -751,7 +751,8 @@ The result of `,qnr` for a value `x` is the fraction of data values (encoded in 
 that are equal to or larger than `x`, assuming `x` is the smallest value in its allotted bucket.
 
 Usage of `qn` and `qnr` is similar to that of dictionaries. Quantile steps are read from a file
-and given a name similar to dictionaries, and `qn` and `qnr` take in a numerical value and a quantisation name
+and given a name with `--quant-NAME=/path/to/file`, similar to how dictionaries are loaded.
+Then `qn` and `qnr` take in a numerical value and a quantisation name
 similar to how `map` takes a string value and a dictionary name.
 
 The script `quants` can be used to create the required `N-1` quantile steps.
@@ -772,7 +773,8 @@ Using 10 for step size
 ```
 
 The result from the `,qn` operator is the normalised rank of the highest quantile bucket such
-that the next quantile step is the first to exceed the value provided. The lowest quantile
+that the next quantile step is the first to exceed the value provided. Beyond the last
+specified quantile step a sentinel quantile step at infinity is assumed. The lowest quantile
 bucket (everything to the left of the first quantile step) has rank 1. 
 Hence, the lowest value returned by `,qn` is `1/N` and the highest value is `1.0`.
 Similar considerations apply to `,qnr`, reversing all comparisons.
