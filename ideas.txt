@@ -3,6 +3,8 @@
 
   -  automate operator descriptions in README.md
 
+  -  dictionary, quant warn at compile time if dictionary does not exist ..
+
   -  way to set not-found sort order for ,dord operator. (currently INT_MAX).
 
   ?  use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?

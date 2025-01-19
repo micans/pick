@@ -675,13 +675,14 @@ to be used, which uses an additional level of indirection (`key` -> `NAME` -> `C
 Otherwise (`--table-dict=`) column names are used as top-level dictionary names and `map` can be used (`key` -> `COLNAME`).
 Multiple dictionary specifications can be used for the same `NAME`.
 
+By default if no key is found in the dictionary the value is left alone.
 ```
-echo -e "a\t3\nb\t4\nc\t8" | pick -Aik --cdict-foo=a:Alpha,b:Beta 1::1^foo,map
+> echo -e "a\t3\nb\t4\nc\t8" | pick -Aik --cdict-FOO=a:Alpha,b:Beta 1::1^FOO,map
+Alpha	3
+Beta	4
+c	8
 ```
-
-By default if no key is found in the dictionary the value is left alone. It is possible
-to specify a not-found string using this syntax:
-
+It is possible to specify a not-found string using this syntax:
 ```
 --fdict-NAME/STRING=/path/to/dictfile
 --cdict-NAME/STRING=foo:bar,zut:tim
@@ -692,11 +693,7 @@ to specify a not-found string using this syntax:
 
 For example
 ```
-echo -e "a\t3\nb\t4\nc\t8" | pick -Aik --cdict-foo/FOONOTFOUND=a:Alpha,b:Beta 1::1^foo,map
-```
-
-gives as output
-```
+> echo -e "a\t3\nb\t4\nc\t8" | pick -Aik --cdict-FOO/FOONOTFOUND=a:Alpha,b:Beta 1::1^FOO,map
 Alpha 3
 Beta  4
 FOONOTFOUND 8
