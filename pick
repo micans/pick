@@ -875,8 +875,9 @@ sub get_quant {
   return ($L+1) / (@$q+1);
 }
 
-                     # Finds the smallest R st q[R+1] >= val (in 1-indexing)
-                     # Return (N+1-R) / N. Note that N == #quant-levels
+
+                     # Finds the smallest i st q[i+1] >= $val
+                     # Return (N+1-i) / N.
                      # Never returns 0
                      # Returns 1 at and before lowest quant level.
 sub get_revquant {
@@ -887,15 +888,17 @@ sub get_revquant {
                                   # find lowest i such that q[i+1] >= val
   if ($q->[$R] >= $val) {         # q[R+1] >= val is invariant.
     $R--;
-    my $L = 0;
+    my $L = -1;
     while ($L < $R) {
-      my $i = ($R+$L) >> 1;
+      my $i = (($R+$L+1) >> 1);
+# print STDERR "$val  L=$L $q->[$L], i=$i, R=$R $q->[$R]\n";
       if ($q->[$i] >= $val) { $R = $i-1; }
       else                  { $L = $i;   }
     }
   }
-  return (@$q+1-$R) / (@$q+1);
+  return (@$q+1-$R-1) / (@$q+1);
 }
+
 
 
 sub read_fqdict {
