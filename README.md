@@ -744,23 +744,23 @@ quantised and normalised values in the range `1/N, 2/N ... 1.0` where `N` is
 the number of quantiles.  The quantile steps, which must be non-decreasing, are
 assumed to divide the data into (approximately) equal-sized buckets.
 
-The result of `,qn` for a value `x` is the fraction of data values (encoded in the quantile steps)
+The result of `,qnl` for a value `x` is the fraction of data values (encoded in the quantile steps)
 that are equal to or smaller than `x`, assuming `x` is the largest value in its allotted bucket.
 This is a normalised rank, where tied buckets are all assigned the highest rank among them.
 
-_The result of `,qn` can thus be viewed as a pessimistic estimate of the
+_The result of `,qnl` can thus be viewed as a pessimistic estimate of the
 rarity of `x` in the lower tail according to the quantiles, as an empirical probability._
 
-The result of `,qnr` for a value `x` is the fraction of data values (encoded in the quantile steps)
+The result of `,qnu` for a value `x` is the fraction of data values (encoded in the quantile steps)
 that are equal to or larger than `x`, assuming `x` is the smallest value in its allotted bucket.
 This is a normalised rank, where tied buckets are all assigned the lowest rank among them.
 
-_The result of `,qnr` can thus be viewed as a pessimistic estimate of the
+_The result of `,qnu` can thus be viewed as a pessimistic estimate of the
 rarity of `x` in the upper tail according to the quantiles, as an empirical probability._
 
-Usage of `qn` and `qnr` is similar to that of dictionaries. Quantile steps are read from a file
+Usage of `,qnl` and `,qnu` is similar to that of dictionaries. Quantile steps are read from a file
 and given a name with `--quant-NAME=/path/to/file`, similar to how dictionaries are loaded.
-Then `qn` and `qnr` take in a numerical value and a quantisation name
+Then `,qnl` and `,qnu` take in a numerical value and a quantisation name
 similar to how `map` takes a string value and a dictionary name.
 
 The script `quants` can be used to create the required `N-1` quantile steps.
@@ -769,7 +769,7 @@ An example:
 ```
 > seq 1 1 100 | ./quants 10 > q.txt
 Using 10 for step size
-> seq 2 13 100 | ./pick -k -q --quant-Q=q.txt 1 ::1^Q,qn
+> seq 2 13 100 | ./pick -k -q --quant-Q=q.txt 1 ::1^Q,qnl
 2	0.1
 15	0.2
 28	0.3
@@ -780,12 +780,12 @@ Using 10 for step size
 93	1
 ```
 
-The result from the `,qn` operator is the normalised rank of the highest quantile bucket such
+The result from the `,qnl` operator is the normalised rank of the highest quantile bucket such
 that the next quantile step is the first to exceed the value provided. Beyond the last
 specified quantile step a sentinel quantile step at infinity is assumed. The lowest quantile
 bucket (everything to the left of the first quantile step) has rank 1. 
-Hence, the lowest value returned by `,qn` is `1/N` and the highest value is `1.0`.
-Similar considerations apply to `,qnr`, reversing all comparisons.
+Hence, the lowest value returned by `,qnl` is `1/N` and the highest value is `1.0`.
+Similar considerations apply to `,qnu`, reversing all comparisons.
 
 
 
