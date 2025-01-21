@@ -746,9 +746,17 @@ assumed to divide the data into (approximately) equal-sized buckets.
 
 The result of `,qn` for a value `x` is the fraction of data values (encoded in the quantile steps)
 that are equal to or smaller than `x`, assuming `x` is the largest value in its allotted bucket.
+This is a normalised rank, where tied buckets are all assigned the highest rank among them.
+
+_The result of `,qn` can thus be viewed as a pessimistic estimate of the
+rarity of `x` in the lower tail according to the quantiles, as an empirical probability._
 
 The result of `,qnr` for a value `x` is the fraction of data values (encoded in the quantile steps)
 that are equal to or larger than `x`, assuming `x` is the smallest value in its allotted bucket.
+This is a normalised rank, where tied buckets are all assigned the lowest rank among them.
+
+_The result of `,qnr` can thus be viewed as a pessimistic estimate of the
+rarity of `x` in the upper tail according to the quantiles, as an empirical probability._
 
 Usage of `qn` and `qnr` is similar to that of dictionaries. Quantile steps are read from a file
 and given a name with `--quant-NAME=/path/to/file`, similar to how dictionaries are loaded.
