@@ -81,6 +81,13 @@ runpick: data.txt
     EP::1^7^/ep/,test \
     OM::1^7^/om/,test > o.select.test
 	echo {1..10} | tr ' ' '\t' | $(p) -qqq -k -i @6=5 @@6=6 x:=5 5::6 6::x ::1-10^-,joinall > o.56.test
+	cat nums.txt | pick --pstore/f1:0,f2:1                            \
+   F1::f1,incr,decr                                                  \
+   add::f1:f2,add                                                    \
+   mul::f1:f2,mul^f1,pload^f2,pload,mul,add                          \
+   mod::f2:f1,mod                                                    \
+   sub::f2:f1,sub                                                    \
+   sqsq::f2,sq:f1,sq,sub:f1:f2,add,div > o.nums.test
 
 
 %.ref : %.test
