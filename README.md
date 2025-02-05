@@ -1,8 +1,6 @@
 
 # Unix table column/row manipulation using column names
 
-## Sam alignment format poly-wrangler
-
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
 Entire scripts can be replaced by concise command line invocations.
