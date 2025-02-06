@@ -1,4 +1,6 @@
 
+  ?  quants: for very large data, use heap to find data separating values.
+
   ?  refer to a list of things by name (variable)
 
   -  limit amount of errors output by hash key (errm, alert): further errors supressed.
