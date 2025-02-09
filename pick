@@ -301,18 +301,18 @@ my %cp_opdefinitions =
      mulall    => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) }, "*\tproduct(Stack)\tProduct of all entries in stack, multiplication\tarithmetic/devour" ],
      maxall    => [ 0, sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) }, "*\tmax(Stack)\tMax over all entries in stack\tarithmetic/devour" ],
      minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "*\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
-     catall    => [ 0, sub { my $x = join "", @::STACK; @::STACK = ($x) }, "*\tStack-joined\tStringified stack\tstring/devour" ],
+     catall    => [ 0, sub { my $x = join "", @::STACK; @::STACK = ($x) }, "*\tStack-joined\tStringified stack\tstring/format/devour" ],
      meanall   => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = @::STACK ? ($x/@::STACK) : (0.0) }, "*\tmean(Stack)\tMean of all entries in stack\tarithmetic/devour" ],
      hmeanall  => [ 0, sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
      gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
      rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
-     fmtall    => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/devour" ],
+     fmtall    => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/format/devour" ],
      join      => [ 3, sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
      idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
-     cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring" ],
+     cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring/format" ],
      sub       => [ 2, sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
 
      pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "x\t-\tRemove top entry x from stack\tstack" ],
@@ -530,7 +530,7 @@ my %suv_direct_lookup =
 );
 
 
-# The values are deprecated.
+# The values are appreciated, the keys are deprecated.
 
 my %appreciated = qw(
          alnmatch aln_nmatch
@@ -1170,7 +1170,7 @@ EOH
        }
      }
      elsif ($options eq 'version') {
-       print "pick version: $v_v_v\n";
+       print "$v_v_v\n";
        exit 0;
      }
      elsif ($options =~ /^onames=(.+)$/) {
