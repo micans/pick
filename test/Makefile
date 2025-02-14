@@ -55,6 +55,7 @@ runpick: data.txt
 	$(p) -i '.*'::__^'(?i)(142857|[aeoiy02468])',npat < $< > o.npat.test
 	$(p) -Ai --fdict-UPDATE/=update.txt fx::name^UPDATE,map:fx,uie < $< > o.update.test
 	$(p) -Ai '.*'::__^1^~,test < $< > o.testallcells.test
+	$(p) '.*'/_::__^'%5E%24'^--,ed cat::'.*',catall < empty.txt > o.empty.test
 	seq 1 1023 1000000 | ../pick -k foo::1^7,div^7,mul^1.23456789,add^1.23456789,sub^2,pow^0.5,pow,sqrt,sq,log2^2,xch,pow,round,incr,decr^537381,mod:1^537381,idiv^537381,mul,add,neg,neg,rot13,rot13,tobin,binto,tooct,octto,tohex,hexto^foo,save^1048575,bitxor^bar,save^1048575,bitxor,rowno^1023,mul,sub^1022,add ::^foo,fetch ::^bar,fetch > o.idempotent.test
 	seq 5 1 15 | $(p) -K \
                      \
