@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "25-037a";
+my $v_v_v = "25-049a";
 
   #                     Copyright (c) 2022-2024  Stijn van Dongen
   #
@@ -509,6 +509,7 @@ my %suv_direct_lookup =
 ,  aln_aln          =>  [ 'Alignment string between reference and query',   $DEP_SAM_ALN ]
 ,  aln_qry          =>  [ 'Alignment string for query',                     $DEP_SAM_ALN ]
 ,  aln_rlr          =>  [ 'Alignment ruler for reference',                  $DEP_SAM_ALN ]
+,  aln_qlt          =>  [ 'Alignment quality',                              $DEP_SAM_ALN ]
 
 ,  rbt_alnref       =>  [ 'Reference string (rbt)',                         $DEP_SAM_RBT   ]
 ,  rbt_alnaln       =>  [ 'Alignment string (rbt)',                         $DEP_SAM_RBT   ]
@@ -670,11 +671,10 @@ my $help_options=q{Options:
   -R add _ column variable if no row name field exists in the header;
     NOTE an empty field is recognised and mapped to _ automatically
 
-  -A print all input columns (selecting by colspec applies, -T accepted)
+  -A print all input columns (selecting by colspec applies.
   -A<N> <N> integer; insert new columns at position <N>. Negative <N> is relative to rightmost column.
   -O<N> <N> integer; allow ragged input - merge all columns at/after position <N>
   -E<N> <N> integer; expect <N> rows returned, exit with error if this is not the case.
-  -T do not select, print tally column of count of matched row select criteria (name T)
   / -P protect against 'nan' and 'inf' results (see -H for environment variables PICK_*_INF)
   \ -Z as above, discard rows that need protecting
 

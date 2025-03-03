@@ -1,7 +1,11 @@
+  ! > samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
+    -- 30 times a reference sequence length lookup failed
+    be precise about when &sam_reflen is needed.
 
   ?  quants: for very large data, use heap to find data separating values.
 
   ?  refer to a list of things by name (variable)
+  ?  'find a column (name?value?) that passes test'
 
   -  limit amount of errors output by hash key (errm, alert): further errors supressed.
 

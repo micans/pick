@@ -95,12 +95,7 @@ runpick: data.txt
 	diff $< $@
 
 rrr.txt:
-	{ echo one;   for i in {1..100000}; do echo $$RANDOM; done; } > r1
-	{ echo two;   for i in {1..100000}; do echo $$RANDOM; done; } > r2
-	{ echo three; for i in {1..100000}; do echo $$RANDOM; done; } > r3
-	{ echo four;  for i in {1..100000}; do echo $$RANDOM; done; } > r4
-	{ echo five;  for i in {1..100000}; do echo $$RANDOM; done; } > r5
-	paste r[1-5] > rrr.txt
+	{ echo $$'one\ttwo\tthree\tfour\tfive';  for i in {1..100000}; do echo -e "$$RANDOM\t$$RANDOM\t$$RANDOM\t$$RANDOM\t$$RANDOM"; done; } > rrr.txt
 
 time: rrr.txt
 	bash time.txt 2>&1  | $(p) -k 2 1 | ./bar.pl | tee out.txt
@@ -108,6 +103,6 @@ time: rrr.txt
 time2: rrr.txt
 	bash time2.txt 2>&1 | $(p) -k 2 1 | ./bar.pl | tee out2.txt
 
-hissyfit: rrr.txt
-	command -v hissyfit && $(p) -h ::'.*',addall < rrr.txt | hissyfit || echo "No hissyfit"
+hf: rrr.txt
+	command -v hissyfit && $(p) -h ::'.*',addall < rrr.txt | hissyfit --cv=0/163835 --x=0%16384 || echo "No hissyfit"
 

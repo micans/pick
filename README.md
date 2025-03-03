@@ -7,7 +7,7 @@ Entire scripts can be replaced by concise command line invocations.
 Each line/row is treated as a list of variables identified by column names.  You can
 - perform computations to make new variables
 - filter rows based on boolean clauses operating on variables
-- for output take any subset from existing and newly computed variables
+- for output columns take any subset from existing and newly computed variables
 
 Some examples:
 
