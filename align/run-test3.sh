@@ -25,7 +25,7 @@ fi
 if ! diff test3.md5.ref test3.md5.new; then
    echo "Difference in output detected"
 else
-   echo "Alignments part counts unchanged, test OK"
+   echo "Alignments part counts unchanged, test 3 OK"
 fi
 
 for tag in vs mm; do

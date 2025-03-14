@@ -67,6 +67,10 @@ sequences where needed. Alignments can be queried and printed limited to an inte
 > multiple columns, demultiplexing rows to different files, and mapping values
 > using dictionaries.  I used to recommend thinking of a weirdly evolved deep-sea creature,
 > but perhaps it is more akin to a highly streamlined and specialised shark.
+>
+> I'm also looking at [polars](https://github.com/pola-rs/polars). Its ability to process streams,
+> syntax, speed, efficiency and Rust implementation all look great, as is its elevation of the dataframe
+> as a pivotal computable unit. I might investigate translating pick command lines to polars code.
 
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
