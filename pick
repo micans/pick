@@ -439,8 +439,8 @@ sub sam_reflen {
   my $x = $::dict{seqlen}{$::Flink->[2]};
   if (!defined($x)) {
     $x = $::dictnotfound{seqlen};
-    errm(1, "no length for $::Flink->[2]");
     $Nsam_lenmiss++;
+    errm(1, "no length for $::Flink->[2]") if $Nsam_lenmiss < 5;
   }
   return $x;
 }
