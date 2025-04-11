@@ -413,6 +413,7 @@ my %cp_opdefinitions =
      len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
      rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
      forward   => [ 2, sub { $::STACK[-2] = $::STACK[-2] ? $::STACK[-1]: rc($::STACK[-1]) }, "B seq\tforward\tseq if B else rc(seq)\tstring" ],
+     strim     => [ 3, sub { $::STACK[-3] = substr($::STACK[-3], $::STACK[-2], length($::STACK[-3]) - $::STACK[-2] - $::STACK[-1]) }, "s n5p n3p\ttrim\ttrim ends of sequence\tstring" ],
      abs       => [ 1, sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
      sqrt      => [ 1, sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
      sq        => [ 1, sub { $::STACK[-1] = $::STACK[-1]**2 }, "x\tx^2\tSquare of x\tmath" ],
