@@ -8,6 +8,8 @@
 
   ?  quants: for very large data, use heap to find data separating values.
 
+  ?  output subset(s) of columns to different files.
+
   ?  refer to a list of things by name (variable)
   ?  'find a column (name?value?) that passes test'
   -> tabulate fields absent (none "" / NA / NaN / -)
