@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+local $/ = "";
+
+my $lw = 160;
+
+if (@ARGV && $ARGV[0] =~ /^\d+$/) {
+  $lw = shift @ARGV;
+}
+
+while (<>) {
+  chomp; my $par = $_;
+  my @lines = split "\n", $par;
+  my @pre = ();
+  my @aln = ();
+  my @post = ();
+  while (my $l = shift @lines) {
+    if ($l =~ /^\+\+ /) {
+      push @aln, substr($l, 3);
+    }
+    else {
+      if (@aln) { push @post, $l } else { push @pre, $l }
+    }
+  }
+
+  for my $l (@pre) { print "$l\n"; }
+  print "---\n" if @pre;
+
+  my $o = 0;
+  while ($o < length($aln[0])) {
+    print join "\n", map { '++ ' . substr($_, $o, $lw) } @aln;
+    print "\n.\n";
+    $o += $lw;
+  }
+  print "---\n" if @aln;
+  for my $l (@post) { print "$l\n"; }
+  print "---\n" if @post;
+  print "\n\n";
+}
+
