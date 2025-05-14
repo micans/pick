@@ -487,7 +487,7 @@ my %suv_direct_lookup =
 ,  ref_len          =>  [ 'Length of reference sequence',                   0  ]
 ,  qry_posx         =>  [ 'Start position of alignment in query (1-based)', 0  ]
 ,  qry_posy         =>  [ 'End position of alignment in query (1-based)',   0  ]
-,  qry_len          =>  [ 'Length of query sequence',                       0  ]
+,  qry_len          =>  [ 'Length of query sequence',                       $DEP_SAM_QPARTS ]
 ,  ref_trail5p      =>  [ '5\' unaligned reference sequence',               $DEP_SAM_RPARTS ]
 ,  ref_matched      =>  [ 'Matched reference sequence',                     $DEP_SAM_RPARTS ]
 ,  aln_matched_cgr  =>  [ 'Cigar string for matched part',                  0  ]
@@ -1377,7 +1377,7 @@ sub parse_compute {
       die "[$what] is not an operator I $offer" unless defined($opdef) || $use_sam_shortcut;
 
                                              # /sam_activate/
-      if (defined($cp_sam_setup_seqs{$what})) {
+      if (defined($cp_sam_setup_seqs{$what}) && !$use_sam_shortcut) {
          $sambits   = $cp_sam_setup_seqs{$what};
          $I_AM_SAM |= $sambits;
       }
