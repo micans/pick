@@ -3,7 +3,7 @@
 # Pick version
 my $v_v_v = "25-049a";
 
-  #                     Copyright (c) 2022-2024  Stijn van Dongen
+  #                     Copyright (c) 2022-2025  Stijn van Dongen
   #
   #      Permission is hereby granted, free of charge, to any person obtaining a copy
   #      of this software and associated documentation files (the "Software"), to deal
@@ -1434,6 +1434,8 @@ sub acigar {
    my $key = "cigar::$cigar";
    my @subset = split "", $subset;
 
+   return 0 if $cigar eq '*';
+
    if (!defined($::LC{cigar}{$key})) {
       my $c = $::LC{cigar}{$key} =
         { sum   => { map { ($_, 0)  } split "", 'MINDSHP=X' }
@@ -2034,8 +2036,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
                                           # fixme: only do this when necessary or in a different appropriately guarded place.
                                           # TODO: require soft clipping to be exterior always.
 
-      my $t5 = $::LC{suv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SDNXI])+)/  ? $1 : '' );
-      my $t3 = $::LC{suv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SDNXI])+)$/ ? $1 : '' );
+      my $t5 = $::LC{suv}{aln_trail5p_cgr} = ($::Flink->[5] =~  /^((\d+[SHDNXI])+)/  ? $1 : '' );
+      my $t3 = $::LC{suv}{aln_trail3p_cgr} = ($::Flink->[5] =~   /((\d+[SHDNXI])+)$/ ? $1 : '' );
       $::LC{suv}{aln_matched_cgr} = substr($::Flink->[5], length($t5), length($::Flink->[5]) - length($t5) - length($t3));
 
       $::LC{suv}{qry_soft5p_N}  = cgr_nsoft($t5);
@@ -2075,8 +2077,9 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $::LC{suv}{qry_len} = $::LC{suv}{qry_trail5p_N} + $::LC{suv}{qry_trail3p_N} + $::LC{suv}{qry_matched_N};
       my $l = length($sam_qry_cache[3]);
 
-      if ($l > 1 && $l != $::LC{suv}{qry_len}) {     # $l > 1 avoids '*' case.     spot3 qry_len_fixme
-         errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{suv}{qry_len}");
+      if ($l != $::LC{suv}{qry_len}) {                              # spot3 qry_len_fixme
+        if ($::Flink->[5] eq '*') { $::LC{suv}{qry_len} = $l; }
+        else { errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{suv}{qry_len}"); }
       }
 
       $::LC{suv}{qry_posx}      =  $::LC{suv}{qry_trail5p_N} + 1;
@@ -2106,6 +2109,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
                     # 1     ref name
                     # 2     reverse strand = 1
                     # 3     sequence
+                    # 4     quality
 
     if ($sam_qry_cache[3] eq '*') {
       if ($sam_qry_cache[0] eq $sam_qry_cache_prev[0]) {     # same read name.
@@ -2121,6 +2125,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
                             ? ''
                             : ($::dict{$sam_refdictname}{$sam_qry_cache[1]} || dict_not_found($sam_refdictname, $sam_qry_cache[1]));
        my $pair = "$sam_qry_cache[0] $sam_qry_cache[1]";
+
        if (!$sam_ref_sequence) {
          print STDERR "-- [$.] No reference sequence for $pair\n" if $L_verbose >= 2;
          $Nsam_refmiss++;
