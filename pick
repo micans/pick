@@ -184,6 +184,12 @@ sub alert {
   print STDERR "$arttok [alert line $.] [@_]\n" if $L_verbose >= $vlevel;
 }
 
+sub pipecroak {
+  $_[1] && die("$_[0] : Cannot close : $_[1]\n");
+  $_[2] && die("$_[0] : died from signal : $_[2]\n");
+  $_[3] && die("$_[0] : exited with error : $_[3]\n");
+}
+
 sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
 $Data::Dumper::Terse = 1;
@@ -776,16 +782,17 @@ my $nameslist = "";
                     # noteme. If there are many ties a counted storage may be preferable.
 sub read_quant {
    my ($name, $fname) = @_;
-   open(D, "gunzip -cf $fname|") || die "cannot open $fname for quant reading";
+   open(my $fh, '-|', 'gunzip', '-cf', '--', $fname) or die("Cannot gunzip file $fname for quant loading: $!\n");
    $::quant{$name} = [];
    my $cur = -POSIX::DBL_MAX;
-   while(<D>) {
+   while(<$fh>) {
       chomp;
       die "Not a number in $fname: $_" unless looks_like_number($_);
       die "Not in order in $fname: $cur $_" unless $cur <= $_;
       push @{$::quant{$name}}, $_;
       $cur = $_;
-   } close(D);
+   }
+   if (!close($fh)) { pipecroak("gunzip -cf < $fname (quant load)", $!, $? & 0x7F, $? >> 8) }
    my $n = @{$::quant{$name}};
    die "Need at least one quant mark (have none from $fname)" unless $n > 0;
    $n++;
@@ -794,17 +801,18 @@ print STDERR "-- quant $name has $n levels after reading $fname\n" if $L_verbose
 
 sub read_dict {
    my ($name, $fname, $mode) = @_;
-   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
+   open(my $fh, '-|', 'gunzip', '-cf', '--', $fname) or die("Cannot gunzip file $fname for dict loading: $!\n");
    my $n_novalue = 0;
    $::dict{$name} = {} unless $::dict{$name};
    $::dord{$name} = {} unless $::dord{$name};
-   while(<D>) {
+   while(<$fh>) {
       chomp; my @F = split "\t";
       my $value = 1;
       if (@F >= 2 && $mode eq 'f') { $value = $F[1]; } else { $n_novalue++; }
       $::dict{$name}{$F[0]} = $value;
       $::dord{$name}{$F[0]} = $.;
-   } close(D);
+   }
+   if (!close($fh)) { pipecroak("gunzip -cf < $fname (dict load)", $!, $? & 0x7F, $? >> 8) }
    my $n = keys %{$::dict{$name}};
 print STDERR "-- dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
 print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_verbose >= 1 && $n_novalue;
@@ -812,20 +820,21 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_ve
 
 sub read_tbdict {
    my ($name, $fname) = @_;
-   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
-   my $header=<D>; chomp $header; my @header = split "\t", $header; my %h = ();
+   open(my $fh, '-|', 'gunzip', '-cf', '--', $fname) or die("Cannot gunzip file $fname for table dict loading: $!\n");
+   my $header=<$fh>; chomp $header; my @header = split "\t", $header; my %h = ();
    for (my $i=0; $i<@header; $i++) { $h{$i} = $header[$i] }
    my $n = 0;
    $::dict{$name} = {} unless !length($name) || defined($::dict{$name});
    my $root = length($name) ? $::dict{$name} : \%::dict;
-   while(<D>) {
+   while(<$fh>) {
       chomp; my @items = split "\t", $_, -1;                      # recognise empty fields (-1 split argument)
       die "Table read error" unless scalar @items == scalar @header;
       for (my $i=1; $i<@items; $i++) {
          $root->{$h{$i}}{$items[0]} = $items[$i];
       }
      $n++;
-   } close(D);
+   }
+   if (!close($fh)) { pipecroak("gunzip -cf < $fname (table dict load)", $!, $? & 0x7F, $? >> 8) }
    my $k = @header - 1;
 print STDERR "-- Table dictionary $name has $n keys for $k columns { @header } after reading $fname\n" if $L_verbose >= 0;
 print STDERR "-- Keys to be used with ^$name\[^:]KEY,tmap\n" if $L_verbose >= 0 && length($name);
@@ -835,12 +844,14 @@ print STDERR "-- Keys to be used with [^:]KEY,map\n" if $L_verbose >= 0 && !leng
 
 sub read_fadict {
    my ($name, $fname, $NF) = @_;
-   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
+   open(my $fh, '-|', 'gunzip', '-cf', '--', $fname) or die("Cannot gunzip file $fname for fasta loading: $!\n");
+
    my ($id, $seq) = (undef, "");
-   while(<D>) {
+   while(<$fh>) {
       if (/^>(\S+)/) { $::dict{$name}{$id} = $seq if defined($id); ($id, $seq) = ($1, ""); }
       else           { chomp; $seq .= $_; }
-   } close(D);
+   }
+   if (!close($fh)) { pipecroak("gunzip -cf < $fname (fasta load)", $!, $? & 0x7F, $? >> 8) }
    $::dict{$name}{$id} = $seq if defined($id);
    $::dict{$name}{'*'} = "";      # noteme: (1) SAM format unmapped reads have ref '*' (2) pick uses '' in other fail scenarios, but the entirety needs design/documenting.
    my $n = keys %{$::dict{$name}};
@@ -906,12 +917,13 @@ sub get_revquant {
 
 sub read_fqdict {
    my ($name, $fname) = @_;
-   open(D, "gunzip -cf $fname|") || die "cannot open $fname for dictionary reading";
+   open(my $fh, '-|', 'gunzip', '-cf', '--', $fname) or die("Cannot gunzip file $fname for fastq loading: $!\n");
    my $id = undef;
-   while(<D>) {
+   while(<$fh>) {
       if ($. % 4 == 1)       { die "Fastq read error on line %." unless /^@(\S+)/; $id = $1; }
       elsif ($. % 4 == 2)    { chomp; $::dict{$name}{$id} = $_; }
-   } close(D);
+   } close($fh);
+   if (!close($fh)) { pipecroak("gunzip -cf < $fname (fastq load)", $!, $? & 0x7F, $? >> 8) }
    my $n = keys %{$::dict{$name}};
 print STDERR "-- sequence dictionary $name has $n keys after reading $fname\n" if $L_verbose >= 1;
 }
@@ -2077,7 +2089,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $::LC{suv}{qry_len} = $::LC{suv}{qry_trail5p_N} + $::LC{suv}{qry_trail3p_N} + $::LC{suv}{qry_matched_N};
       my $l = length($sam_qry_cache[3]);
 
-      if ($l != $::LC{suv}{qry_len}) {                              # spot3 qry_len_fixme
+      if ($get_qry_parts && $l != $::LC{suv}{qry_len}) {                              # spot3 qry_len_fixme
         if ($::Flink->[5] eq '*') { $::LC{suv}{qry_len} = $l; }
         else { errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{suv}{qry_len}"); }
       }
