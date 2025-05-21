@@ -57,7 +57,12 @@ sequences where needed. Alignments can be queried and printed limited to an inte
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
 > is an amazing widely-used command-line tool for handling tables (using column names also), in an entirely
 > different league than pick in terms of capabilities. It is available in most
-> Linux distributions as a supported package.
+> Linux distributions as a supported package. Also on my watch-list are
+> [csvtk](https://github.com/shenwei356/csvtk),
+> [sq](https://github.com/neilotoole/sq),
+> [qsv](https://github.com/dathere/qsv),
+> [tsv-utils](https://github.com/eBay/tsv-utils) - all browsed from
+> [this overview](https://github.com/toolleeo/awesome-cli-apps-in-a-csv?tab=readme-ov-file#data-management---tabular-data).
 >  
 > Pick embodies, comparatively, an extremely minimalist approach with a different and
 > greatly limited focus in the same problem space.  Within its narrow focus on
