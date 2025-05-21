@@ -1044,7 +1044,7 @@ EOH
     print  '-' x 80 . "\n";
     # my $deparse = B::Deparse->new;
 
-    if ($filter eq 'sam') {
+    if ($filter eq 'sam' || $I_AM_SAM) {
       for my $op (keys %suv_direct_lookup) {
         @{cp_opdefinitions{$op}} = [ $op, sub { }, "-\t$op\t$suv_direct_lookup{$op}[0]\tsam" ];
                      # ^ dangersign the above is just to sort all the sam operators together.
