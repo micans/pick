@@ -67,15 +67,6 @@ A distinct advantage is its conciseness, power, and flexibility in the combinati
 > [qsv](https://github.com/dathere/qsv),
 > [tsv-utils](https://github.com/eBay/tsv-utils) - all browsed from
 > [this overview](https://github.com/toolleeo/awesome-cli-apps-in-a-csv?tab=readme-ov-file#data-management---tabular-data).
->  
-> Pick embodies, comparatively, an extremely minimalist approach with a different and
-> greatly limited focus in the same problem space.  Within its narrow focus on
-> column manipulation and row selection it is very concise,
-> has **extensive support for SAM format and alignment-related queries**,
-> and has miscellaneous features such as simultaneous transformations of
-> multiple columns, demultiplexing rows to different files, and mapping values
-> using dictionaries.  I used to recommend thinking of a weirdly evolved deep-sea creature,
-> but perhaps it is more akin to a highly streamlined and specialised shark.
 >
 > I'm also looking at [polars](https://github.com/pola-rs/polars). Its ability to process streams,
 > syntax, speed, efficiency and Rust implementation all look great, as is its elevation of the dataframe
