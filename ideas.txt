@@ -6,6 +6,8 @@
       validate column types (int, float, string, finite-string-set, finite-int-set)
       (finite set: try proxy test for that, e.g. hashing + track top hash buckets)
 
+  -  --alias=DICT, --adict=longcolumnname:lcn,anotherlongcolumnname:alcn
+
   ?  quants: for very large data, use heap to find data separating values.
 
   ?  output subset(s) of columns to different files.

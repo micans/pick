@@ -53,11 +53,15 @@ outputting alignment-derived quantities like coverage and base mismatch informat
 A reference FASTA file can be specified, which is then used by pick to automatically slot in reference
 sequences where needed. Alignments can be queried and printed limited to an interval of interest (by reference coordinates).
 
+In comparison to the tools below pick is more limited in scope in some/many ways, instead
+complemented by tools such as datamash and sort. It is probably a lot slower than most tools mentioned below.
+A distinct advantage is its conciseness, power, and flexibility in the combination of its compute, select and filter syntax.
+
 > [!NOTE]
+>
 > For your benefit, [miller (unix command `mlr`)](https://miller.readthedocs.io/en/)
-> is an amazing widely-used command-line tool for handling tables (using column names also), in an entirely
-> different league than pick in terms of capabilities. It is available in most
-> Linux distributions as a supported package. Also on my watch-list are
+> is an amazing widely-used command-line tool for handling tables (using column names also).
+> It is available in most Linux distributions as a supported package. Also on my watch-list are
 > [csvtk](https://github.com/shenwei356/csvtk),
 > [sq](https://github.com/neilotoole/sq),
 > [qsv](https://github.com/dathere/qsv),
@@ -75,7 +79,7 @@ sequences where needed. Alignments can be queried and printed limited to an inte
 >
 > I'm also looking at [polars](https://github.com/pola-rs/polars). Its ability to process streams,
 > syntax, speed, efficiency and Rust implementation all look great, as is its elevation of the dataframe
-> as a pivotal computable unit. I might investigate translating pick command lines to polars code.
+> as a pivotal computable unit. I need to investigate whether pick command lines can be expressed as polars code.
 
 
 In simple to middling cases pick can avoid both the need for a script (R, awk, Python, Ruby et cetera) and
