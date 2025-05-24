@@ -471,7 +471,7 @@ my %cp_samdefs = (
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tcompute region-bound-tally quantities for reference positions [x-y]\tsam" ],
      rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
-     sam_get         => [ 1, sub { $::STACK[-1] = ($::Flink->[11] =~ /\Q$::STACK[-1]\E:(.*?)(\t|$)/ ? $1 : 'NA') }, "tag\tsam_get\tvalue for <tag>\tsam" ],
+     sam_get         => [ 2, sub { $::STACK[-2] = ($::Flink->[11] =~ /(^|\t)\Q$::STACK[-2]\E:(.*?)(\t|$)/ ? $2 : $::STACK[-1]) }, "tag def\tsam_get\tvalue for <tag>, use def if absent\tsam" ],
 
      suv             => [ 1, sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
 
@@ -1396,10 +1396,11 @@ sub parse_compute {
           $I_AM_SAM |= $sambits;
         }
         if ($what eq 'sam_get') {
+          die "Operator 'sam_get' requires at least two operands" unless @oplist >= 3;
           die "Operator 'sam_get' requires operand that is a column name scalar, e.g. ^NM.i or ^NM-i"
-             unless $oplist[-2][0] == $TYPE_SCALAR;
-          $oplist[-2][1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
-          die "Expect sam tag format XX:[AifZHB]" unless $oplist[-2][1] =~ /^..:[AifZHB]/;
+             unless $oplist[-3][0] == $TYPE_SCALAR;
+          $oplist[-3][1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
+          die "Expect sam tag format XX:[AifZHB]" unless $oplist[-3][1] =~ /^..:[AifZHB]/;
         }
       }
                                              # /pload_validate/
