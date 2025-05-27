@@ -1538,6 +1538,7 @@ print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_
 @::compute = ();            # derived column specifications
 @::select  = ();            # row select specifications
 @::preselect  = ();         # row select specifications
+@::assert = ();             # row assertions
 %::handle_map = ();         # map column names to offsets
 %::plain_handle = ();       # handles without any compute following.
 @::INPUT_HEADER = ();       # input header. @::HEADER exists, is intermediate and can have repeats; @::OUTPUT_HEADER is output header.
@@ -1554,12 +1555,12 @@ sub compile_select {
        # fixme: better naming/documenting/coding-logic to follow tight linkt between @::HEADER and %::handle_map.
        # the if-else here is not entirely satisfactory - handle_map{$name} lookup is not checked for preselect; this is OK but still.
        #
-    if ($caller eq 'select') {
-      die "Handle [$name] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
+    if ($caller eq 'select' || $caller eq 'assert') {
+      die "Handle [$name] in $caller does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
       print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
     }
     else {
-      die "Handle [$name] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
+      die "Handle [$name] in $caller does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
       print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($presel_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
     }
 
@@ -1584,7 +1585,7 @@ print STDERR "ddd select code=$code ind=$indirection val=$val name=$name arg=$ar
 sub compile_spec {
 
   for my $spec (@::spec) {
-    if ($spec =~ s/^(\@{1,2})//) {
+    if ($spec =~ s/^(\@(assert)?\@|\@)//) {
       my $type = $1;
       my ($handle, $op, $val, $arg) = (undef, undef, undef, undef);
                     #  H handle
@@ -1618,8 +1619,9 @@ sub compile_spec {
       }
 print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] arg=[$arg]\n" if $B_debug;
       my $indirection = $val =~ s/^:// ? 1 : 0;
-      if ($type eq '@') { push    @::select, [$op, $indirection, $val, $handle, $arg]; }
-      else              { push @::preselect, [$op, $indirection, $val, $handle, $arg]; }
+      if ($type eq '@')     { push    @::select, [$op, $indirection, $val, $handle, $arg]; }
+      elsif ($type eq '@@') { push @::preselect, [$op, $indirection, $val, $handle, $arg]; }
+      else                  { push @::assert, [$op, $indirection, $val, $handle, $arg]; }
                # NOTE. $arg for now only used by /ep/ and /om/ selection, ignored by the others.
     }
     elsif ($spec =~ /^(.*?)(:[:=])(.*)/) {
@@ -1800,6 +1802,8 @@ print STDERR "ddd output columns @::output_os --\n" if $B_debug;
   &compile_select('select', \@::select, undef);
 
   &compile_select('preselect', \@::preselect, \%in_input_header);
+
+  &compile_select('assert', \@::assert, undef);
 
   for (@::HEADER) {
     $_ = '' if $_ eq '_';
@@ -2710,28 +2714,35 @@ while (<>) {
   if ($B_weirdmode && $::Nrows == 1) {
     $Nkeep++;
   }
-  elsif ($B_protect_discard && $Nprotect_previous != $Nprotect) {
-    $Ndisc++;
-    $Nprotect_discard++;
-    print $fh_other $output if $fh_other;
-    demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
-    next LINE;
-  }
   else {
-     for my $sel (@::select) {
-       my ($op, $indirection, $val, $colid, $arg) = @$sel;
-       $val = $F[$val] if $indirection;
-       $nmatch++ if $op->($F[$colid], $val, $arg);       # $arg currently only used for /ep/ and /om/
-     }
-     if (@::select && (($nmatch != @::select && $B_select_and) || ($nmatch == 0 && !$B_select_and))) {
-       $Ndisc++;
-       print $fh_other $output if $fh_other;
-       demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
-       next LINE;
-     }
-     else {
-       $Nkeep++;
-     }
+    if ($B_protect_discard && $Nprotect_previous != $Nprotect) {
+      $Ndisc++;
+      $Nprotect_discard++;
+      print $fh_other $output if $fh_other;
+      demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
+      next LINE;
+    } 
+    my $k = 1;
+    for my $sel (@::assert) {
+      my ($op, $indirection, $val, $colid, $arg) = @$sel;
+      $val = $F[$val] if $indirection;
+      die "Assert $k failed for value $val at line $.\n" unless $op->($F[$colid], $val, $arg);
+      $k++;
+    }
+    for my $sel (@::select) {
+      my ($op, $indirection, $val, $colid, $arg) = @$sel;
+      $val = $F[$val] if $indirection;
+      $nmatch++ if $op->($F[$colid], $val, $arg);       # $arg currently only used for /ep/ and /om/
+    }
+    if (@::select && (($nmatch != @::select && $B_select_and) || ($nmatch == 0 && !$B_select_and))) {
+      $Ndisc++;
+      print $fh_other $output if $fh_other;
+      demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
+      next LINE;
+    }
+    else {
+      $Nkeep++;
+    }
   }
 
   next LINE if $B_count;      # $Nkeep is the only thing that interests us.

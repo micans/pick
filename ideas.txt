@@ -1,9 +1,9 @@
+
+- discard when protection was needed -- currently this bypasses selection and assert.
+
   ! > samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
     -- 30 times a reference sequence length lookup failed
     be precise about when &sam_reflen is needed.
-
-  -  @vouch/foo/gt/:bar    require this to always be true, die otherwise.
-     @croak/foo/gt/:bar    require this to never be true, die if it does.
 
   ?  (pluck) infer column types from data while streaming (int, float, string), summary at end
       validate column types (int, float, string, finite-string-set, finite-int-set)
