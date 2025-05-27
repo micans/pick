@@ -178,7 +178,7 @@ pick zut '^foo\d+$' '^bar_' < data.txt
 A pattern that contains any of `[({\*?^$`
 is assumed to be a regular expression rather than just a column name.
 This can be turned off (across all column names) with the `-F` (fixed) option. For per-column avoidance
-of interpretation as regular expression use url-encoding of its name.
+of interpretation as regular expression use percent-encoding of its name.
 
 [Pick allows use of regular expressions selection in various places.](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Several pick column operators also use regular expressions.](#useful-regular-expression-features)
@@ -410,8 +410,8 @@ These are
 - caret `^` for a constant value (number or string)
 - comma `,` for an operator
 
-Constant values and column handles are URL-decoded, hence the escape mechanism
-for including any of the characters `^:,%` in a constant value or column handle is to url-encode them.
+Constant values and column handles are percent-decoded, hence the escape mechanism
+for including any of the characters `^:,%` in a constant value or column handle is to percent-encode them.
 The following is an example of a computation:
 ```
 :foo^144,add
@@ -642,10 +642,10 @@ Use `-F` (fixed) to prevent regular expressions being used.
 
 
 Be careful with patterns in the compute part (as above). If the pattern starts with `^`
-(for start of string), it must be url-encoded as `%5E`; otherwise it will be
+(for start of string), it must be percent-encoded as `%5E`; otherwise it will be
 interpreted as the `pick` token introducing a constant value.  The characters
 `^ : ,` have special meaning in the `pick` stack language (see above) and must
-be url-encoded.
+be percent-encoded.
 
 
 
@@ -882,7 +882,24 @@ samtools view -F 4 | sort -k 1,1 -k 2,2,n
 Finally, bit 4 indicates an unmapped read. If you invoke an operator that requires the reference sequence then `pick`
 will assign the empty string to the reference sequence. For understandable output it is best not to cross these streams.
 
+Below is an overview of operators that can be used to compute and extract information from SAM files, grouped
+roughly by topic. Use `pick --sam -l sam` to view and search all operators. Documentation still needs
+to catch up with the list of supported operators, in particular the group of *region-bound-tally* operators
+that return quantities related to a particular stretch of reference defined by a pair of `[x,y]` coordinates
+(start and end). The set of operators as-yet not described here are:
 
+```
+# aln_all_pack aln_allq
+# aln_matched_cgr aln_nedit_pia aln_nedit_piu aln_trail3p_cgr aln_trail5p_cgr
+# isforward patchiness patchiness2
+# qry_qual
+# sam_rbt rbt_alnall rbt_alnaln rbt_alnqry rbt_alnref rbt_alnrlr
+# rbt_dx rbt_dy
+# rbt_ndel rbt_nedit rbt_nins rbt_nmatch rbt_nmatchx
+# rbt_qryx rbt_qry rbt_qrylen rbt_qryy
+# rbt_refx rbt_refy
+# ref_matched ref_trail3p ref_trail5p
+```
 
 ### Activating SAM support and loading reference sequences
 
@@ -977,6 +994,8 @@ To avoid this behaviour use `--sam-nonf` (*no normalform*).
 aln_aln      -      alignment string between reference and query
 aln_qry      -      alignment string for query
 aln_ref      -      alignment string for reference
+aln_rlr      -      alignment ruler string containing reference positions
+aln_qlt      -      alignment string for query quality
 ```
 
 ### Operators to retrieve mismatch and indel positions and sequences
@@ -1002,6 +1021,21 @@ qry_matched  -      matched query sequence in reference orientation
 qry_trail3p  -      3' unaligned query sequence in reference orientation
 qry_trail5p  -      5' unaligned query sequence in reference orientation
 ```
+
+### Operator to retrieve value for sam optional field
+
+```
+sam_get <TAG> <default>
+```
+
+Where `<default>` is used if `<TAG>` is not present as an optional field.
+SAM format `<TAG>` are of the form `XX:x` where `x` indicates the type of the field,
+`XX` is a two-character signifier, and the two are separated by a colon.
+As the colon is special in pick syntax, pick allows as alternatives both `XX.x` and `XX-x`,
+as well as `XX%3Ax` (using the required `%3A` percent encoding of the colon).
+
+Use for example `::^NM.i^0,sam_get` to retrieve the `NM:i` SAM optional field.
+
 
 ### Examples
 
@@ -1189,10 +1223,10 @@ different from `<NUM>`.
 
 Some uses of pick, especially involving computation, may require characters with special meaning
 either to the shell or to pick to be escaped. For the shell aspect this is usually possible simply by using
-single quotes. For pick the mechanism used is url-encoding, and this can equally be
+single quotes. For pick the mechanism used is percent-encoding (more commonly known as url-encoding), and this can equally be
 used for characters with special meaning to the shell.
 
-A url-encoded character is written as a percent sign followed by two hexadecimal digits (a hexadecimal
+A percent-encoded character is written as a percent sign followed by two hexadecimal digits (a hexadecimal
 digit is one of `0123456789ABCDEF`), for example `%0A` for `<NEWLINE>`. A list of useful cases (note that
 lower case versions of these are allowed too):
 
@@ -1203,15 +1237,15 @@ lower case versions of these are allowed too):
   %   %25     \   %5C     >  %3E     <SPACE>    %20     =   %3D
 ```
 
-Use `pick -z` to show this list, use `pick -z <string>` to url-encode string, and `pick -zz <string>`
-to url-decode `<string>`.
+Use `pick -z` to show this list, use `pick -z <string>` to percent-encode string, and `pick -zz <string>`
+to percent-decode `<string>`.
 
-The characters `= / , : ^` require url-encoding in certain contexts as they are used as pick syntax:
+The characters `= / , : ^` require percent-encoding in certain contexts as they are used as pick syntax:
 
 - `^`, `:`, `,` and `=` are used in computation syntax.
 - `/`, `:` and `,` are used in map specifications using `--cdict-NAME=k1:v1,k2:v2`.
 
-These will be URL-decoded:
+These will be percent-decoded:
 
 - Column names specified on the command line, including regular expressions expanding to column names.
 - For a computation `<name>::<compute>`, both `<name>` and any constants and names found in `<compute>`.
@@ -1399,7 +1433,7 @@ Format each entry in scientific notation with five significant digits:
 pick -i '.*'::__^5,sn < data.txt
 ```
 
-Remove leading and trailing whitespace (`%5E` url-encodes beginning of string `^`, here needed as `^` indicates
+Remove leading and trailing whitespace (`%5E` percent-encodes beginning of string `^`, here needed as `^` indicates
 a constant in pick computations):
 
 ```
@@ -1419,7 +1453,7 @@ pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 
    Fields from the previous row are then available to load with `^colname,pload`.
    If specified, `<LIST>` should be a comma-separated string of key-value pairs themselves
-   separated by a colon; all keys and values will be URL-decoded. The keys should be column names;
+   separated by a colon; all keys and values will be percent-decoded. The keys should be column names;
    the values will be used to initialise the fields of the predecessor of the first row.
    If `<DEFAULT>` is specified it is used for all columns not yet named.
    Example (compute the first ten Fibonacci numbers):
@@ -1495,8 +1529,8 @@ options to invoke and control processing of SAM format.
 -  `-R` add `_` column variable if no row name field exists in the header. Note: an empty field is recognised and mapped to `_` automatically.
 -  `-f` force processing (allows both identical input and output column names)
 -  `-F` fixed names; do not interpret names as regular expressions. Default behaviour is to assume a regular expression if a name contains one of `[ { ( \ * ? ^ $` .
--  `-z  ARG+` print url-encoding of `ARG+` (no argument prints a few especially useful cases)
--  `-zz ARG+` print url-decoding of `ARG+`
+-  `-z  ARG+` print percent-encoding of `ARG+` (no argument prints a few especially useful cases)
+-  `-zz ARG+` print percent-decoding of `ARG+`
   
 -  `--inf=<str>` Set divide-by-zero result to `<str>`
   
@@ -1536,7 +1570,7 @@ Pick supports a wide range of functionality. Standard arithmetic, bit
 operations and a number of math functions are provided (see below).  It is also possible
 to match and extract substrings using Perl regexes (as a derived value or new
 column) with `get`, change an existing column using a regex with `ed` and
-`edg`, compute md5 sums, URL-encode and decode, convert to and from binary,
+`edg`, compute md5 sums, percent-encode and decode, convert to and from binary,
 octal and hex, reverse complement DNA/RNA, and extract statistics from cigar
 strings. Display options include formatting of fractions and percentages
 and zero padding of integers.
@@ -1661,8 +1695,8 @@ tohex       x           x'                  Hex representation of x [format]
 tooct       x           x'                  Octal representation of x [format]
 uc          x           uc(x)               Upper case of x [string]
 uie         x y         x-or-y              Use x if not empty, otherwise use y [string]
-urldc       x           urldc(x)            Url decoding of x [string/format/input/output]
-urlec       x           urlec(x)            Url encoding of x [string/format/input/output]
+urldc       x           urldc(x)            percent decoding of x [string/format/input/output]
+urlec       x           urlec(x)            percent encoding of x [string/format/input/output]
 xch         x y         y x                 Exchange x and y [stack]
 xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
 zp          x N         x'                  x left zero-padded to width of N [output/string/format]

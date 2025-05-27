@@ -2,11 +2,15 @@
     -- 30 times a reference sequence length lookup failed
     be precise about when &sam_reflen is needed.
 
-  -  (pluck) infer column types from data while streaming (int, float, string), summary at end
+  -  @vouch/foo/gt/:bar    require this to always be true, die otherwise.
+     @croak/foo/gt/:bar    require this to never be true, die if it does.
+
+  ?  (pluck) infer column types from data while streaming (int, float, string), summary at end
       validate column types (int, float, string, finite-string-set, finite-int-set)
       (finite set: try proxy test for that, e.g. hashing + track top hash buckets)
 
-  -  --alias=DICT, --adict=longcolumnname:lcn,anotherlongcolumnname:alcn
+  -  --adict-DICT=longcolumnname:lcn,anotherlongcolumnname:alcn
+      (alias dict)
 
   ?  quants: for very large data, use heap to find data separating values.
 
