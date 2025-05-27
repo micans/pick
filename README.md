@@ -102,6 +102,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
 [Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
+[Validating input](#validating-input)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
 [Examples of computing new columns](#examples-of-computing-new-columns)  
 [Choosing and finding from pick's arsenal of operators](#choosing-and-finding-from-picks-arsenal-of-operators)  
@@ -388,6 +389,21 @@ Change the order of magnitude by adding it as a parameter, in this case 1.01.
 ```
 pick -A @tim/om/:pat/1.01 < data.txt
 ```
+
+
+## Validating input
+
+Input is validated in the same way that rows are filtered. Instead
+of `@` or `@@` use `@assert@`, e.g.
+
+```
+@assert@foo/gt/0
+
+@assert@foo/gt/:zut
+```
+
+If an assertion fails processing is stopped and pick exits with an error.
+Assertions take place after computes are finished (see below).
 
 
 
