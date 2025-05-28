@@ -102,14 +102,16 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
 [Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
-[Validating input](#validating-input)  
+&emsp;&emsp;[Using order of magnitude and selecting within multiplicative range](#using-order-of-magnitude-and-selecting-within-multiplicative-range)
+&emsp;&emsp;[Using epsilon and selecting within additive range](#using-epsilon-and-selecting-within-additive-range)
+&emsp;&emsp;[Asserting row integrity](#asserting-row-integrity)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
-[Examples of computing new columns](#examples-of-computing-new-columns)  
-[Choosing and finding from pick's arsenal of operators](#choosing-and-finding-from-picks-arsenal-of-operators)  
+&emsp;&emsp;[Examples of computing new columns](#examples-of-computing-new-columns)  
+&emsp;&emsp;[Choosing and finding from pick's arsenal of operators](#choosing-and-finding-from-picks-arsenal-of-operators)  
+&emsp;&emsp;[Operators for testing and choice](#operators-for-testing-and-choice)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
 [Map column values using a dictionary](#map-column-values-using-a-dictionary)  
 [Transform values via quantisation and normalisation](#transform-values-via-quantisation-and-normalisation)  
-[Operators for testing and choice](#operators-for-testing-and-choice)  
 [Ragged input](#ragged-input)  
 [SAM format support](#sam-format-support)  
 &emsp;&emsp;[Activating SAM support and loading reference sequences](#activating-SAM-support-and-loading-reference-sequences)  
@@ -391,7 +393,7 @@ pick -A @tim/om/:pat/1.01 < data.txt
 ```
 
 
-## Validating input
+### Asserting row integrity
 
 Input is validated in the same way that rows are filtered. Instead
 of `@` or `@@` use `@assert@`, e.g.
@@ -467,7 +469,7 @@ PICKAAAAA  PICKAAAAB
 148        wow
 ```
 
-## Examples of computing new columns
+### Examples of computing new columns
 
 The following compute puts two column values on the stack (for columns `yam` and `bob`), then subtracts
 `bob` from `yam`, and adds 1 to the result. If the two columns denote inclusive bounds for an interval
@@ -533,7 +535,7 @@ If you just want columns `2` and `1` in that order it only needs
 pick -k 2 1 < data.txt
 ```
 
-## Choosing and finding from pick's arsenal of operators
+### Choosing and finding from pick's arsenal of operators
 
 Pick has a lot of operators. You can list all of them (with a short description) by issuing
 ```
@@ -547,6 +549,51 @@ Finally `--sam` makes available more operators that support querying SAM files. 
 ```
 pick --sam -l sam
 ```
+
+## Operators for testing and choice
+
+The `test` operator computes a test on two values and yields 1 if the test succeeds and 0 if the test fails.
+It takes three arguments: The two values to compare and a constant value that must be a one of the
+comparison operators below - these are [the same as can be used for row filtering](#pick-columns-and-filter-or-select-rows).
+
+```
+    = /=                            string identy select, avoid
+    ~ /~                            string (Perl) regular expression select, avoid
+    ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
+    ~isin~ ~isnotin~                dictionary presence check
+    /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
+    /ep/ /om/                       numerical proximity (additive, multiplicative)
+    /all/ /any/ /none/              bit selection
+```
+
+Below is a test whether the value in column `foo` is greater than the value in column `bar`:
+
+```
+::foo:bar^/gt/,test
+```
+
+The next example replaces each entry in a table with the truth value whether the original
+value was positive or not:
+
+```
+pick -Ai '.*'::__^0^/gt/,test < data.txt
+```
+
+Currently the epsilon and order-of-magnitude tests `/ep/` and `/om/`
+are hardwired to their default values of `1.0001` and `2`, unlike their row selection counterparts
+that allow an optional band argument.
+
+
+The `ifelse` operator takes three argument. The first argument is tested. If it looks like a number
+the test is whether it is nonzero. Otherwise the test fails only if the first argument is the empty string.
+If the test succeeds `ifelse` yields the second argument, otherwise it yields the third argument.
+
+
+The `uie` (use if empty) operator takes two arguments. It yields the first argument unless it is
+the empty string, in which case it yields the second argument. This can be useful in conjunction with
+a dictionary mapping where the default value is set to the empty string.
+
+
 
 ## Selecting and manipulating multiple columns with regular expressions, lists and ranges
 
@@ -804,53 +851,6 @@ specified quantile step a sentinel quantile step at infinity is assumed. The low
 bucket (everything to the left of the first quantile step) has rank 1. 
 Hence, the lowest value returned by `,qnl` is `1/N` and the highest value is `1.0`.
 Similar considerations apply to `,qnu`, reversing all comparisons.
-
-
-
-## Operators for testing and choice
-
-
-The `test` operator computes a test on two values and yields 1 if the test succeeds and 0 if the test fails.
-It takes three arguments: The two values to compare and a constant value that must be a one of the
-comparison operators below - these are [the same as can be used for row filtering](#pick-columns-and-filter-or-select-rows).
-
-```
-    = /=                            string identy select, avoid
-    ~ /~                            string (Perl) regular expression select, avoid
-    ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
-    ~isin~ ~isnotin~                dictionary presence check
-    /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
-    /ep/ /om/                       numerical proximity (additive, multiplicative)
-    /all/ /any/ /none/              bit selection
-```
-
-Below is a test whether the value in column `foo` is greater than the value in column `bar`:
-
-```
-::foo:bar^/gt/,test
-```
-
-The next example replaces each entry in a table with the truth value whether the original
-value was positive or not:
-
-```
-pick -Ai '.*'::__^0^/gt/,test < data.txt
-```
-
-Currently the epsilon and order-of-magnitude tests `/ep/` and `/om/`
-are hardwired to their default values of `1.0001` and `2`, unlike their row selection counterparts
-that allow an optional band argument.
-
-
-The `ifelse` operator takes three argument. The first argument is tested. If it looks like a number
-the test is whether it is nonzero. Otherwise the test fails only if the first argument is the empty string.
-If the test succeeds `ifelse` yields the second argument, otherwise it yields the third argument.
-
-
-The `uie` (use if empty) operator takes two arguments. It yields the first argument unless it is
-the empty string, in which case it yields the second argument. This can be useful in conjunction with
-a dictionary mapping where the default value is set to the empty string.
-
 
 
 ## Ragged input
