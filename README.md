@@ -135,8 +135,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Creating fasta and fastq files](#creating-fasta-and-fastq-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
-&emsp;&emsp;[Using order of magnitude and selecting within multiplicative range](#using-order-of-magnitude-and-selecting-within-multiplicative-range)  
 &emsp;&emsp;[Using epsilon and selecting within additive range](#using-epsilon-and-selecting-within-additive-range)  
+&emsp;&emsp;[Using order of magnitude and selecting within multiplicative range](#using-order-of-magnitude-and-selecting-within-multiplicative-range)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
 &emsp;&emsp;[Loading a previous row within a group](#loading-a-previous-row-within-a-group)  
 [Option processing](#option-processing)  
@@ -344,7 +344,7 @@ The full list of comparison operators:
 for `~eq~` and `~ne~`, respectively. `~` tests against
 a perl regular expression, accepting matches, `/~` tests against a perl regular
 expression, discarding matches. `/ep/` (epsilon) and `/om/` (order of magnitude)
-are described [here](#selecting-based-on-numerical-proximity).
+are described [here](#using-epsilon-and-selecting-within-additive-range).
 By default comparison is to a constant value; in order to compare to a column
 its name or index is used, preceded by a colon:
 
@@ -368,6 +368,10 @@ of `@` or `@@` use `@assert@`, e.g.
 If an assertion fails processing is stopped and pick exits with an error.
 Assertions take place after computes are finished (see below).
 
+If you need to know the total number of rows that fail a set of assertions then
+count the number of rows that satisfy any of the negated assertions with `pick -co <negated assertions>`,
+to output all those rows instead use `pick -oA <negated assertions>` (`-c` for counting, `-o` for
+OR-ing tests, `-A` for outputting all columns).
 
 
 ## Syntax for computing new columns
