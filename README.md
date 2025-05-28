@@ -99,11 +99,10 @@ In order to work as a command line tool, the `pick` computation language **does 
 On first sight it might look arcane or terrifying, requiring a long second look.
 Compensating for the terse stack language, `pick`'s inner computation loop is simple and dependable.
 
+
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
-[Selecting based on numerical proximity](#selecting-based-on-numerical-proximity)  
-&emsp;&emsp;[Using order of magnitude and selecting within multiplicative range](#using-order-of-magnitude-and-selecting-within-multiplicative-range)  
-&emsp;&emsp;[Using epsilon and selecting within additive range](#using-epsilon-and-selecting-within-additive-range)  
+&emsp;&emsp;[Comparison operators](#comparison-operators)  
 &emsp;&emsp;[Asserting row integrity](#asserting-row-integrity)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
 &emsp;&emsp;[Examples of computing new columns](#examples-of-computing-new-columns)  
@@ -136,6 +135,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Creating fasta and fastq files](#creating-fasta-and-fastq-files)  
 &emsp;&emsp;[Useful regular expression features](#useful-regular-expression-features)  
 &emsp;&emsp;[Applying the same action to each table entry](#applying-the-same-action-to-each-table-entry)  
+&emsp;&emsp;[Using order of magnitude and selecting within multiplicative range](#using-order-of-magnitude-and-selecting-within-multiplicative-range)  
+&emsp;&emsp;[Using epsilon and selecting within additive range](#using-epsilon-and-selecting-within-additive-range)  
 &emsp;&emsp;[Loading data from the previous row](#loading-data-from-the-previous-row)  
 &emsp;&emsp;[Loading a previous row within a group](#loading-a-previous-row-within-a-group)  
 [Option processing](#option-processing)  
@@ -325,6 +326,8 @@ pick foo bar @tim/~flub'\d+' < data.txt
 
 </details>
 
+### Comparison operators
+
 The full list of comparison operators:
 
 ```
@@ -350,48 +353,6 @@ pick foo bar @tim/gt/:bob < data.txt
 
 pick -k 3 5 @8/gt/:6 < data.txt
 ```
-
-## Selecting based on numerical proximity
-
-### Using epsilon and selecting within additive range
-
-Select all rows where `tim` is approximately 1.0. The default epsilon (maximum allowed
-deviation) for this is 0.0001 but can be changed (see below).
-
-```
-pick -A @tim/ep/1.0 < data.txt
-```
-
-As above, but make epsilon more stringent (one in a million).
-
-```
-pick -A @tim/ep/1.0/0.000001 < data.txt
-```
-
-In this case, select rows where columns `tim` and `pat` are no further than one apart.
-
-```
-pick -A @tim/ep/:pat/1 < data.txt
-```
-
-
-### Using order of magnitude and selecting within multiplicative range
-
-The default order of magnitude is 2 but can be changed. Below selects rows
-where column `tim` is no larger than twice column `pat` and column `pat` is
-no larger than twice column `tim`, ignoring signs.
-
-```
-pick -A @tim/om/:pat < data.txt
-```
-
-Add `@tim/gt/0` to additionally require the sign to be positive for example.
-Change the order of magnitude by adding it as a parameter, in this case 1.01.
-
-```
-pick -A @tim/om/:pat/1.01 < data.txt
-```
-
 
 ### Asserting row integrity
 
@@ -1455,6 +1416,46 @@ a constant in pick computations):
 ```
 pick -i '.*'::__^'(%5E\s+|\s+$)',delg < data.txt
 ```
+
+### Using epsilon and selecting within additive range
+
+Select all rows where `tim` is approximately 1.0. The default epsilon (maximum allowed
+deviation) for this is 0.0001 but can be changed (see below).
+
+```
+pick -A @tim/ep/1.0 < data.txt
+```
+
+As above, but make epsilon more stringent (one in a million).
+
+```
+pick -A @tim/ep/1.0/0.000001 < data.txt
+```
+
+In this case, select rows where columns `tim` and `pat` are no further than one apart.
+
+```
+pick -A @tim/ep/:pat/1 < data.txt
+```
+
+
+### Using order of magnitude and selecting within multiplicative range
+
+The default order of magnitude is 2 but can be changed. Below selects rows
+where column `tim` is no larger than twice column `pat` and column `pat` is
+no larger than twice column `tim`, ignoring signs.
+
+```
+pick -A @tim/om/:pat < data.txt
+```
+
+Add `@tim/gt/0` to additionally require the sign to be positive for example.
+Change the order of magnitude by adding it as a parameter, in this case 1.01.
+
+```
+pick -A @tim/om/:pat/1.01 < data.txt
+```
+
 
 
 ### Loading data from the previous row
