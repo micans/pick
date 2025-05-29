@@ -1,6 +1,8 @@
 
   - discard when protection was needed -- currently this bypasses selection and assert. not great.
 
+  - assertion or selection bits column.
+
   ! > samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
     -- 30 times a reference sequence length lookup failed
     be precise about when &sam_reflen is needed.

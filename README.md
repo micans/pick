@@ -337,6 +337,7 @@ The full list of comparison operators:
     ~isin~ ~isnotin~                dictionary presence check
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
+    /epx/ /omx/                     inversions of /ep/ and /om/
     /all/ /any/ /none/              bit selection
 ```
 
@@ -1456,6 +1457,8 @@ In this case, select rows where columns `tim` and `pat` are no further than one 
 pick -A @tim/ep/:pat/1 < data.txt
 ```
 
+The inverse operator to `/ep/` is `/epx/`.
+
 
 ### Using order of magnitude and selecting within multiplicative range
 
@@ -1474,6 +1477,7 @@ Change the order of magnitude by adding it as a parameter, in this case 1.01.
 pick -A @tim/om/:pat/1.01 < data.txt
 ```
 
+The inverse operator to `/om/` is `/omx/`.
 
 
 ### Loading data from the previous row
