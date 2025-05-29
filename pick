@@ -105,6 +105,7 @@ my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
 my $B_groupfirst   = 0;     # Whether to cache the first row of a group for all subsequent group elements.
+my $B_assert_flush = 0;     # Output either failed rows or passed rows (--assert-fail and --assert-flush).
 my $B_whitesquash  = 0;
 my $N_demux_buffer = 0;
 
@@ -600,6 +601,7 @@ my %sel_opdefinitions = (
   '~isin~'     => [ 59, sub { defined($::dict{$_[1]}{$_[0]}) ? 1 : 0 } ],
   '~isnotin~'  => [ 60, sub { defined($::dict{$_[1]}{$_[0]}) ? 0 : 1 } ],
   '~hasval~'   => [ 61, sub { test_hasval(@_) } ],
+  '~hasnotval~' => [ 62, sub { ! test_hasval(@_) } ],
 
      # Perl behaves weirdly with bit operators in very specific cases; perhaps
      # because it thought both operands a string and one operand is negative.
@@ -615,12 +617,29 @@ my %sel_opdefinitions = (
      # - conceivably in both cases there is an operand that forces number
      # promotion.  Thus, absint.
      #
-  '/all/'      => [ 62, sub { $_[1] == (abs(int($_[0])) & abs(int($_[1]))) } ],
-  '/any/'      => [ 63, sub { abs(int($_[0])) & abs(int($_[1])) } ],
-  '/none/'     => [ 64, sub { ! (abs(int($_[0])) & abs(int($_[1]))) } ]
+  '/all/'      => [ 63, sub { $_[1] == (abs(int($_[0])) & abs(int($_[1]))) } ],
+  '/any/'      => [ 64, sub { abs(int($_[0])) & abs(int($_[1])) } ],
+  '/none/'     => [ 65, sub { ! (abs(int($_[0])) & abs(int($_[1]))) } ],
+  '/notall/'   => [ 66, sub { $_[1] != (abs(int($_[0])) & abs(int($_[1]))) } ]
 
 );
 
+my %sel_invert =
+ ( '~'      =>  '/~'           ,  '/~'          =>  '~'      
+ , '='      =>  '/='           ,  '/='          =>  '='      
+ , '/eq/'   =>  '/ne/'         ,  '/ne/'        =>  '/eq/'   
+ , '/lt/'   =>  '/ge/'         ,  '/ge/'        =>  '/lt/'   
+ , '/gt/'   =>  '/le/'         ,  '/le/'        =>  '/gt/'   
+ , '~eq~'   =>  '~ne~'         ,  '~ne~'        =>  '~eq~'   
+ , '~lt~'   =>  '~ge~'         ,  '~ge~'        =>  '~lt~'   
+ , '~gt~'   =>  '~le~'         ,  '~le~'        =>  '~gt~'   
+ , '~isin~' =>  '~isnotin~'    ,  '~isnotin~'   =>  '~isin~' 
+ , '~hasval~' => '~hasnotval~' ,  '~hasnotval~' =>  '~hasval~'
+ , '/all/'  =>  '/notall/'     ,  '/notall/'    =>  '/all/'  
+ , '/any/'  =>  '/none/'       ,  '/none/'      =>  '/any/'  
+);
+
+for my $k (keys %sel_invert) { die "Boot error $k" unless defined($sel_opdefinitions{$k}); }
 
 # Noteme: see /test_validate/ -- compile-time check for the opdefinition lookup below.
 # TODO:
@@ -1160,6 +1179,12 @@ EOH
      elsif ($options =~ /^(idx|name)-list$/) {
        $F_list |= $1 eq 'idx' ? 1 : 2;
      }
+     elsif ($options eq 'assert-fail') {
+       $B_assert_flush = 1;
+     }
+     elsif ($options eq 'assert-pass') {
+       $B_assert_flush = 2;
+     }
      elsif ($options =~ /^idx-map$/) {
        $F_list |= 4;
      }
@@ -1311,13 +1336,15 @@ EOH
   $B_debug        = 1 if $options =~ s/d//;
   $B_force        = 1 if $options =~ s/f//;
   $B_inplace      = 1 if $options =~ s/i//;
-  ($B_count, $B_print_header) = (1, 0) if $options =~ s/c//;
+  $B_count        = 1 if $options =~ s/c//;
 
   if ($options ne '-') {
     print STDERR "Option string not fully parsed: $options remains\n";
     exit 1;
   }
 }
+
+$B_print_header = 0 if $B_count;
 
 @::spec = map { s/\s+//g; $_; } @::spec if $B_whitesquash;
 
@@ -1648,6 +1675,18 @@ print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] a
       for my $m (@$matches) { push @::output_nm, $m->{namein}; }
     }
   }
+
+  if ($B_assert_flush) {
+    die "--assert-fail and --assert-pass preclude @ and @@ selections. Use \@assert\@ only" if @::select || @::preselect;
+    @::select = @::assert;        # Note: this is not a deep copy.
+    @::assert = ();               # Weird things (beyond functionally) happen if we omit this, as entries are rewritten in compile_select.
+    if ($B_assert_flush == 1) {
+      $B_select_and = 0;
+      for (@::select) {
+        $_->[0] = $sel_invert{$_->[0]};
+      }
+    }
+  }
 }
 
 sub compile_compute {
@@ -1720,6 +1759,7 @@ print STDERR "ddd map header name $name to offset $i\n" if $B_debug;
       # This populates
       #     @::preselect
       #     @::select
+      #     @::assert
       #     @::output_nm
       #     @::compute
   &compile_spec();
@@ -2715,6 +2755,13 @@ while (<>) {
     $Nkeep++;
   }
   else {
+    my $k = 1;
+    for my $sel (@::assert) {
+      my ($op, $indirection, $val, $colid, $arg) = @$sel;
+      $val = $F[$val] if $indirection;
+      die "Assert $k failed for value $val at line $::Nrows\n" unless $op->($F[$colid], $val, $arg);
+      $k++;
+    }
     if ($B_protect_discard && $Nprotect_previous != $Nprotect) {
       $Ndisc++;
       $Nprotect_discard++;
@@ -2722,13 +2769,6 @@ while (<>) {
       demux_do_row($F[$index_demux], $output, 0) if $index_demux >= 0;
       next LINE;
     } 
-    my $k = 1;
-    for my $sel (@::assert) {
-      my ($op, $indirection, $val, $colid, $arg) = @$sel;
-      $val = $F[$val] if $indirection;
-      die "Assert $k failed for value $val at line $.\n" unless $op->($F[$colid], $val, $arg);
-      $k++;
-    }
     for my $sel (@::select) {
       my ($op, $indirection, $val, $colid, $arg) = @$sel;
       $val = $F[$val] if $indirection;
@@ -2759,7 +2799,7 @@ while (<>) {
 print STDERR "\n" if $progress1;
 
 
-print "$Nkeep\n" if $B_count;
+if ($B_count) { print "$Nkeep\n"; }
 my $Npostdisc = $Ndisc - $Npredisc;
 
 if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }

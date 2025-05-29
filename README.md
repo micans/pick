@@ -356,7 +356,7 @@ pick -k 3 5 @8/gt/:6 < data.txt
 
 ### Asserting row integrity
 
-Input is validated in the same way that rows are filtered. Instead
+Input integrity is ascertained with the same syntax as used for row filtering. Instead
 of `@` or `@@` use `@assert@`, e.g.
 
 ```
@@ -368,10 +368,24 @@ of `@` or `@@` use `@assert@`, e.g.
 If an assertion fails processing is stopped and pick exits with an error.
 Assertions take place after computes are finished (see below).
 
-If you need to know the total number of rows that fail a set of assertions then
-count the number of rows that satisfy any of the negated assertions with `pick -co <negated assertions>`,
-to output all those rows instead use `pick -oA <negated assertions>` (`-c` for counting, `-o` for
-OR-ing tests, `-A` for outputting all columns).
+If you need to know the total number or identity of rows that fail a set of assertions then use
+either of
+
+```
+pick -c --assert-fail <assertion> <assertion> ..
+pick -A --assert-fail <assertion> <assertion> ..
+```
+
+Assertions are applied after computations. Hence an assertion can invoke the name of a computed column.
+Accepted rows can be output using `--assert-pass`, however, the following are equivalent:
+
+```
+pick -A --assert-pass @asssert@foo/=0 @assert@zut/=NA
+pick -A  @foo/=0 @zut/=NA
+```
+
+This option can be useful to quickly check some data with either `--assert-fail` or `--assert-pass`,
+then drop these options and just retain the assertions.
 
 
 ## Syntax for computing new columns
