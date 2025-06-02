@@ -369,24 +369,14 @@ of `@` or `@@` use `@assert@`, e.g.
 If an assertion fails processing is stopped and pick exits with an error.
 Assertions take place after computes are finished (see below).
 
-If you need to know the total number or identity of rows that fail a set of assertions then use
-either of
+If you need to know the rows that fail a set of assertions then use
 
 ```
-pick -c --assert-fail <assertion> <assertion> ..
-pick -A --assert-fail <assertion> <assertion> ..
+pick -A --other-fail=failed.txt <assertion> <assertion> ..
 ```
 
-Assertions are applied after computations. Hence an assertion can invoke the name of a computed column.
-Accepted rows can be output using `--assert-pass`, however, the following are equivalent:
-
-```
-pick -A --assert-pass @asssert@foo/=0 @assert@zut/=NA
-pick -A  @foo/=0 @zut/=NA
-```
-
-This option can be useful to quickly check some data with either `--assert-fail` or `--assert-pass`,
-then drop these options and just retain the assertions.
+This can be useful to quickly check some data and/or your assertions, then drop `--other-fail` and
+retain the assertions to guard against undesired data with process failure.
 
 
 ## Syntax for computing new columns

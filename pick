@@ -105,7 +105,7 @@ my $B_count        = 0;     # Only output count of kept rows.
 my $N_expect       = -1;    # If set, exit with error if number of non-header rows that is output is different.
 my $B_pstore       = 0;     # If set, load ::pstore_cache with previous line final computed fields
 my $B_groupfirst   = 0;     # Whether to cache the first row of a group for all subsequent group elements.
-my $B_assert_flush = 0;     # Output either failed rows or passed rows (--assert-fail and --assert-flush).
+my $B_assert_other = 0;     # Output failed rows to file rather than exit.
 my $B_whitesquash  = 0;
 my $N_demux_buffer = 0;
 
@@ -1184,12 +1184,6 @@ EOH
      elsif ($options =~ /^(idx|name)-list$/) {
        $F_list |= $1 eq 'idx' ? 1 : 2;
      }
-     elsif ($options eq 'assert-fail') {
-       $B_assert_flush = 1;
-     }
-     elsif ($options eq 'assert-pass') {
-       $B_assert_flush = 2;
-     }
      elsif ($options =~ /^idx-map$/) {
        $F_list |= 4;
      }
@@ -1227,8 +1221,9 @@ EOH
      elsif ($options =~ /^demux=(\S+)/) {
        $name_demux = $1;
      }
-     elsif ($options =~ /^other=(\S+)/) {
-       my $fn = $1;
+     elsif ($options =~ /^(assert-)?other=(\S+)/) {
+       my $fn = $2;
+       $B_assert_other = 1 if defined($1);
        $fh_other = new IO::File;
        my $openstring = ($fn =~ /\.gz(ip)?$/) ? "|gzip >$fn" : ">$fn";
        $fh_other->open("$openstring") || die "Cannot open $fn";
@@ -1638,7 +1633,7 @@ sub compile_spec {
       }
       die "Unrecognised operator [$op]\n" unless defined($sel_opdefinitions{$op});
       if (defined($arg)) {
-        die "Extra argument currently only allowed for /ep/, /om/, ~hasval~" unless $op =~ /^\/(ep|om)\/$/ || $op eq '~hasval~';
+        die "Extra argument currently only allowed for /ep/, /om/, ~hasval~" unless $op =~ /^\/(ep|om)x?\/$/ || $op eq '~hasval~';
         if ($op eq '~hasval~') { $arg =~ s|^\~||; }
         else                   { $arg =~ s|^\/||; }
         $arg=urldecode($arg);
@@ -1681,18 +1676,10 @@ print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] a
     }
   }
 
-  if ($B_assert_flush) {
-    die "--assert-fail and --assert-pass preclude @ and @@ selections. Use \@assert\@ only" if @::select || @::preselect;
+  if ($B_assert_other) {
+    die "--assert-other precludes @ selections. Use \@assert\@ only" if @::select;
     @::select = @::assert;        # Note: this is not a deep copy.
     @::assert = ();               # Weird things (beyond functionally) happen if we omit this, as entries (references) are rewritten in compile_select.
-    if ($B_assert_flush == 1) {
-      $B_select_and = 0;
-      for (@::select) {
-        my $inv = $sel_invert{$_->[0]};
-        die "Sorry, operator $_->[0] is not yet supported with --assert-fail" unless defined $inv;
-        $_->[0] = $inv;
-      }
-    }
   }
 }
 
