@@ -1584,11 +1584,20 @@ sub compile_select {
        #
     if ($caller eq 'select' || $caller eq 'assert') {
       die "Handle [$name] in $caller does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
-      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
+      if (!$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2) {
+        print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n"
+      }
     }
     else {
       die "Handle [$name] in $caller does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
-      print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n" if !$indirection && defined($presel_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2;
+      if (!$indirection && defined($presel_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2) {
+        if ($name eq $val && ($op eq '/ne/' || $op eq '/=')) {
+          print STDERR "-- Concatenating tables methinks\n";
+        }
+        else {
+          print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n"
+        }
+      }
     }
 
     my $opdef = $sel_opdefinitions{$op};
@@ -2822,6 +2831,10 @@ print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
    exit 1;
+}
+
+if ($B_assert_other && $Npostdisc) {
+   print STDERR "== $Npostdisc rows failed one or more assertions\n";
 }
 
 demux_tally() if $index_demux >= 0;
