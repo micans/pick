@@ -333,8 +333,10 @@ The full list of comparison operators:
     ~ /~                            string (Perl) regular expression select, avoid
     ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
     ~isin~ ~isnotin~                dictionary presence check
+    ~hasval~ ~hasnotval~            dictionary value equality check
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
+    /epx/ /omx/                     exclusion inversions of the above
     /epx/ /omx/                     inversions of /ep/ and /om/
     /all/ /any/ /none/              bit selection
 ```
@@ -529,8 +531,10 @@ comparison operators below - these are [the same as can be used for row filterin
     ~ /~                            string (Perl) regular expression select, avoid
     ~eq~ ~ne~ ~lt~ ~le~ ~ge~ ~gt~   string comparison
     ~isin~ ~isnotin~                dictionary presence check
+    ~hasval~ ~hasnotval~            dictionary value equality check
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
+    /epx/ /omx/                     exclusion inversions of the above
     /all/ /any/ /none/              bit selection
 ```
 
