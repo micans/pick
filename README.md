@@ -36,17 +36,14 @@ and all Mac OS releases with developer tools installed.
 wget https://raw.githubusercontent.com/micans/pick/main/pick
 ```
 
-Pick allows database-style queries (*select*) and filters (*where*)
-on a single text file or stream using its column names (or indexes if no names are present).
-Columns can be selected, mapped, transformed and combined and rows can be filtered using conditions.
-Output can be demuxed into different files and dictionaries can be loaded to map or filter data.
-
 `pick` is **robust** and **intuitive** by supporting column names as handles.
 It is **lightweight** as it processes data per-line without the need to load the table into memory.
 It is **expressive** in that short command lines are sufficient to get at the data.
 
 Pick works very well as a pre-filter to [datamash](https://www.gnu.org/software/datamash/) -
-a tool that can compute statistics over columns, optionally grouped over a second (column) variable.
+a tool that can compute statistics over columns, optionally grouped over a second (column) variable,
+and tools such as [csvtk](https://github.com/shenwei356/csvtk), which can (among many more things)
+sort tables using column names.
 
 Additionally `pick` has **extensive support for SAM format** such as printing alignments and
 outputting alignment-derived quantities like coverage and base mismatch information.
@@ -55,7 +52,8 @@ sequences where needed. Alignments can be queried and printed limited to an inte
 
 In comparison to the tools below pick is more limited in scope in some/many ways, instead
 complemented by tools such as datamash and sort. It is probably a lot slower than most tools mentioned below.
-A distinct advantage is its conciseness, power, and flexibility in the combination of its compute, select and filter syntax.
+Distinct advantages are its powerful and concise compute and filter primitives.
+
 
 > [!NOTE]
 >

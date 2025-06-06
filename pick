@@ -1592,7 +1592,9 @@ sub compile_select {
       die "Handle [$name] in $caller does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
       if (!$indirection && defined($presel_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2) {
         if ($name eq $val && ($op eq '/ne/' || $op eq '/=')) {
-          print STDERR "-- Concatenating tables methinks\n";
+          # print STDERR "-- Concatenating tables methinks\n";
+          # I tried to be jolly, but it's just annoying. Or would some output still be useful
+          # in case a column name might be a valid entry in that same column?
         }
         else {
           print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n"
