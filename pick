@@ -1656,11 +1656,14 @@ sub compile_spec {
          die "Dictionary [$val] not found" unless defined($::dict{$val});
       }
 print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] arg=[$arg]\n" if $B_debug;
-      my $indirection = $val =~ s/^:// ? 1 : 0;
+      my $indirection = 0;
+      if ($val =~ s/^([\:\^])//) {
+        $indirection = 1 if $1 eq ':';
+      }
       if ($type eq '@')     { push    @::select, [$op, $indirection, $val, $handle, $arg]; }
       elsif ($type eq '@@') { push @::preselect, [$op, $indirection, $val, $handle, $arg]; }
       else                  { push @::assert, [$op, $indirection, $val, $handle, $arg]; }
-               # NOTE. $arg for now only used by /ep/ and /om/ selection, ignored by the others.
+               # NOTE. $arg optionally used /ep/ /om/ /epx/ /omx/ ~hasval~ ~hasnotval~
     }
     elsif ($spec =~ /^(.*?)(:[:=])(.*)/) {
       my ($handle, $type, $compute) = (urldecode($1), $2, $3);    # @urldecode handle::

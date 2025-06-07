@@ -355,6 +355,13 @@ pick foo bar @tim/gt/:bob < data.txt
 pick -k 3 5 @8/gt/:6 < data.txt
 ```
 
+If you need to compare against a constant value that starts with a colon
+use a caret:
+
+```
+pick -A @tag=^:Fred: < data.txt
+```
+
 ### Asserting row integrity
 
 Input integrity is ascertained with the same syntax as used for row filtering. Instead
