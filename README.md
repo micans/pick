@@ -100,6 +100,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
+&emsp;&emsp;[Unambiguously distinguish constant values and column names](Unambiguously-distinguish-constant-values-and-column-names)  
+&emsp;&emsp;[Preselections](Preselections)  
 &emsp;&emsp;[Comparison operators](#comparison-operators)  
 &emsp;&emsp;[Asserting row integrity](#asserting-row-integrity)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
@@ -237,6 +239,34 @@ pick foo bar @tim/gt/:zut < data.txt
 It is possible for `zut` to be [a newly computed value derived from other (existing or computed) columns](#examples-of-computing-new-columns).
 
 
+### Unambiguously distinguish constant values and column names
+
+By default pick interprets the comparand as a constant.
+It interprets the comparand as a column name if it starts with a colon.
+If you need to compare against a constant value that starts with a colon use a caret:
+
+```
+pick -A @tag=^:Fred: < data.txt
+```
+
+If you need to compare against a constant value that starts with a caret use two carets:
+
+```
+pick -A @tag=^^Fred < data.txt
+```
+
+Hence, the syntax proper is
+
+```
+pick -A @tag=^Fred < data.txt             # constant value Fred
+pick -A @tag=:Fred < data.txt             # column name Fred
+```
+
+If neither a caret or colon is found the value is assumed to be a constant value.
+
+
+### Preselections
+
 The examples so far and the examples further below use `@` rather than `@@`
 selections. The advantage of the latter form is that in some cases it can be be
 wasteful and/or difficult to compute new values if they should be thrown away
@@ -353,13 +383,6 @@ its name or index is used, preceded by a colon:
 pick foo bar @tim/gt/:bob < data.txt
 
 pick -k 3 5 @8/gt/:6 < data.txt
-```
-
-If you need to compare against a constant value that starts with a colon
-use a caret:
-
-```
-pick -A @tag=^:Fred: < data.txt
 ```
 
 ### Asserting row integrity
