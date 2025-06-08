@@ -100,8 +100,8 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
-&emsp;&emsp;[Unambiguously distinguish constant values and column names](Unambiguously-distinguish-constant-values-and-column-names)  
-&emsp;&emsp;[Preselections](Preselections)  
+&emsp;&emsp;[Unambiguously distinguish constant values and column names](#unambiguously-distinguish-constant-values-and-column-names)  
+&emsp;&emsp;[Preselections](#preselections)  
 &emsp;&emsp;[Comparison operators](#comparison-operators)  
 &emsp;&emsp;[Asserting row integrity](#asserting-row-integrity)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
