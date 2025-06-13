@@ -4,6 +4,7 @@
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
 Entire scripts can be replaced by concise command line invocations.
+
 Each line/row is treated as a list of variables identified by column names.  You can
 - perform computations to make new variables
 - filter rows based on boolean clauses operating on variables
@@ -14,17 +15,21 @@ Some examples:
 ```
 pick -c < data.txt                  # Count rows and validate table file.
 
-pick foo bar                        # pick columns named foo and bar (header included)
+pick foo bar                        # Pick columns named foo and bar (header included)
 
-pick -h ::end:start,sub^1,add       # compute new column with inclusive interval length, omit header
+pick -A @tim/gt/0                   # Pick all columns, subset to rows where tim > 0
 
-pick -k ::3:4,sub^1,add             # as previous, in the absence of column headers
+pick -A qat::foo:bar,add            # Add new column qat, sum of columns foo and bar
 
-pick -A @tim/gt/0 qat::foo^-:bar    # pick all rows where tim > 0, add new column qat
+pick -A @tim/gt/0 qat::foo:bar,addd # Pick all columns, subset rows, add new column qat
 
-pick digits::foo^'(\d+)',get        # extract digits from column foo, store in new column 'digits'
+pick -h ::end:start,sub^1,add       # Compute new column with inclusive interval length, omit header
 
-pick -A @foo/gt/1 foo:=bar,abs      # select on foo = abs(bar) without outputting foo
+pick -k ::3:4,sub^1,add             # As above, in the absence of column headers
+
+pick digits::foo^'(\d+)',get        # Extract digits from column foo, store in new column 'digits'
+
+pick -A @foo/gt/1 foo:=bar,abs      # Select on foo = abs(bar) without outputting foo
 
 pick --kdict-KEEP=dict.txt @tim~isin~KEEP  # subset rows using a dictionary
 ```
