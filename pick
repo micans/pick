@@ -130,6 +130,7 @@ my $BIT_SAM_QPARTS =    1 <<  8;     # compute parts for query.
 my $BIT_SAM_RPARTS =    1 <<  9;     # compute parts for reference.
 my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
 my $BIT_SAM_ALN_MRK  =  1 << 11;     # print markers for trailing parts in alignment
+my $BIT_SAM_QLT_SIM  =  1 << 12;     # simplify quality scores
 
 my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;                # collect bits that SAM_RPARTS depends on.
 my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
@@ -1278,6 +1279,9 @@ EOH
      elsif ($options eq 'sam-aln-mrk') {
        $I_AM_SAM |= $BIT_SAM_ALN_MRK;
      }
+     elsif ($options eq 'sam-qlt-sim') {
+       $I_AM_SAM |= $BIT_SAM_QLT_SIM;
+     }
      elsif ($options =~ /^sam-aln-xy=(\d+),(\d+)$/) {
        $I_AM_SAM |= $BIT_SAM_CONTEXT;
        ($::sam_context_x, $::sam_context_y) = ($1, $2);
@@ -2180,6 +2184,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     @sam_qry_cache_prev = @sam_qry_cache[0..4];              # no danger of using 4..6, but still.
     @sam_qry_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9], $::Flink->[10]);
+    $sam_qry_cache[-1] =~ tr |\x21-\x7e|..........0123456789bbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii| if $I_AM_SAM & $BIT_SAM_QLT_SIM;
+
                     # 0     read name
                     # 1     ref name
                     # 2     reverse strand = 1
