@@ -471,7 +471,7 @@ my %cp_samdefs = (
      isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
      sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tcompute region-bound-tally quantities for reference positions [x-y]\tsam" ],
-     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry) }, "-\trbt_alnall\talignment for region\tsam" ],
+     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry rbt_alnqlt) }, "-\trbt_alnall\talignment for region\tsam" ],
      sam_get         => [ 2, sub { $::STACK[-2] = ($::Flink->[11] =~ /(^|\t)\Q$::STACK[-2]\E:(.*?)(\t|$)/ ? $2 : $::STACK[-1]) }, "tag def\tsam_get\tvalue for <tag>, use def if absent\tsam" ],
 
      suv             => [ 1, sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
@@ -524,6 +524,7 @@ my %suv_direct_lookup =
 ,  rbt_alnaln       =>  [ 'Alignment string (rbt)',                         $DEP_SAM_RBT   ]
 ,  rbt_alnqry       =>  [ 'Query string (rbt)',                             $DEP_SAM_RBT   ]
 ,  rbt_alnrlr       =>  [ 'Ruler string (rbt)',                             $DEP_SAM_RBT   ]
+,  rbt_alnqlt       =>  [ 'Quality string (rbt)',                           $DEP_SAM_RBT   ]
 ,  rbt_refx         =>  [ 'Reference start position (rbt)',                 $DEP_SAM_RBT   ]
 ,  rbt_refy         =>  [ 'Reference end position (rbt)',                   $DEP_SAM_RBT   ]
 ,  rbt_dx           =>  [ 'x adjustment if rbt_refx < ref_posx',            $DEP_SAM_RBT   ]
@@ -861,9 +862,9 @@ sub read_tbdict {
    }
    if (!close($fh)) { pipecroak("gunzip -cf < $fname (table dict load)", $!, $? & 0x7F, $? >> 8) }
    my $k = @header - 1;
-print STDERR "-- Table dictionary $name has $n keys for $k columns { @header } after reading $fname\n" if $L_verbose >= 0;
-print STDERR "-- Keys to be used with ^$name\[^:]KEY,tmap\n" if $L_verbose >= 0 && length($name);
-print STDERR "-- Keys to be used with [^:]KEY,map\n" if $L_verbose >= 0 && !length($name);
+print STDERR "-- Table dictionary $name has $n keys for $k columns { @header } after reading $fname\n" if $L_verbose >= 1;
+print STDERR "-- Keys to be used with ^$name\[^:]KEY,tmap\n" if $L_verbose >= 1 && length($name);
+print STDERR "-- Keys to be used with [^:]KEY,map\n" if $L_verbose >= 1 && !length($name);
    return \@header;
 }
 
@@ -2520,7 +2521,8 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
     $::LC{suv}{rbt_alnref} = '*';                               # The excision
     $::LC{suv}{rbt_alnaln} = '*';                               #   of the alignment
     $::LC{suv}{rbt_alnqry} = '*';                               #     corresponding
-    $::LC{suv}{rbt_alnrlr} = '*';                               #       to uu and vv.
+    $::LC{suv}{rbt_alnrlr} = '*';                               #       to uu and vv
+    $::LC{suv}{rbt_alnqlt} = '*';                               #        .
 
     $::LC{suv}{rbt_refx}   =  1;
     $::LC{suv}{rbt_refy}   =  0;
@@ -2543,7 +2545,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       return "";                                                # fixme. this return is meaningless / not picked up.
     }
 
-    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr) = map { $::LC{suv}{$_} } qw(aln_ref aln_aln aln_qry aln_rlr);
+    my ($aln_ref, $aln_aln, $aln_qry, $aln_rlr, $aln_qlt) = map { $::LC{suv}{$_} } qw(aln_ref aln_aln aln_qry aln_rlr aln_qlt);
 
     if ($coord_ref_x > $coord_ref_u || $coord_ref_y < $coord_ref_v) {
       ($coord_ref_uu, $coord_ref_vv) = (max($coord_ref_u, $coord_ref_x),  min($coord_ref_v, $coord_ref_y));
@@ -2586,6 +2588,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
       $::LC{suv}{rbt_alnaln} = substr($aln_aln, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
       $::LC{suv}{rbt_alnqry} = substr($aln_qry, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
       $::LC{suv}{rbt_alnrlr} = substr($aln_rlr, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
+      $::LC{suv}{rbt_alnqlt} = substr($aln_qlt, $coord_aln_uu, $coord_aln_vv - $coord_aln_uu + 1);
 
       $::LC{suv}{rbt_refx}   = $coord_ref_uu + 1;
       $::LC{suv}{rbt_refy}   = $coord_ref_vv + 1;
