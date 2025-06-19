@@ -127,6 +127,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Examples](#examples)  
 &emsp;&emsp;[Operators returning offsets and lengths](#operators-returning-offsets-and-lengths)  
 &emsp;&emsp;[Cigar string operators](#cigar-string-operators)  
+&emsp;&emsp;[Command line options](#command-line-options)  
 [Splitting, demultiplexing and forking rows across different outputs](#splitting-demultiplexing-and-forking-rows-across-different-outputs)  
 &emsp;&emsp;[Splitting a table into smaller tables for parallel processing](#splitting-a-table-into-smaller-tables-for-parallel-processing)  
 &emsp;&emsp;[Combining demuxing and deselecting](#combining-demuxing-and-deselecting)  
@@ -372,8 +373,7 @@ The full list of comparison operators:
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
     /epx/ /omx/                     exclusion inversions of the above
-    /epx/ /omx/                     inversions of /ep/ and /om/
-    /all/ /any/ /none/              bit selection
+    /all/ /any/ /none/ /notall/     bit selection
 ```
 
 `=` is for string identity, `/=` is for string _not equal to_. These are shorthand
@@ -570,7 +570,7 @@ comparison operators below - these are [the same as can be used for row filterin
     /eq/ /ne/ /lt/ /le/ /ge/ /gt/   numerical comparison
     /ep/ /om/                       numerical proximity (additive, multiplicative)
     /epx/ /omx/                     exclusion inversions of the above
-    /all/ /any/ /none/              bit selection
+    /all/ /any/ /none/ /notall/     bit selection
 ```
 
 Below is a test whether the value in column `foo` is greater than the value in column `bar`:
@@ -1166,6 +1166,32 @@ Returns the number of events across all alignment types in `<cigaritems>`.
 
 You can use the `get` operator (`<value> <regex> get`)
 to retrieve information from the concatenated fields in picks last input column.
+
+### Command line options
+
+```
+--sam-aln-xy=<x>,<y>                # Include reference [x-y] in alignment
+--sam-aln-context=<N>               # Add <N> bases of context to alignment outputs
+--sam-rbt=<x>,<y>                   # Set region-bound-context coordinates
+--sam-aln-prefix=<string>           # Set prefix. utils/wrapalign expects '++ '
+--sam-nonf                          # Do not normalise exterior indels to soft clips
+--sam-qlt-sim                       # Simplify quality scores.
+```
+
+With `--sam-qlt-sim` the quality scores are simplified using the following translation table:
+
+```
+!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+.....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii
+       3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1 |
+       -- | -- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |---|
+       10 | 10 |100 |100 |1e3 |1e3 |1e4 |1e4 |1e5 |1e5 |1e6 |1e6 |1e7 |1e7 |1e8 |1e8 |1e9 |1e9|
+```
+
+Hence `a` up to `A` indicate scores from 1-in-10 to 1-in-100, `b` up to `B` indicate scores from 1-in-100 to 1-in-1000.
+The first letter (`a`) indicates the first magnitude 10, second letter (`b`) indicates the second magnitude 100
+and so on. The subdivision `A` starts at a threefold improvement relative to the start of the subdivision `a`.
+The first division `.....,,,,,` indicates some truly dire quality scores.
 
 
 ## Splitting, demultiplexing and forking rows across different outputs

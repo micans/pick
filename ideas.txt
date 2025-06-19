@@ -1,7 +1,7 @@
 
-  - discard when protection was needed -- currently this bypasses selection and assert. not great.
+  -  automate operator descriptions in README.md
 
-  - assertion or selection bits column.
+  - discard when protection was needed -- currently this bypasses selection and assert. not great.
 
   ! > samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
     -- 30 times a reference sequence length lookup failed
@@ -16,16 +16,12 @@
 
   ?  quants: for very large data, use heap to find data separating values.
 
-  ?  output subset(s) of columns to different files.
-
   ?  refer to a list of things by name (variable)
   ?  'find a column (name?value?) that passes test'
   -> tabulate fields absent (none "" / NA / NaN / -)
   -> test whether r.e. or hash lookup is faster.
 
   -  limit amount of errors output by hash key (errm, alert): further errors supressed.
-
-  -  automate operator descriptions in README.md
 
   -  dictionary, quant warn at compile time if dictionary does not exist ..
 
