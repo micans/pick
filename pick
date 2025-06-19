@@ -2184,7 +2184,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
     @sam_qry_cache_prev = @sam_qry_cache[0..4];              # no danger of using 4..6, but still.
     @sam_qry_cache = ($::Flink->[0], $::Flink->[2], $::Flink->[1] & 16 ? 1 : 0, $::Flink->[9], $::Flink->[10]);
-    $sam_qry_cache[-1] =~ tr |\x21-\x7e|.....,,,,,0123456789bbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii| if $I_AM_SAM & $BIT_SAM_QLT_SIM;
+    $sam_qry_cache[-1] =~ tr |\x21-\x7e|.....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii| if $I_AM_SAM & $BIT_SAM_QLT_SIM;
 
                     # 0     read name
                     # 1     ref name
