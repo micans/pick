@@ -303,6 +303,9 @@ sub fmtall {
    return $fmt;
 }
 
+#  '##' to get '%%' to get '%' won't work; below will count it as two separate format specifiers.
+#  However % can be gotten as %25%25.
+
 sub get_printall_format {
    my $fmt = shift;
    $fmt =~ s/\\#/\x02/g;
@@ -1452,31 +1455,11 @@ sub parse_compute {
           $sambits   = $cp_sam_setup_seqs{$what};
           $I_AM_SAM |= $sambits;
         }
-        if ($what eq 'sam_get') {
-          die "Operator 'sam_get' requires at least two operands" unless @oplist >= 3;                            # Note these checks could move to compile_compute
-          die "Operator 'sam_get' requires operand that is a column name scalar, e.g. ^NM.i or ^NM-i"
-             unless $oplist[-3][0] == $TYPE_SCALAR;
-          $oplist[-3][1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
-          die "Expect sam tag format XX:[AifZHB]" unless $oplist[-3][1] =~ /^..:[AifZHB]/;
-        }
-      }
-                                             # /pload_validate/
-      elsif ($what eq 'pload') {
-         die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
-         die "Operator 'pload' requires operand" unless @oplist > 1;
-         die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname"
-            unless $oplist[-2][0] == $TYPE_SCALAR;
-         $::pstore_init{$oplist[-2][1]} = $PSTORE_DEFAULT;
       }
       elsif ($use_sam_shortcut) {
          $oplist[-1][0] = $TYPE_LUSPUV;
          $sambits = $suv_direct_lookup{$what}[1];
          $I_AM_SAM |= $sambits;
-      }
-      elsif ($what eq 'test') {              # /test_validate/
-         die "Operator 'test' requires three operands" unless @oplist > 3;
-         die "Operator 'test' requires third operand to be a known test (you supplied $oplist[-2][1])"
-            unless $oplist[-2][0] == $TYPE_SCALAR && defined($sel_opdefinitions{$oplist[-2][1]});
       }
 
       if (($sambits & $BIT_SAM_RBT) && !$::LC{suv}{__sam_rbt__} && !($I_AM_SAM & $BIT_SAM_RBT_CLXY)) {
@@ -1758,10 +1741,27 @@ sub compile_compute {
             die "Stack underflow in compute [$name], operator $what" unless $stack_size >= $N_required;
             if ($what eq 'sprintf') {
                my ($N, $fmt) = get_printall_format($expanded_compute[0][1]);
-die "sprintf format count $N does not correspond to stack size $stack_size in compute $name" unless $N + 1 == $stack_size;
+$stack_size--, die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name" unless $N + 1 == $stack_size;
                $expanded_compute[0][1] = $fmt;
             }
-            $stack_size += ($N_pushed - $N_consumed);
+            elsif ($what eq 'test') {
+               my $test = $expanded_compute[-1];
+               die "Operator 'test' requires third operand to be a known test (you supplied $test->[1])"
+               unless $test->[0] == $TYPE_SCALAR && defined($sel_opdefinitions{$test->[1]});
+            }
+            elsif ($what eq 'pload') {
+               die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
+               my $test = $expanded_compute[-1];
+               die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname" unless $test->[0] == $TYPE_SCALAR;
+               $::pstore_init{$test->[1]} = $PSTORE_DEFAULT;
+            }
+            elsif ($what eq 'sam_get') {
+              my $test = $expanded_compute[-2];
+              die "Operator 'sam_get' requires operand that is a column name scalar, e.g. ^NM.i or ^NM-i" unless $test->[0] == $TYPE_SCALAR;
+              $test->[1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
+              die "Expect sam tag format XX:[AifZHB]" unless $test->[1] =~ /^..:[AifZHB]/;
+            }
+           $stack_size += ($N_pushed - $N_consumed);
          }
          elsif ($type == $TYPE_SCALAR) {
            $stack_size++;
