@@ -1,4 +1,14 @@
 
+  -  keep track of stack size during compile time.
+     annotation not sufficient right now (devour operators cannot be distinguished)
+  -  sprintf format can be transformed at compile time, but only specific to compute.
+     so ... store required stack size in the compiled compute rather than in the opdef?
+
+  -  (pluck) column type can be inferred from operations and comparisons at compile time.
+     string by default, numeric as needed.
+     large integers in rust?
+     integer versions of numeric operations? imul isub iadd
+
   -  automate operator descriptions in README.md
 
   - discard when protection was needed -- currently this bypasses selection and assert. not great.

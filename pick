@@ -284,6 +284,9 @@ sub boxit {
    return $n;
 }
 
+# fixme/TODO:
+# Implement count check at compile time similar to get_printall_format.
+
 sub fmtall {
    my $fmt = shift;
    my $fmt2 = $fmt;
@@ -300,12 +303,32 @@ sub fmtall {
    return $fmt;
 }
 
+sub get_printall_format {
+   my $fmt = shift;
+   $fmt =~ s/\\#/\x02/g;
+   my $N = ($fmt =~ tr|#|%|);
+   $fmt =~ tr|\x02|#|;
+   return ($N, $fmt);
+}
+
+# fixme/TODO:
+# unite/import this annotation in cp_opdefinitions
+
+my %stack_devour = map { ($_, 1) } qw( addall mulall maxall minall catall meanall hmeanall gmeanall joinall fmtall sprintf) ;
+             # _Require Consume Push
+my %stack_manip_RCP
+   = ( pop => { require => 1, consume => 1, push => 0 }
+     , dup => { require => 1, consume => 0, push => 1 }
+     , xch => { require => 2, consume => 0, push => 0 }
+   , debug => { require => 0, consume => 0, push => 0 }
+ , sam_rbt => { require => 2, consume => 2, push => 0 }
+     );
+
                             # Nearly all of the below push 1 item on the stack after consuming X.
                             # Only X is specified; X = 0 indicate exceptional cases.
                             # Potentially neatify this by adding Y (number of pushed items).
 my %cp_opdefinitions =
-   ( add       => [ 2, sub { $::STACK[-2] += $::STACK[-1] }, "x y\tx+y\tAdd x and y, sum, addition\tarithmetic" ],
-     addall    => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = ($x) }, "*\tsum(Stack)\tSum of all entries in stack\tarithmetic/devour" ],
+   ( addall    => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = ($x) }, "*\tsum(Stack)\tSum of all entries in stack\tarithmetic/devour" ],
      mulall    => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) }, "*\tproduct(Stack)\tProduct of all entries in stack, multiplication\tarithmetic/devour" ],
      maxall    => [ 0, sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) }, "*\tmax(Stack)\tMax over all entries in stack\tarithmetic/devour" ],
      minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "*\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
@@ -313,10 +336,12 @@ my %cp_opdefinitions =
      meanall   => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = @::STACK ? ($x/@::STACK) : (0.0) }, "*\tmean(Stack)\tMean of all entries in stack\tarithmetic/devour" ],
      hmeanall  => [ 0, sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
      gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
-     rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
      fmtall    => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/format/devour" ],
-     sprintf   => [ 1, sub { my $fmt = shift(@::STACK); $fmt =~ tr|#|%|; @::STACK = sprintf($fmt, @::STACK); }, "f *\tSprintf-*-into-f\tSprintf stack\tstring/format/devour" ],
+     sprintf   => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = sprintf($fmt, @::STACK) }, "f *\tSprintf-*-into-f\tSprintf stack\tstring/format/devour" ],
+
+     add       => [ 2, sub { $::STACK[-2] += $::STACK[-1] }, "x y\tx+y\tAdd x and y, sum, addition\tarithmetic" ],
+     rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      join      => [ 3, sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
      mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
      div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
@@ -347,12 +372,12 @@ my %cp_opdefinitions =
      mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
      pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
      ipow      => [ 2, sub { my $y = $::STACK[-2]; $::STACK[-2] *= $y while --$::STACK[-1] > 0; }, "x y\tx**y\tx raised to power y ensuring integer artithmetic\tarithmetic" ],
-     bitand    => [ 2, sub { $::STACK[-2] &= int($::STACK[-1]) }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
-     bitor     => [ 2, sub { $::STACK[-2] |= int($::STACK[-1]) }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
-     bitoff    => [ 2, sub { $::STACK[-2] |= int($::STACK[-1]); $::STACK[-2] ^= int($::STACK[-1]); }, "x y\tx rm y\tRemove y bits from x\tbitop"  ],
-     bitxor    => [ 2, sub { $::STACK[-2] ^= int($::STACK[-1]) }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
-     bitlsh    => [ 2, sub { $::STACK[-2] <<= int($::STACK[-1]) }, "x y\tx << y\tShift x left by y\tbitop"  ],
-     bitrsh    => [ 2, sub { $::STACK[-2] >>= int($::STACK[-1]) }, "x y\tx >> y\tShift x right by y\tbitop"  ],
+     bitand    => [ 2, sub { $::STACK[-2] &= abs(int($::STACK[-1])) }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
+     bitor     => [ 2, sub { $::STACK[-2] |= abs(int($::STACK[-1])) }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
+     bitoff    => [ 2, sub { $::STACK[-2] |= abs(int($::STACK[-1])); $::STACK[-2] ^= int($::STACK[-1]); }, "x y\tx rm y\tRemove y bits from x\tbitop"  ],
+     bitxor    => [ 2, sub { $::STACK[-2] ^= abs(int($::STACK[-1])) }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
+     bitlsh    => [ 2, sub { $::STACK[-2] <<= abs(int($::STACK[-1])) }, "x y\tx << y\tShift x left by y\tbitop"  ],
+     bitrsh    => [ 2, sub { $::STACK[-2] >>= abs(int($::STACK[-1])) }, "x y\tx >> y\tShift x right by y\tbitop"  ],
      max       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] }, "x y\tmax(x,y)\tMaximum of x and y\tarithmetic" ],
      min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
      dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
@@ -440,7 +465,6 @@ my %cp_opdefinitions =
      floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
      round     => [ 1, sub { $::STACK[-1] = sprintf("%.0f", $::STACK[-1]) }, "x\tround(x)\tThe integer nearest to x\tmath" ],
      int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
-     F0        => [ 0, sub { push @::STACK, $::Flink->[0] }, "-\tF[0]\tFirst input column\tdemo" ],
 
    );
 
@@ -580,31 +604,31 @@ my %appreciated = qw(
             # as is '~' (matching and string op delimiter). This keeps them grouped together.
             #
 my %sel_opdefinitions = (
-  '~'          => [ 40, sub { $_[0] =~ /$_[1]/ } ],
-  '/~'         => [ 41, sub { $_[0] !~ /$_[1]/ } ],
-  '='          => [ 42, sub { $_[0]  eq $_[1]  } ],
-  '/='         => [ 43, sub { $_[0]  ne $_[1]  } ],
+  '~'          => [ 40, sub { $_[0] =~ /$_[1]/ }, 1 ],
+  '/~'         => [ 41, sub { $_[0] !~ /$_[1]/ }, 1 ],
+  '='          => [ 42, sub { $_[0]  eq $_[1]  }, 2 ],
+  '/='         => [ 43, sub { $_[0]  ne $_[1]  }, 2 ],
 
-  '/eq/'       => [ 44, sub { $_[0] == $_[1] } ],
-  '/ne/'       => [ 45, sub { $_[0] != $_[1] } ],
-  '/lt/'       => [ 46, sub { $_[0] <  $_[1] } ],
-  '/le/'       => [ 47, sub { $_[0] <= $_[1] } ],
-  '/ge/'       => [ 48, sub { $_[0] >= $_[1] } ],
-  '/gt/'       => [ 49, sub { $_[0] >  $_[1] } ],
+  '/eq/'       => [ 44, sub { $_[0] == $_[1] },   2 ],
+  '/ne/'       => [ 45, sub { $_[0] != $_[1] },   2 ],
+  '/lt/'       => [ 46, sub { $_[0] <  $_[1] },   2 ],
+  '/le/'       => [ 47, sub { $_[0] <= $_[1] },   2 ],
+  '/ge/'       => [ 48, sub { $_[0] >= $_[1] },   2 ],
+  '/gt/'       => [ 49, sub { $_[0] >  $_[1] },   2 ],
 
-  '/ep/'       => [ 50, sub { test_interval_plus(@_)} ],      # epsilon
-  '/om/'       => [ 51, sub { test_interval_mul(@_) } ],      # order of magnitude
+  '/ep/'       => [ 50, sub { test_interval_plus(@_)}, 2 ],      # epsilon
+  '/om/'       => [ 51, sub { test_interval_mul(@_) }, 2 ],      # order of magnitude
 
-  '~eq~'       => [ 52, sub { $_[0] eq $_[1] } ],
-  '~ne~'       => [ 53, sub { $_[0] ne $_[1] } ],
-  '~lt~'       => [ 54, sub { $_[0] lt $_[1] } ],
-  '~le~'       => [ 55, sub { $_[0] le $_[1] } ],
-  '~ge~'       => [ 56, sub { $_[0] ge $_[1] } ],
-  '~gt~'       => [ 57, sub { $_[0] gt $_[1] } ],
-  '~isin~'     => [ 59, sub { defined($::dict{$_[1]}{$_[0]}) ? 1 : 0 } ],
-  '~isnotin~'  => [ 60, sub { defined($::dict{$_[1]}{$_[0]}) ? 0 : 1 } ],
-  '~hasval~'   => [ 61, sub { test_hasval(@_) } ],
-  '~hasnotval~' => [ 62, sub { ! test_hasval(@_) } ],
+  '~eq~'       => [ 52, sub { $_[0] eq $_[1] }, 1 ],
+  '~ne~'       => [ 53, sub { $_[0] ne $_[1] }, 1 ],
+  '~lt~'       => [ 54, sub { $_[0] lt $_[1] }, 1 ],
+  '~le~'       => [ 55, sub { $_[0] le $_[1] }, 1 ],
+  '~ge~'       => [ 56, sub { $_[0] ge $_[1] }, 1 ],
+  '~gt~'       => [ 57, sub { $_[0] gt $_[1] }, 1 ],
+  '~isin~'     => [ 59, sub { defined($::dict{$_[1]}{$_[0]}) ? 1 : 0 }, 1 ],
+  '~isnotin~'  => [ 60, sub { defined($::dict{$_[1]}{$_[0]}) ? 0 : 1 }, 1 ],
+  '~hasval~'   => [ 61, sub { test_hasval(@_) }, 1 ],
+  '~hasnotval~' => [ 62, sub { ! test_hasval(@_) }, 1 ],
 
      # Perl behaves weirdly with bit operators in very specific cases; perhaps
      # because it thought both operands a string and one operand is negative.
@@ -620,13 +644,13 @@ my %sel_opdefinitions = (
      # - conceivably in both cases there is an operand that forces number
      # promotion.  Thus, absint.
      #
-  '/all/'      => [ 63, sub { $_[1] == (abs(int($_[0])) & abs(int($_[1]))) } ],
-  '/any/'      => [ 64, sub { abs(int($_[0])) & abs(int($_[1])) } ],
-  '/none/'     => [ 65, sub { ! (abs(int($_[0])) & abs(int($_[1]))) } ],
-  '/notall/'   => [ 66, sub { $_[1] != (abs(int($_[0])) & abs(int($_[1]))) } ],
+  '/all/'      => [ 63, sub { $_[1] == (abs(int($_[0])) & abs(int($_[1]))) }, 8 ],
+  '/any/'      => [ 64, sub { abs(int($_[0])) & abs(int($_[1])) },            8 ],
+  '/none/'     => [ 65, sub { ! (abs(int($_[0])) & abs(int($_[1]))) },        8 ],
+  '/notall/'   => [ 66, sub { $_[1] != (abs(int($_[0])) & abs(int($_[1]))) }, 8 ],
 
-  '/epx/'      => [ 67, sub { ! test_interval_plus(@_)} ],      # epsilon exclusion
-  '/omx/'      => [ 68, sub { ! test_interval_mul(@_) } ],      # order of magnitude exclusion
+  '/epx/'      => [ 67, sub { ! test_interval_plus(@_)}, 2 ],      # epsilon exclusion
+  '/omx/'      => [ 68, sub { ! test_interval_mul(@_) }, 2 ],      # order of magnitude exclusion
 
 );
 
@@ -1429,7 +1453,7 @@ sub parse_compute {
           $I_AM_SAM |= $sambits;
         }
         if ($what eq 'sam_get') {
-          die "Operator 'sam_get' requires at least two operands" unless @oplist >= 3;
+          die "Operator 'sam_get' requires at least two operands" unless @oplist >= 3;                            # Note these checks could move to compile_compute
           die "Operator 'sam_get' requires operand that is a column name scalar, e.g. ^NM.i or ^NM-i"
              unless $oplist[-3][0] == $TYPE_SCALAR;
           $oplist[-3][1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
@@ -1460,15 +1484,16 @@ sub parse_compute {
       }
                            # N stack required, code.
       push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
-print STDERR "ddd $handle >> type=$type op=$what N=$opdef->[0]\n" if $B_debug;
+print STDERR "ddd Compute $handle >> type=$type op=$what consume=$opdef->[0]\n" if $B_debug;
     }
     else {
-print STDERR "ddd $type $what >>\n" if $B_debug;
+print STDERR "ddd Scalar  $type $what >>\n" if $B_debug;
     }
   }
   die "Parse error in spec [$spec] near position $p\n" unless $p == $l;
   return \@oplist;
 }
+
 
 sub urlencode {
    my $val = shift;
@@ -1573,6 +1598,7 @@ print STDERR "-- (output) item $spec ($n_matches results: @matchnames)\n" if $L_
 @::preselect  = ();         # row select specifications
 @::assert = ();             # row assertions
 %::handle_map = ();         # map column names to offsets
+# @::column_use_as = [];      # track usage of columns. 1 string 2 numeric 4 signed 8 unsigned 16 float
 %::plain_handle = ();       # handles without any compute following.
 @::INPUT_HEADER = ();       # input header. @::HEADER exists, is intermediate and can have repeats; @::OUTPUT_HEADER is output header.
 
@@ -1626,7 +1652,7 @@ print STDERR "ddd select code=$code ind=$indirection val=$val name=$name arg=$ar
 }
 
 
-sub compile_spec {
+sub parse_spec {
 
   for my $spec (@::spec) {
     if ($spec =~ s/^(\@(assert)?\@|\@)//) {
@@ -1636,7 +1662,7 @@ sub compile_spec {
                     #  a1a2a3, b, c, d different forms for op
                     #  V value or :handle
                     #    ( H )([ a1](      a2    )[ a3])( V)(  arg )
-      if ($spec =~ /^(.*?)([\/~](?:[a-z]{2,9})[\/~])(.*?)([\/~].*?)?$/) {         # fixme. proper checking.
+      if ($spec =~ /^(.*?)([\/~](?:[a-z]{2,19})[\/~])(.*?)([\/~].*?)?$/) {        # fixme. proper checking.
         ($handle, $op, $val, $arg) = (urldecode($1), $2, urldecode($3), $4);      # @urldecode @handle/../arg|handle/arg
         die "Unrecognised operator [$op]\n" unless defined($sel_opdefinitions{$op});
       }
@@ -1711,16 +1737,42 @@ sub compile_compute {
     my ($name, $compute) = @{$::compute[$i]};
     die "Name $name already defined (use -i for in-place change)\n" if defined($::handle_map{$name}) && !$B_inplace;
     my @expanded_compute = ();
+    my $stack_size = 0;
     for my $comp (@$compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
          my ($unused_variable, $matches) = expand_list_range_and_regex($what, 0);
          for my $m (@$matches) { push @expanded_compute, [$TYPE_HANDLE, $m->{namein}]; }
+         $stack_size += @$matches;
       }
       else {
+         if ($type == $TYPE_OPATOR) {
+            my $N_required    =  $cp_opdefinitions{$what}[0];
+                  $N_required =  $stack_manip_RCP{$what}{require} if defined($stack_manip_RCP{$what});
+            my $N_consumed    =  $N_required;
+                  $N_consumed =  $stack_size if defined($stack_devour{$what});
+                  $N_consumed =  $stack_manip_RCP{$what}{consume} if defined($stack_manip_RCP{$what});
+            my $N_pushed      =  1;
+                  $N_pushed   =  $stack_manip_RCP{$what}{push} if defined($stack_manip_RCP{$what});
+
+            die "Stack underflow in compute [$name], operator $what" unless $stack_size >= $N_required;
+            if ($what eq 'sprintf') {
+               my ($N, $fmt) = get_printall_format($expanded_compute[0][1]);
+die "sprintf format count $N does not correspond to stack size $stack_size in compute $name" unless $N + 1 == $stack_size;
+               $expanded_compute[0][1] = $fmt;
+            }
+            $stack_size += ($N_pushed - $N_consumed);
+         }
+         elsif ($type == $TYPE_SCALAR) {
+           $stack_size++;
+         }
+         elsif ($type == $TYPE_LUSPUV) {
+           $stack_size++;
+         }
          push @expanded_compute, $comp;
       }
     }
+print STDERR "ddd Compute named [$name] ends with stack size $stack_size\n" if $B_debug;
     my $prev_what = undef;    # ugly/fixme; temporary to enforce pload compile-time check for column name presence.
 
     for my $comp (@expanded_compute) {
@@ -1776,7 +1828,7 @@ print STDERR "ddd map header name $name to offset $i\n" if $B_debug;
       #     @::assert
       #     @::output_nm
       #     @::compute
-  &compile_spec();
+  &parse_spec();
 
   @::output_nm = sort { $a <=> $b } keys %{{ map { ($_, 1) } @::output_nm }} if $B_ko;
 
