@@ -192,7 +192,7 @@ sub pipecroak {
   $_[3] && die("$_[0] : exited with error : $_[3]\n");
 }
 
-sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
+# sub stacky { die "$_[0] stack error\n" unless @::STACK >= $_[1]; }
 
 $Data::Dumper::Terse = 1;
 $Data::Dumper::Purity = 1;
@@ -323,7 +323,7 @@ my %stack_manip_RCP
    = ( pop => { require => 1, consume => 1, push => 0 }
      , dup => { require => 1, consume => 0, push => 1 }
      , xch => { require => 2, consume => 0, push => 0 }
-   , debug => { require => 0, consume => 0, push => 0 }
+   , debug => { require => 1, consume => 1, push => 0 }
  , sam_rbt => { require => 2, consume => 2, push => 0 }
      );
 
@@ -331,143 +331,140 @@ my %stack_manip_RCP
                             # Only X is specified; X = 0 indicate exceptional cases.
                             # Potentially neatify this by adding Y (number of pushed items).
 my %cp_opdefinitions =
-   ( addall    => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = ($x) }, "*\tsum(Stack)\tSum of all entries in stack\tarithmetic/devour" ],
-     mulall    => [ 0, sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) }, "*\tproduct(Stack)\tProduct of all entries in stack, multiplication\tarithmetic/devour" ],
-     maxall    => [ 0, sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) }, "*\tmax(Stack)\tMax over all entries in stack\tarithmetic/devour" ],
-     minall    => [ 0, sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "*\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
-     catall    => [ 0, sub { my $x = join "", @::STACK; @::STACK = ($x) }, "*\tStack-joined\tStringified stack\tstring/format/devour" ],
-     meanall   => [ 0, sub { my $x = 0; $x += $_ for @::STACK; @::STACK = @::STACK ? ($x/@::STACK) : (0.0) }, "*\tmean(Stack)\tMean of all entries in stack\tarithmetic/devour" ],
-     hmeanall  => [ 0, sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
-     gmeanall  => [ 0, sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
-     joinall   => [ 1, sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
-     fmtall    => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/format/devour" ],
-     sprintf   => [ 1, sub { my $fmt = shift(@::STACK); @::STACK = sprintf($fmt, @::STACK) }, "f *\tSprintf-*-into-f\tSprintf stack\tstring/format/devour" ],
+   ( addall    => [ 0, 'n:n*', sub { my $x = 0; $x += $_ for @::STACK; @::STACK = ($x) }, "*\tsum(Stack)\tSum of all entries in stack\tarithmetic/devour" ],
+     mulall    => [ 0, 'n:n*', sub { my $x = 1; $x *= $_ for @::STACK; @::STACK = ($x) }, "*\tproduct(Stack)\tProduct of all entries in stack, multiplication\tarithmetic/devour" ],
+     maxall    => [ 0, 'n:n*', sub { my $x = -POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ > $x }; @::STACK = ($x) }, "*\tmax(Stack)\tMax over all entries in stack\tarithmetic/devour" ],
+     minall    => [ 0, 'n:n*', sub { my $x =  POSIX::DBL_MAX; for (@::STACK) { $x = $_ if $_ < $x }; @::STACK = ($x) }, "*\tmin(Stack)\tMin over all entries in stack\tarithmetic/devour" ],
+     catall    => [ 0, 's:s*', sub { my $x = join "", @::STACK; @::STACK = ($x) }, "*\tStack-joined\tStringified stack\tstring/format/devour" ],
+     meanall   => [ 0, 'n:n*', sub { my $x = 0; $x += $_ for @::STACK; @::STACK = @::STACK ? ($x/@::STACK) : (0.0) }, "*\tmean(Stack)\tMean of all entries in stack\tarithmetic/devour" ],
+     hmeanall  => [ 0, 'n:n*', sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
+     gmeanall  => [ 0, 'n:n*', sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
+     joinall   => [ 1, 's:s*,s', sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
+     fmtall    => [ 1, 's:s,s*', sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/format/devour" ],
+     sprintf   => [ 1, 's:s,s*', sub { my $fmt = shift(@::STACK); @::STACK = sprintf($fmt, @::STACK) }, "f *\tSprintf-*-into-f\tSprintf stack\tstring/format/devour" ],
 
-     add       => [ 2, sub { $::STACK[-2] += $::STACK[-1] }, "x y\tx+y\tAdd x and y, sum, addition\tarithmetic" ],
-     rand      => [ 1, sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
-     join      => [ 3, sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
-     mul       => [ 2, sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
-     div       => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
-     idiv      => [ 2, sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
-     cat       => [ 2, sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring/format" ],
-     sub       => [ 2, sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
+     add       => [ 2, 'n:n,n', sub { $::STACK[-2] += $::STACK[-1] }, "x y\tx+y\tAdd x and y, sum, addition\tarithmetic" ],
+     rand      => [ 1, 'n:n',   sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
+     join      => [ 3, 's:s,s,s', sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
+     mul       => [ 2, 'n:n,n', sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
+     div       => [ 2, 'n:n,n', sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     idiv      => [ 2, 'i:i,i', sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     cat       => [ 2, 's:s,s', sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring/format" ],
+     sub       => [ 2, 'n:n,n', sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
 
-     pop       => [ 0, sub { stacky('pop', 1); pop @::STACK }, "x\t-\tRemove top entry x from stack\tstack" ],
-     dup       => [ 0, sub { stacky('dup', 1); push @::STACK, $::STACK[-1] }, "x\tx x\tDuplicate top entry x\tstack" ],
-     xch       => [ 0, sub { stacky('xch', 2); ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) }, "x y\ty x\tExchange x and y\tstack" ],
-     rowno     => [ 0, sub { push @::STACK, $::Nrows -1+$B_headless }, "-\tx\tPush current table (start one) row number x onto stack\tinput" ],
-     r0wno     => [ 0, sub { push @::STACK, $::Nrows -2+$B_headless }, "-\tx\tPush current table (start zero) row number x onto stack\tinput" ],
-     lineno    => [ 0, sub { push @::STACK, $.      }, "-\tx\tPush file line number x onto stack\tinput" ],
-     groupno   => [ 0, sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
-     groupi    => [ 0, sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
+     pop       => [ 0, ':T',    sub { pop @::STACK }, "x\t-\tRemove top entry x from stack\tstack" ],
+     dup       => [ 0, 'T,T:T', sub { push @::STACK, $::STACK[-1] }, "x\tx x\tDuplicate top entry x\tstack" ],
+     xch       => [ 0, 'T,T:T,T', sub { ($::STACK[-2], $::STACK[-1]) = ($::STACK[-1], $::STACK[-2]) }, "x y\ty x\tExchange x and y\tstack" ],
+     rowno     => [ 0, 'u:',    sub { push @::STACK, $::Nrows -1+$B_headless }, "-\tx\tPush current table (start one) row number x onto stack\tinput" ],
+     r0wno     => [ 0, 'u:',    sub { push @::STACK, $::Nrows -2+$B_headless }, "-\tx\tPush current table (start zero) row number x onto stack\tinput" ],
+     lineno    => [ 0, 'u:',    sub { push @::STACK, $.      }, "-\tx\tPush file line number x onto stack\tinput" ],
+     groupno   => [ 0, 'u:',    sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
+     groupi    => [ 0, 'u:',    sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
 
-     save      => [ 2, sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
+     save      => [ 2, 'T:T,s',  sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
 
-     debug     => [ 0, sub { stacky('debug', 1); my $query = pop @::STACK;
-                         if ($query eq 'cache') { print Data::Dumper->Dump([\%::LC]); }
-                         else {                   die "Unknown debugging mode $query"; }
-                       }, "mode\t-\t[cache] dump internal state\tstate/stack" ],
+     debug     => [ 0, ':s',    sub { my $query = pop @::STACK; if ($query eq 'cache') { print Data::Dumper->Dump([\%::LC]); } else { die "Unknown debugging mode $query"; } }, "mode\t-\t[cache] dump internal state\tstate/stack" ],
 
-     fetch     => [ 1, sub { my $v = $::LC{save}{$::STACK[-1]}; unless (defined($v)) { errm(0, "no value for $::STACK[-1]"); $v = "NA"; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
-     pload     => [ 1, sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate/stack" ],
+     fetch     => [ 1, 's:s', sub { my $v = $::LC{save}{$::STACK[-1]}; unless (defined($v)) { errm(0, "no value for $::STACK[-1]"); $v = "NA"; } $::STACK[-1] = $v; }, "n\treg(n)\tretrieve value in register with name n\tstate/stack" ],
+     pload     => [ 1, 'H:s', sub { $::STACK[-1] = $::pstore_cache{$::STACK[-1]}; }, "c\tprevrow[c]\tField of column c in the previous row\tstate/stack" ],
                                                                      # see /pload_validate/
 
-     mod       => [ 2, sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
-     pow       => [ 2, sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
-     ipow      => [ 2, sub { my $y = $::STACK[-2]; $::STACK[-2] *= $y while --$::STACK[-1] > 0; }, "x y\tx**y\tx raised to power y ensuring integer artithmetic\tarithmetic" ],
-     bitand    => [ 2, sub { $::STACK[-2] &= abs(int($::STACK[-1])) }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
-     bitor     => [ 2, sub { $::STACK[-2] |= abs(int($::STACK[-1])) }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
-     bitoff    => [ 2, sub { $::STACK[-2] |= abs(int($::STACK[-1])); $::STACK[-2] ^= int($::STACK[-1]); }, "x y\tx rm y\tRemove y bits from x\tbitop"  ],
-     bitxor    => [ 2, sub { $::STACK[-2] ^= abs(int($::STACK[-1])) }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
-     bitlsh    => [ 2, sub { $::STACK[-2] <<= abs(int($::STACK[-1])) }, "x y\tx << y\tShift x left by y\tbitop"  ],
-     bitrsh    => [ 2, sub { $::STACK[-2] >>= abs(int($::STACK[-1])) }, "x y\tx >> y\tShift x right by y\tbitop"  ],
-     max       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] }, "x y\tmax(x,y)\tMaximum of x and y\tarithmetic" ],
-     min       => [ 2, sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
-     dd        => [ 2, sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
-     sn        => [ 2, sub { $::STACK[-2] = sprintf("%.*e", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x in scientific notation with N decimal digits\tmath/format/precision" ],
-     zp        => [ 2, sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx'\tx left zero-padded to width of N\toutput/string/format" ],
-     ppl       => [ 2, sub { $::STACK[-2] = sprintf("%-*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx blank-padded to width of N\toutput/string/format" ],
-     ppr       => [ 2, sub { $::STACK[-2] = sprintf("%*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx blank-padded to width of N\toutput/string/format" ],
+     mod       => [ 2, 'i:i,i', sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
+     pow       => [ 2, 'f:f,f', sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
+     ipow      => [ 2, 'i:i,u', sub { my $y = $::STACK[-2]; $::STACK[-2] *= $y while --$::STACK[-1] > 0; }, "x y\tx**y\tx raised to power y ensuring integer artithmetic\tarithmetic" ],
+     bitand    => [ 2, 'u:u,u', sub { $::STACK[-2] &= abs(int($::STACK[-1])) }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
+     bitor     => [ 2, 'u:u,u', sub { $::STACK[-2] |= abs(int($::STACK[-1])) }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
+     bitoff    => [ 2, 'u:u,u', sub { $::STACK[-2] |= abs(int($::STACK[-1])); $::STACK[-2] ^= int($::STACK[-1]); }, "x y\tx rm y\tRemove y bits from x\tbitop"  ],
+     bitxor    => [ 2, 'u:u,u', sub { $::STACK[-2] ^= abs(int($::STACK[-1])) }, "x y\tx xor y\tBitwise exclusive or between x and y\tbitop"  ],
+     bitlsh    => [ 2, 'u:u,u', sub { $::STACK[-2] <<= abs(int($::STACK[-1])) }, "x y\tx << y\tShift x left by y\tbitop"  ],
+     bitrsh    => [ 2, 'u:u,u', sub { $::STACK[-2] >>= abs(int($::STACK[-1])) }, "x y\tx >> y\tShift x right by y\tbitop"  ],
+     max       => [ 2, 'n:n,n', sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] > $::STACK[-2] }, "x y\tmax(x,y)\tMaximum of x and y\tarithmetic" ],
+     min       => [ 2, 'n:n,n', sub { $::STACK[-2] = $::STACK[-1] if $::STACK[-1] < $::STACK[-2] }, "x y\tmin(x,y)\tMinimum of x and y\tarithmetic" ],
+     dd        => [ 2, 'f:n,u', sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
+     sn        => [ 2, 'f:n,u', sub { $::STACK[-2] = sprintf("%.*e", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x in scientific notation with N decimal digits\tmath/format/precision" ],
+     zp        => [ 2, 's:s,u', sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx'\tx left zero-padded to width of N\toutput/string/format" ],
+     ppl       => [ 2, 's:s,u', sub { $::STACK[-2] = sprintf("%-*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx blank-padded to width of N\toutput/string/format" ],
+     ppr       => [ 2, 's:s,u', sub { $::STACK[-2] = sprintf("%*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx blank-padded to width of N\toutput/string/format" ],
 
-     fasta     => [ 2, sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tformat/bio" ],
-     fastq     => [ 2, sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tformat/bio" ],
+     fasta     => [ 2, 's:s,s', sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tformat/bio" ],
+     fastq     => [ 2, 's:s,s', sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tformat/bio" ],
 
-     cgsum     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'sum') }, "c s\tSum of s in c\tSum of lengths of s items in cigar string c\tstring/sam" ],
-     cgmax     => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
-     cgcount   => [ 2, sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
+     cgsum     => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'sum') }, "c s\tSum of s in c\tSum of lengths of s items in cigar string c\tstring/sam" ],
+     cgmax     => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
+     cgcount   => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
 
-     get       => [ 2, sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
-                                         ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
-     uie       => [ 2, sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/branch/test" ],
-     ed        => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
-     edg       => [ 3, sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
-     del       => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
-     delg      => [ 2, sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
-     npat      => [ 2, sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
-     nchar     => [ 2, sub { my ($x, $L, $n) = ($::STACK[-2], length($::STACK[-2]), 0); while ($L--) { $n++ if chop($x) eq $::STACK[-1] } $::STACK[-2] = $n; }, "x c\tnc\tCount char c in x\tstring" ],
-     map       => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
-                           "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
+     get       => [ 2, 's:s,s', sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
+                                             ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
+     uie       => [ 2, 's:s,s', sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/branch/test" ],
+     ed        => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
+     edg       => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
+     del       => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
+     delg      => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
+     npat      => [ 2, 'u:s,s', sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
+     nchar     => [ 2, 'u:s,s', sub { my ($x, $L, $n) = ($::STACK[-2], length($::STACK[-2]), 0); while ($L--) { $n++ if chop($x) eq $::STACK[-1] } $::STACK[-2] = $n; }, "x c\tnc\tCount char c in x\tstring" ],
+     map       => [ 2, 's:s,s', sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
+                               "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
                   ],
-     dord      => [ 2, sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dord{$d}; die "Dictionary $d (dord) does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : ~0; },
-                           "x D\tord-of-x\tUse order of x in dictionary D\tstring/dictionary"
+     dord      => [ 2, 'u:s,s', sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dord{$d}; die "Dictionary $d (dord) does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : ~0; },
+                               "x D\tord-of-x\tUse order of x in dictionary D\tstring/dictionary"
                   ],
-     tmap      => [ 3, sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
-                           "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found); cf --table-dict-D=\tstring/dictionary"
+     tmap      => [ 3, 's:s,s,s', sub {  my ($x, $d, $k) = @::STACK[-3,-2, -1]; my $dict = $::dict{$d}{$k}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-3] = defined($m) ? $m : dict_not_found($d, $::STACK[-3]); },
+                               "x D c\tmap-of-x\tUse map of x in dictionary D for column c (if found); cf --table-dict-D=\tstring/dictionary"
                   ],
-     qnl       => [ 2, sub { $::STACK[-2] = get_quant(@::STACK[-2,-1]) }, "x Q\tQ(x)/#Q\t0-1 normalised quantile-of-x (lower tail)\tmath" ],
-     qnu       => [ 2, sub { $::STACK[-2] = get_revquant(@::STACK[-2,-1]) }, "x Q\t1-Q(x)/#Q\t0-1 normalised quantile-of-x (upper tail)\tmath" ],
-     substr    => [ 3, sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
-     head      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:k-1]\tInitial part of string x, of length k [head,tail,skip,shed]\tstring" ],
-     tail      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], length($::STACK[-2]) - $n) },  "x k\tx[#x-k:#x-1]\tTrailing part of string x, of length k [head,tail,skip,shed]\tstring" ],
-     skip      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], $n) },                         "x k\tx[k:#x-1]\tTrailing part of string x, skipping first k [head,tail,skip,shed]\tstring" ],
-     shed      => [ 2, sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, length($::STACK[-2])-$n) }, "x k\tx[0:#x-k-1]\tLeading part of string x, shedding last k [head,tail,skip,shed]\tstring" ],
-     pct       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
-     pml       => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
-     frac      => [ 3, sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     qnl       => [ 2, 'f:n,s', sub { $::STACK[-2] = get_quant(@::STACK[-2,-1]) }, "x Q\tQ(x)/#Q\t0-1 normalised quantile-of-x (lower tail)\tmath" ],
+     qnu       => [ 2, 'f:n,s', sub { $::STACK[-2] = get_revquant(@::STACK[-2,-1]) }, "x Q\t1-Q(x)/#Q\t0-1 normalised quantile-of-x (upper tail)\tmath" ],
+     substr    => [ 3, 's:s,i,u', sub { $::STACK[-3] =  substr($::STACK[-3], $::STACK[-2], $::STACK[-1]) }, "x i k\tx[i:i+k-1]\tSubstring of x starting at i (zero-based) of length k\tstring" ],
+     head      => [ 2, 's:s,u', sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, $n) },                      "x k\tx[0:k-1]\tInitial part of string x, of length k [head,tail,skip,shed]\tstring" ],
+     tail      => [ 2, 's:s,u', sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], length($::STACK[-2]) - $n) },  "x k\tx[#x-k:#x-1]\tTrailing part of string x, of length k [head,tail,skip,shed]\tstring" ],
+     skip      => [ 2, 's:s,u', sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], $n) },                         "x k\tx[k:#x-1]\tTrailing part of string x, skipping first k [head,tail,skip,shed]\tstring" ],
+     shed      => [ 2, 's:s,u', sub { my $n = boxit($::STACK[-1], 0, length($::STACK[-2])); $::STACK[-2] =  substr($::STACK[-2], 0, length($::STACK[-2])-$n) }, "x k\tx[0:#x-k-1]\tLeading part of string x, shedding last k [head,tail,skip,shed]\tstring" ],
+     pct       => [ 3, 'n:n,n,u', sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 100 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPercentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     pml       => [ 3, 'n:n,n,u', sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x * 1000 / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tpct(x/y)\tPromille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
+     frac      => [ 3, 'n:n,n,u', sub { my ($x, $y, $n) = @::STACK[-3,-2,-1]; $::STACK[-3] = !$B_protect || $y+0 ? sprintf("%.*f", $n, $x / $y) :  ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y N\tx/y\tDivision, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF)\tprecision/format" ],
 
-     test      => [ 3, sub { $::STACK[-3] = do_test(@::STACK[-3,-2,-1]); }, "x y T\tB\ttest T applied to x y\tbranch/test" ],
-     ifelse    => [ 3, sub { $::STACK[-3] = do_ifelse(@::STACK[-3,-2,-1]); }, "B x y\tx or y\tIf B put x else put y\tbranch/test" ],
+     test      => [ 3, 'u:T,T,s', sub { $::STACK[-3] = do_test(@::STACK[-3,-2,-1]); }, "x y T\tB\ttest T applied to x y\tbranch/test" ],
+     ifelse    => [ 3, 'T:u,T,T', sub { $::STACK[-3] = do_ifelse(@::STACK[-3,-2,-1]); }, "B x y\tx or y\tIf B put x else put y\tbranch/test" ],
 
-     todna     => [ 1, sub { $::STACK[-1] =~ tr|uU|tT|; $::STACK[-1] =~ tr|bdefh-mo-su-z|n|; $::STACK[-1] =~ tr|BDEFH-MO-SU-Z|N|; $::STACK[-1] =~ tr|acgntACGNT|N|c; }, "x\tx'\tPreserve case, translate uU to tT, nN for non-DNA\tformat" ],
-     tobin     => [ 1, sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
-     tohex     => [ 1, sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
-     tooct     => [ 1, sub { $::STACK[-1] = sprintf("%o", $::STACK[-1]) }, "x\tx'\tOctal representation of x\tformat"  ],
-     binto     => [ 1, sub { $::STACK[-1] = oct("0b$::STACK[-1]") }, "x\tx'\tRead binary representation x\tinput/format" ],
-     hexto     => [ 1, sub { $::STACK[-1] = hex($::STACK[-1]) }, "x\tx'\tRead hex representation x\tinput/format" ],
-     octto     => [ 1, sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
-     dnatl     => [ 2, sub { $::STACK[-2] = dna_tl($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format/bio" ],
-     dnagc     => [ 2, sub { my $gc = length($::STACK[-2]) ? sprintf("%.*f", $::STACK[-1], 100 * ($::STACK[-2] =~ tr|GCgc|GCgc|) / length($::STACK[-2])) : $PNAN{PICK_DNAGC_NAN}; $::STACK[-2] = $gc; }, "x N \tgc(x)\tPercentage GC content of x with N decimal digits\tbio" ],
-    _strpair   => [ 2, sub { $::STACK[-2] = strpair($::STACK[-2], $::STACK[-1]); }, "x y\tpair(x,y)\tPairwise character identity\tstring/EXPERIMENTAL" ],
-     urldc     => [ 1, sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
-     urlec     => [ 1, sub { $::STACK[-1] = urlencode($::STACK[-1]) }, "x\turlec(x)\tUrl encoding of x\tstring/format/input/output" ],
-     incr      => [ 1, sub { $::STACK[-1]++ }, "x\tx++\tx incremented by one\tarithmetic" ],
-     decr      => [ 1, sub { $::STACK[-1]-- }, "x\tx--\tx decremented by one\tarithmetic" ],
-     uc        => [ 1, sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
-     lc        => [ 1, sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tlc(x)\tLower case of x\tstring" ],
-     rev       => [ 1, sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
-     rot13     => [ 1, sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tstring"  ],
-     md5       => [ 1, sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
-     len       => [ 1, sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
-     rc        => [ 1, sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
-     forward   => [ 2, sub { $::STACK[-2] = $::STACK[-2] ? $::STACK[-1]: rc($::STACK[-1]) }, "B seq\tforward\tseq if B else rc(seq)\tstring" ],
-     strim     => [ 3, sub { my $nx = max(0, $::STACK[-2]); my $ny = max(0, $::STACK[-1]); $::STACK[-3] = $nx + $ny < length($::STACK[-3]) ? substr($::STACK[-3], $nx, length($::STACK[-3]) - $nx - $ny) : "" }, "s nx ny\ts'\ttrim both ends of string\tstring" ],
-     abs       => [ 1, sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
-     sqrt      => [ 1, sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
-     sq        => [ 1, sub { $::STACK[-1] = $::STACK[-1]**2 }, "x\tx^2\tSquare of x\tmath" ],
-     exp       => [ 1, sub { $::STACK[-1] = exp($::STACK[-1]) }, "x\te**x\tExponential function applied to x\tmath" ],
-     cos       => [ 1, sub { $::STACK[-1] = cos($::STACK[-1]) }, "x\tcos(x)\tCosine of x\tmath" ],
-     sin       => [ 1, sub { $::STACK[-1] = sin($::STACK[-1]) }, "x\tsin(x)\tSine of x\tmath" ],
-     tan       => [ 1, sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : ($Nprotect++, $PNAN{PICK_TAN_INF}) }, "x\ttan(x)\tTangens of x\tmath" ],
-     log       => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : ($Nprotect++, $PNAN{PICK_LOG_INF}) }, "x\tlog(x)\tNatural logarithm of x\tmath" ],
-     log10     => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
-     log2      => [ 1, sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
-     exp10     => [ 1, sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
-     sign      => [ 1, sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
-     neg       => [ 1, sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
-     ceil      => [ 1, sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
-     floor     => [ 1, sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
-     round     => [ 1, sub { $::STACK[-1] = sprintf("%.0f", $::STACK[-1]) }, "x\tround(x)\tThe integer nearest to x\tmath" ],
-     int       => [ 1, sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
+     todna     => [ 1, 's:s', sub { $::STACK[-1] =~ tr|uU|tT|; $::STACK[-1] =~ tr|bdefh-mo-su-z|n|; $::STACK[-1] =~ tr|BDEFH-MO-SU-Z|N|; $::STACK[-1] =~ tr|acgntACGNT|N|c; }, "x\tx'\tPreserve case, translate uU to tT, nN for non-DNA\tformat" ],
+     tobin     => [ 1, 's:i', sub { $::STACK[-1] = sprintf("%b", $::STACK[-1]) }, "x\tx'\tBinary representation of x\tformat" ],
+     tohex     => [ 1, 's:i', sub { $::STACK[-1] = sprintf("%x", $::STACK[-1]) }, "x\tx'\tHex representation of x\tformat"  ],
+     tooct     => [ 1, 's:i', sub { $::STACK[-1] = sprintf("%o", $::STACK[-1]) }, "x\tx'\tOctal representation of x\tformat"  ],
+     binto     => [ 1, 'i:s', sub { $::STACK[-1] = oct("0b$::STACK[-1]") }, "x\tx'\tRead binary representation x\tinput/format" ],
+     hexto     => [ 1, 'i:s', sub { $::STACK[-1] = hex($::STACK[-1]) }, "x\tx'\tRead hex representation x\tinput/format" ],
+     octto     => [ 1, 'i:s', sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
+     dnatl     => [ 2, 's:s', sub { $::STACK[-2] = dna_tl($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format/bio" ],
+     dnagc     => [ 2, 'f:s,u', sub { my $gc = length($::STACK[-2]) ? sprintf("%.*f", $::STACK[-1], 100 * ($::STACK[-2] =~ tr|GCgc|GCgc|) / length($::STACK[-2])) : $PNAN{PICK_DNAGC_NAN}; $::STACK[-2] = $gc; }, "x N \tgc(x)\tPercentage GC content of x with N decimal digits\tbio" ],
+    _strpair   => [ 2, 's:s,s', sub { $::STACK[-2] = strpair($::STACK[-2], $::STACK[-1]); }, "x y\tpair(x,y)\tPairwise character identity\tstring/EXPERIMENTAL" ],
+     urldc     => [ 1, 's:s', sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
+     urlec     => [ 1, 's:s', sub { $::STACK[-1] = urlencode($::STACK[-1]) }, "x\turlec(x)\tUrl encoding of x\tstring/format/input/output" ],
+     incr      => [ 1, 'i:i', sub { $::STACK[-1]++ }, "x\tx++\tx incremented by one\tarithmetic" ],
+     decr      => [ 1, 'i:i', sub { $::STACK[-1]-- }, "x\tx--\tx decremented by one\tarithmetic" ],
+     uc        => [ 1, 's:s', sub { $::STACK[-1] = uc($::STACK[-1]) }, "x\tuc(x)\tUpper case of x\tstring" ],
+     lc        => [ 1, 's:s', sub { $::STACK[-1] = lc($::STACK[-1]) }, "x\tlc(x)\tLower case of x\tstring" ],
+     rev       => [ 1, 's:s', sub { $::STACK[-1] = reverse($::STACK[-1]) }, "x\trev(x)\tString reverse of x\tstring" ],
+     rot13     => [ 1, 's:s', sub { $::STACK[-1] =~ tr/a-zA-Z/n-za-mN-ZA-M/ }, "x\trot13(x)\tRot13 encoding of x\tstring"  ],
+     md5       => [ 1, 's:s', sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
+     len       => [ 1, 'u:s', sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
+     rc        => [ 1, 's:s', sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
+     forward   => [ 2, 'u:s', sub { $::STACK[-2] = $::STACK[-2] ? $::STACK[-1]: rc($::STACK[-1]) }, "B seq\tforward\tseq if B else rc(seq)\tstring" ],
+     strim     => [ 3, 's:s', sub { my $nx = max(0, $::STACK[-2]); my $ny = max(0, $::STACK[-1]); $::STACK[-3] = $nx + $ny < length($::STACK[-3]) ? substr($::STACK[-3], $nx, length($::STACK[-3]) - $nx - $ny) : "" }, "s nx ny\ts'\ttrim both ends of string\tstring" ],
+     abs       => [ 1, 'u:i', sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
+     sqrt      => [ 1, 'f:f', sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
+     sq        => [ 1, 'n:n', sub { $::STACK[-1] = $::STACK[-1]**2 }, "x\tx^2\tSquare of x\tmath" ],
+     exp       => [ 1, 'f:f', sub { $::STACK[-1] = exp($::STACK[-1]) }, "x\te**x\tExponential function applied to x\tmath" ],
+     cos       => [ 1, 'f:f', sub { $::STACK[-1] = cos($::STACK[-1]) }, "x\tcos(x)\tCosine of x\tmath" ],
+     sin       => [ 1, 'f:f', sub { $::STACK[-1] = sin($::STACK[-1]) }, "x\tsin(x)\tSine of x\tmath" ],
+     tan       => [ 1, 'f:f', sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : ($Nprotect++, $PNAN{PICK_TAN_INF}) }, "x\ttan(x)\tTangens of x\tmath" ],
+     log       => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : ($Nprotect++, $PNAN{PICK_LOG_INF}) }, "x\tlog(x)\tNatural logarithm of x\tmath" ],
+     log10     => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
+     log2      => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
+     exp10     => [ 1, 'f:f', sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
+     sign      => [ 1, 'i:n', sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
+     neg       => [ 1, 'n:n', sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
+     ceil      => [ 1, 'i:f', sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
+     floor     => [ 1, 'i:f', sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
+     round     => [ 1, 'i:f', sub { $::STACK[-1] = sprintf("%.0f", $::STACK[-1]) }, "x\tround(x)\tThe integer nearest to x\tmath" ],
+     int       => [ 1, 'i:f', sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
 
    );
 
@@ -485,28 +482,28 @@ sub sam_reflen {
 
 my %cp_samdefs = (
 
-     aln_nmatch      => [ 0, sub { push @::STACK, acigar($::LC{suv}{aln_matched_cgr}, 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
-     aln_nedit       => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance from NM:i field\tsam" ],
-     aln_nedit_pia   => [ 0, sub { my $x = $::LC{suv}{aln_aln}; my $ngood = ($x =~ tr/|=_/|=_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_pia\tEdit distance pick-computed (intron aware)\tsam" ],
-     aln_nedit_piu   => [ 0, sub { my $x = $::LC{suv}{aln_aln}; my $ngood = ($x =~ tr/|_/|_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_piu\tEdit distance pick-computed (intron unaware)\tsam" ],
-     aln_nmatchx     => [ 0, sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::LC{suv}{aln_matched_cgr}, 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches within aligned part\tsam" ],
+     aln_nmatch      => [ 0, 'i:', sub { push @::STACK, acigar($::LC{suv}{aln_matched_cgr}, 'M=X', 'sum') }, "-\talnmatch\tAmount of reference/query matched by alignment (ignoring indels and mismatches)\tsam" ],
+     aln_nedit       => [ 0, 'i:', sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm }, "-\talnedit\tEdit distance from NM:i field\tsam" ],
+     aln_nedit_pia   => [ 0, 'i:', sub { my $x = $::LC{suv}{aln_aln}; my $ngood = ($x =~ tr/|=_/|=_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_pia\tEdit distance pick-computed (intron aware)\tsam" ],
+     aln_nedit_piu   => [ 0, 'i:', sub { my $x = $::LC{suv}{aln_aln}; my $ngood = ($x =~ tr/|_/|_/); push @::STACK, (length($x) - $ngood); }, "-\talnedit_piu\tEdit distance pick-computed (intron unaware)\tsam" ],
+     aln_nmatchx     => [ 0, 'i:', sub { my $nm = $::Flink->[11] =~ /\bNM:i:(\d+)/ ? $1 : 0; push @::STACK, $nm - acigar($::LC{suv}{aln_matched_cgr}, 'DI', 'sum') }, "-\talnmatchx\tNumber of base mismatches within aligned part\tsam" ],
 
-     aln_posinfo     => [ 1, sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "n\taln_posinfo\tMismatch positions; indel sequences reported up to length n\tsam" ],
-     aln_all         => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
-     aln_allq        => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry aln_qlt) }, "-\taln_all\talignment ruler+ref+aln+query+quality\tsam" ],
-  aln_all_pack       => [ 0, sub { push @::STACK, join "\x01", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
-     patchiness      => [ 2, sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
-     patchiness2     => [ 2, sub { $::STACK[-2] = aln_patchiness2($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
-     isforward       => [ 0, sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
+     aln_posinfo     => [ 1, 's:u', sub { $::STACK[-1] = &getalnposx($::STACK[-1]) }, "n\taln_posinfo\tMismatch positions; indel sequences reported up to length n\tsam" ],
+     aln_all         => [ 0, 's:', sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all\talignment ruler+ref+aln+query\tsam" ],
+     aln_allq        => [ 0, 's:', sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry aln_qlt) }, "-\taln_all\talignment ruler+ref+aln+query+quality\tsam" ],
+  aln_all_pack       => [ 0, 's:', sub { push @::STACK, join "\x01", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(aln_rlr aln_ref aln_aln aln_qry) }, "-\taln_all_pack\talignment ruler<%01>ref<%01>aln<%01>query\tsam" ],
+     patchiness      => [ 2, 'u:s,u', sub { $::STACK[-2] = aln_patchiness($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
+     patchiness2     => [ 2, 'u:s,u', sub { $::STACK[-2] = aln_patchiness2($::STACK[-2], $::STACK[-1]) }, "s d\tpatchiness\tpatchiness score for alignment string\tsam" ],
+     isforward       => [ 0, 'u:', sub { push @::STACK, $::Flink->[1] & 16 ? 0 : 1 }, "-\tisforward\tmatch is on the forward strand (1) or not (0)\tsam" ],
 
-     sam_rbt         => [ 0, sub { stacky('sam_rbt', 2); &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tcompute region-bound-tally quantities for reference positions [x-y]\tsam" ],
-     rbt_alnall      => [ 0, sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry rbt_alnqlt) }, "-\trbt_alnall\talignment for region\tsam" ],
-     sam_get         => [ 2, sub { $::STACK[-2] = ($::Flink->[11] =~ /(^|\t)\Q$::STACK[-2]\E:(.*?)(\t|$)/ ? $2 : $::STACK[-1]) }, "tag def\tsam_get\tvalue for <tag>, use def if absent\tsam" ],
+     sam_rbt         => [ 0, ':u,u', sub { &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tcompute region-bound-tally quantities for reference positions [x-y]\tsam" ],
+     rbt_alnall      => [ 0, 's:', sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry rbt_alnqlt) }, "-\trbt_alnall\talignment for region\tsam" ],
+     sam_get         => [ 2, 's:s,s', sub { $::STACK[-2] = ($::Flink->[11] =~ /(^|\t)\Q$::STACK[-2]\E:(.*?)(\t|$)/ ? $2 : $::STACK[-1]) }, "tag def\tsam_get\tvalue for <tag>, use def if absent\tsam" ],
 
-     suv             => [ 1, sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
+     suv             => [ 1, 's:s', sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
 
-     qry_seq         => [ 0, sub { push @::STACK, &get_qry();}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
-     qry_qual        => [ 0, sub { push @::STACK, &get_qual();}, "-\tqry_qual\tquery quality string in reference orientation\tsam" ],
+     qry_seq         => [ 0, 's:', sub { push @::STACK, &get_qry();}, "-\tqry_seq\tquery sequence in reference orientation\tsam" ],
+     qry_qual        => [ 0, 's:', sub { push @::STACK, &get_qual();}, "-\tqry_qual\tquery quality string in reference orientation\tsam" ],
    );
 
 my %cp_sam_setup_seqs = map { $_ => 0 } keys %cp_samdefs;
@@ -697,7 +694,7 @@ sub do_ifelse {
 
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
-my $opsections  = join ' ', sort keys %{{ map { ($_, 1) } map { split '/', (split "\t", $_->[2])[3] } values %cp_opdefinitions }};
+my $opsections  = join ' ', sort keys %{{ map { ($_, 1) } map { split '/', (split "\t", $_->[3])[3] } values %cp_opdefinitions }};
 
 my $regexpointers = <<EOP;
 Useful perl regular expression features:
@@ -1070,6 +1067,27 @@ sub dict_not_found {
    return $NF;
 }
 
+BEGIN {
+   my %map = ( s  => 'String'  , u  => 'Unsigned' , i  => 'Signed' , f  => 'Float'
+             , n  => 'Numeric' , T  => 'Any type' , H  => 'Handle' , C  => 'Constant' , L  => 'Lookup'
+             , '' => 'Nothing'
+             );
+   sub explain_io {
+      my ($what, $sign) = @_;
+      my ($post, $pre)  = split ':', $sign, -1;
+      my @pre = (); my @post = ();
+      for (split ',', $pre, -1) {
+         my $qualifier = s/\*// ? 'list of ' : '';
+         push @pre, "$qualifier$map{$_}";
+      }
+      for (split ',', $post, -1) { push @post, "$map{$_}"; }
+      @pre  = ('Nothing') unless @pre;
+      @post = ('Nothing') unless @post;
+      local $" = ', ';
+      print "== [$post|$pre] $what yields @post; takes @pre\n";
+   }
+}
+
 while (@::spec && $::spec[0] =~ /^-/) {            # cline processing
 
   my $options = shift @::spec;
@@ -1101,21 +1119,23 @@ EOH
 
     if ($filter eq 'sam' || $I_AM_SAM) {
       for my $op (keys %suv_direct_lookup) {
-        @{cp_opdefinitions{$op}} = [ $op, sub { }, "-\t$op\t$suv_direct_lookup{$op}[0]\tsam" ];
+        @{cp_opdefinitions{$op}} = [ $op, 's:s', sub { }, "-\t$op\t$suv_direct_lookup{$op}[0]\tsam" ];
                      # ^ dangersign the above is just to sort all the sam operators together.
                      # This is knowing we exit at the end of this -l option block.
       }
       if (!($I_AM_SAM & $BIT_HAVE_SAM)) {
+        # add sam defs for purpose of listing.
         for (keys %cp_samdefs) { $cp_opdefinitions{$_} = $cp_samdefs{$_}; }
       }
     }
     for my $op (sort keys %cp_opdefinitions) {
       my $opdef = $cp_opdefinitions{$op};
-      my @help = split "\t", $opdef->[2];
+      my @help = split "\t", $opdef->[3];
       die "Error in description @help\n" unless @help == 4;
       next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
       printf "%-14s%-12s%-20s%s [%s]\n", $op, @help;
-      # print $deparse->coderef2text($opdef->[1]), "\n\n\n" if $elliness > 1;
+      explain_io($op, $opdef->[1]) if $elliness == 2;
+      # print $deparse->coderef2text($opdef->[2]), "\n\n\n" if $elliness > 1;
     }
     if ($filter eq 'regex') {
       print "\n$regexpointers";
@@ -1411,9 +1431,16 @@ sub test_hasval {
 
 
 my $TYPE_SCALAR = 1;
+
 my $TYPE_HANDLE = 2;
+
 my $TYPE_OPATOR = 3;    # (1) rule of six obvs, (2) it makes sense in Dutch.
+
 my $TYPE_LUSPUV = 4;    # Look up s(p)uv. sam (parts) unified view.
+                        # These are used like operators, e.g. ',qry_len', but are translated to hash lookups.
+                        # The data provided (sam/alignment-related) is precomputed before the compute loop
+                        # with some effort made to compute only the needed parts. This makes part of the code more
+                        # complicated, and eternal vigilance is needed to keep this orchestration correct.
 
 my %chartypetonum = ( '^', $TYPE_SCALAR, ':', $TYPE_HANDLE, ',', $TYPE_OPATOR );
 
@@ -1441,7 +1468,7 @@ sub parse_compute {
       my $use_sam_shortcut = ($I_AM_SAM & $BIT_HAVE_SAM) && defined($suv_direct_lookup{$what}) ? 1 : 0;
       my $sambits = 0;
 
-      my $opdef = $use_sam_shortcut ? [ 0, sub { }, "dummy-string" ] : $cp_opdefinitions{$what};
+      my $opdef = $use_sam_shortcut ? [ 0, 's:s', sub { }, "dummy-string" ] : $cp_opdefinitions{$what};
 
       $::LC{suv}{__sam_rbt__} = 1 if $what eq 'sam_rbt';
 
@@ -1466,11 +1493,7 @@ sub parse_compute {
          die "Operator $what is used without prior ,sam_rbt or --sam-rbt=x,y instruction";
       }
                            # N stack required, code.
-      push @{$oplist[-1]}, ($opdef->[0], $opdef->[1]);
-print STDERR "ddd Compute $handle >> type=$type op=$what consume=$opdef->[0]\n" if $B_debug;
-    }
-    else {
-print STDERR "ddd Scalar  $type $what >>\n" if $B_debug;
+      push @{$oplist[-1]}, ($opdef->[0], $opdef->[2]);
     }
   }
   die "Parse error in spec [$spec] near position $p\n" unless $p == $l;
@@ -1556,7 +1579,7 @@ print STDERR "-- (output) considering $item\n" if $L_verbose >= 2;
                $nfound++;
             }
          }
-print STDERR "## (output) $item was considered as regex and yielded no matches\n" unless $nfound;
+         die "'$item' was considered as regex and yielded no matches" unless $nfound;
       }
       else {
          push @matches, { namein => $item, nameout => $item };
@@ -1712,21 +1735,29 @@ print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] a
   }
 }
 
+
+   ## compute elements are tuples [type name Nstack coderef]
+
 sub compile_compute {
 
   my %pload_references = ();
 
   for (my $i=0; $i<@::compute; $i++) {
+
     my ($name, $compute) = @{$::compute[$i]};
     die "Name $name already defined (use -i for in-place change)\n" if defined($::handle_map{$name}) && !$B_inplace;
     my @expanded_compute = ();
     my $stack_size = 0;
+    my @typestack  = ();
+
     for my $comp (@$compute) {
       my ($type, $what) = @$comp;
+print STDERR "ddd T=$type what=$what\n" if $B_debug;
       if ($type == $TYPE_HANDLE) {
          my ($unused_variable, $matches) = expand_list_range_and_regex($what, 0);
          for my $m (@$matches) { push @expanded_compute, [$TYPE_HANDLE, $m->{namein}]; }
          $stack_size += @$matches;
+         push @typestack, (('H') x (scalar @$matches));
       }
       else {
          if ($type == $TYPE_OPATOR) {
@@ -1762,17 +1793,30 @@ $stack_size--, die "sprintf format count $N in format [$fmt] does not correspond
               die "Expect sam tag format XX:[AifZHB]" unless $test->[1] =~ /^..:[AifZHB]/;
             }
            $stack_size += ($N_pushed - $N_consumed);
+           my ($post, $pre) = split ':', $cp_opdefinitions{$comp->[1]}[1];
+if    ($what eq 'xch') { @typestack[-2,-1] = @typestack[-1,-2]; }
+elsif ($what eq 'pop') { pop @typestack; }
+elsif ($what eq 'dup') { push @typestack, $typestack[-1]; }
+else {
+  if ($pre =~ /\*/) { @typestack = (); }
+  else              { $#typestack -= scalar split ',', $pre; }
+  push @typestack, $post if $post;
+}
+print STDERR "ddd typestack @typestack\n" if $B_debug;
          }
          elsif ($type == $TYPE_SCALAR) {
            $stack_size++;
+           push @typestack, 'C';
          }
          elsif ($type == $TYPE_LUSPUV) {
            $stack_size++;
+           push @typestack, 'L';
          }
          push @expanded_compute, $comp;
       }
     }
-print STDERR "ddd Compute named [$name] ends with stack size $stack_size\n" if $B_debug;
+print STDERR "ddd Compute named [$name] leaves stack sized $stack_size (@typestack)\n" if $B_debug;
+print STDERR "=== Type annotation @typestack stack size differs from computed stack size\n" if $stack_size != @typestack;
     my $prev_what = undef;    # ugly/fixme; temporary to enforce pload compile-time check for column name presence.
 
     for my $comp (@expanded_compute) {
@@ -1782,19 +1826,19 @@ print STDERR "ddd Compute named [$name] ends with stack size $stack_size\n" if $
          $comp->[1] = $::handle_map{$what};     # fixme overwrite inelegant
                               # inplace NOTE. when using foo::foo^1,add, this maps the lookup for the second foo to the offset
                               # for the current foo, and the second foo no longer exists. The first foo does not have an
-                              # associated offset yet;
+                              # associated offset yet ..
       }
       if ($type == $TYPE_OPATOR && $what eq 'pload') {
          $pload_references{$prev_what}++;
       }
       $prev_what = $what;
     }
-    $::compute[$i] = [$name, \@expanded_compute];
+    $::compute[$i] = [$name, \@expanded_compute, $stack_size];
 
     my $j = $::N + $i;
     $::HEADER[$j] = $name;        # only needed to print the new header.
     $::handle_map{$name} = $j;
-                              # inplace NOTE continued. Future lookups for foo will refer to this definition; This includes output.
+                              # .. inplace NOTE continued. Future lookups for foo will refer to this definition; This includes output.
                               # This process is consistently applied if multiple foo:: are specified.
 print STDERR "ddd map compute name [$name] to offset $j\n" if $B_debug;
   }
@@ -1959,7 +2003,7 @@ sub do_compute {
 
   for my $spic (@::compute) {
 
-    my ($handle, $compute) = @$spic;
+    my ($handle, $compute, $sz) = @$spic;
     @::STACK = ();
 
     for my $comp (@$compute) {
@@ -1978,6 +2022,8 @@ sub do_compute {
       elsif ($type == $TYPE_LUSPUV) { push @::STACK, $::LC{suv}{$what}; }
       else { die "Really unfortunate."; }
     }
+    my $size = @::STACK;
+print STDERR "=== Please check compute for handle: compiled size $sz versus computed $size\n" unless $sz == $size;
     push @$::Flink, (join "", @::STACK);
   }
   die "Cp error\n" unless @::HEADER == @$::Flink;

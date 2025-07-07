@@ -1,5 +1,9 @@
 
-  -  (pluck) column type can be inferred from operations and comparisons at compile time.
+  -  does debug need stacky?
+  -  dord only available with fdict kdict and cdict
+     expensive for large data; make user load it explicitly.
+
+  -  (pluk) column type can be inferred from operations and comparisons at compile time.
      string by default, numeric as needed.
      large integers in rust?
      integer versions of numeric operations? imul isub iadd
@@ -11,10 +15,6 @@
   ! > samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
     -- 30 times a reference sequence length lookup failed
     be precise about when &sam_reflen is needed.
-
-  ?  (pluck) infer column types from data while streaming (int, float, string), summary at end
-      validate column types (int, float, string, finite-string-set, finite-int-set)
-      (finite set: try proxy test for that, e.g. hashing + track top hash buckets)
 
   -  --adict-DICT=longcolumnname:lcn,anotherlongcolumnname:alcn
       (alias dict)
@@ -46,8 +46,6 @@
 
   /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
   \  elaborate pack/unpack support. ^3,^%01,nspack  ^%01,spackall  val^%01,unspack
-
-  o  implement pick in rust, working names: { pluck pak }
 
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
      For /any/ etc we need abs(int()), so depending on perl needs deep dive.
