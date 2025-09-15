@@ -1,4 +1,5 @@
 
+
   -  does debug need stacky?
   -  dord only available with fdict kdict and cdict
      expensive for large data; make user load it explicitly.
@@ -6,7 +7,7 @@
   -  (pluk) column type can be inferred from operations and comparisons at compile time.
      string by default, numeric as needed.
      large integers in rust?
-     integer versions of numeric operations? imul isub iadd
+     integer versions of numeric operations. imul isub iadd
 
   -  automate operator descriptions in README.md
 

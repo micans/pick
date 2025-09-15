@@ -732,14 +732,17 @@ Dictionaries can be specified in different ways:
 --cdict-NAME=foo,zut                comma-separated keys, all set to value 1
 
 --fasta-dict-NAME=/path/to/fastafile   read ID->sequence mapping from fasta file
+
 --fastq-dict-NAME=/path/to/fastqfile   read ID->sequence mapping from fastq file
+
 --table-dict-NAME=/path/to/tablefile   read ID->column->item mapping from table file with row names, use with tmap
 --table-dict=/path/to/tablefile        import columns directly for use with map
+--table-dict^cname=/path/to/tablefile  as previous, use column cname as index
 ```
 
 `NAME` is the name of the dictionary. Multiple dictionaries can be imported.
 A dictionary is specified by its name for use with the `map` operator or `tmap` operator for table dictionaries.
-**A table dictionary uses the row names in the file as key,**
+**A table dictionary uses the row names in the file as key,** (unless `^cname` is specified, see above)
 and associates for each row name its column values by using the column name as key.
 `map` needs two keys; the first is the item to look up, the second is the `NAME` of the dictionary to use.
 Table dictionaries can be loaded in two ways. If a dictionary name is specified (`--table-dict-NAME=`) then `tmap` needs
@@ -761,6 +764,8 @@ It is possible to specify a not-found string using this syntax:
 --fasta-dict-NAME/STRING=/path/to/fastafile
 --fastq-dict-NAME/STRING=/path/to/fastqfile
 --table-dict-NAME/STRING=/path/to/tablefile
+--table-dict/STRING=/path/to/tablefile
+--table-dict/STRING^cname=/path/to/tablefile
 ```
 
 For example

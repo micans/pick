@@ -871,18 +871,21 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_ve
 }
 
 sub read_tbdict {
-   my ($name, $fname) = @_;
+   my ($name, $keycol, $fname) = @_;
    open(my $fh, '-|', 'gunzip', '-cf', '--', $fname) or die("Cannot gunzip file $fname for table dict loading: $!\n");
    my $header=<$fh>; chomp $header; my @header = split "\t", $header; my %h = ();
-   for (my $i=0; $i<@header; $i++) { $h{$i} = $header[$i] }
+   my $keycolindex = defined($keycol) ? -1 : 0;
+   for (my $i=0; $i<@header; $i++) { $h{$i} = $header[$i]; $keycolindex = $i if $keycolindex < 0 && $keycol eq $header[$i]; }
+   die "No column [$keycol] found in $fname" unless $keycolindex >= 0;
    my $n = 0;
    $::dict{$name} = {} unless !length($name) || defined($::dict{$name});
    my $root = length($name) ? $::dict{$name} : \%::dict;
    while(<$fh>) {
       chomp; my @items = split "\t", $_, -1;                      # recognise empty fields (-1 split argument)
       die "Table read error" unless scalar @items == scalar @header;
-      for (my $i=1; $i<@items; $i++) {
-         $root->{$h{$i}}{$items[0]} = $items[$i];
+      for (my $i=0; $i<@items; $i++) {
+         next if $i == $keycolindex;
+         $root->{$h{$i}}{$items[$keycolindex]} = $items[$i];
       }
      $n++;
    }
@@ -1212,11 +1215,11 @@ EOH
        read_dict($2, $5, $1) if $1 eq 'f' || $1 eq 'k';
        read_fadict($2, $5, length($3) ? $4 : '__EXIT__') if $1 eq 'fasta-';
        read_fqdict($2, $5) if $1 eq 'fastq-';
-       read_tbdict($2, $5) if $1 eq 'table-';
+       read_tbdict($2, undef, $5) if $1 eq 'table-';
        $::dictnotfound{$2} = $4 if length($3);        # for read_fadict this happens twice. tidy up sometime.
      }
-     elsif ($options =~ /^table-dict(\/(.*?))?=(.+)$/) {
-       my $header = read_tbdict("", $3);
+     elsif ($options =~ /^table-dict(\/(.*?))?(\^(.*?))?=(.+)$/) {
+       my $header = read_tbdict("", defined($3) ? $4 : undef, $5);
        if (defined($2)) { $::dictnotfound{$_} = $2 for @$header; }
        my $nd = keys %{$::dict{$header->[1]}};
      }
