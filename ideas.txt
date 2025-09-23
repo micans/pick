@@ -1,63 +1,54 @@
 
+  -  SAM support. Document/tighten internal conventions.
+     Use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
+
+     $ samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
+     -- 30 times a reference sequence length lookup failed
+     be precise about when &sam_reflen is needed.
+
+     luspuv could be done by direct addressing rather than hash lookup, but urggh work. Maybe when finecombing or overhauling.
+
+  -  automate operator descriptions in README.md
+
+  -  discard when protection was needed -- currently this bypasses selection and assert. not great.
+
+  -  quants: for very large data, use heap to find data separating values.
+     warn at compile time if dictionary does not exist.
 
   -  does debug need stacky?
   -  dord only available with fdict kdict and cdict
      expensive for large data; make user load it explicitly.
 
-  -  (pluk) column type can be inferred from operations and comparisons at compile time.
-     string by default, numeric as needed.
-     large integers in rust?
-     integer versions of numeric operations. imul isub iadd
-
-  -  automate operator descriptions in README.md
-
-  - discard when protection was needed -- currently this bypasses selection and assert. not great.
-
-  ! > samtools view tst.vs.bam | head -n 30 | pick --sam ::,aln_edit
-    -- 30 times a reference sequence length lookup failed
-    be precise about when &sam_reflen is needed.
-
-  -  --adict-DICT=longcolumnname:lcn,anotherlongcolumnname:alcn
-      (alias dict)
-
-  ?  quants: for very large data, use heap to find data separating values.
-
-  ?  refer to a list of things by name (variable)
-  ?  'find a column (name?value?) that passes test'
-  -> tabulate fields absent (none "" / NA / NaN / -)
-  -> test whether r.e. or hash lookup is faster.
-
   -  limit amount of errors output by hash key (errm, alert): further errors supressed.
 
-  -  dictionary, quant warn at compile time if dictionary does not exist ..
-
   -  way to set not-found sort order for ,dord operator. (currently INT_MAX).
-
-  ?  use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
-     -> document/tighten internal conventions.
 
   ?  make patchiness work with --sam-aln-context=posnum.
   -  patchiness/patchiness2:
       patchiness2 improves by not increasing the current window size for insertions. test a bit more.
 
   -  can operator selection for suv lookup intercept be done by introspection of the subs without incurring B::Deparse overhead.
-  -  luspuv could be done by direct addressing rather than hash lookup.
 
   ?  @@ and @ selections allowed among command line arguments, to aid purpose self-explanation.
-
-  /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
-  \  elaborate pack/unpack support. ^3,^%01,nspack  ^%01,spackall  val^%01,unspack
 
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
      For /any/ etc we need abs(int()), so depending on perl needs deep dive.
 
-  ?  val,_setta to set extra argument for /ep/ and /om/ with ,test
-     ^3^ep,setp
-
-  X  functionality to accumulate over columns, e.g. to count different clauses. (datamash sum 1-12)
-     --sum='list|regex' but again, datamash
+  ?  set extra argument for /ep/ and /om/ with ,test. ,setea?  pbb better x y v T ,test4
 
   ?  protect against log(-1) etc
+
+  ?  --adict-DICT=longcolumnname:lcn,anotherlongcolumnname:alcn
+      (alias dict)
+
+  ?  refer to a list of things by name (variable)
+  ?  'find a column (name?value?) that passes test'
+  -> tabulate fields absent (none "" / NA / NaN / -)
+
+  /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
+  \  elaborate pack/unpack support. ^3,^%01,nspack  ^%01,spackall  val^%01,unspack
+
+---
 
   -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.
         currently: echo -e "_a_\t3\n_b_\t4\naba\t5" | pick -AiK --cdict-foo=a:Alpha,b:Beta x::1^_'(.)'_,get^foo,map 1::1^'_\K(.)(?=_)':x,ed
@@ -87,3 +78,7 @@
      problematic that repopulation only happens after compute finished. This is fine if first
      row is skipped, but pretty impossible for the first row. Current status: overreach.
 
+  !  (pluk) column type can be inferred from operations and comparisons at compile time.
+     string by default, numeric as needed.
+     large integers in rust?
+     integer versions of numeric operations. imul isub iadd

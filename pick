@@ -1732,7 +1732,7 @@ print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] a
   }
 
   if ($B_assert_other) {
-    die "--assert-other precludes @ selections. Use \@assert\@ only" if @::select;
+    die "--assert-other precludes @ selections. Use \@assert\@ only\n" if @::select;
     @::select = @::assert;        # Note: this is not a deep copy.
     @::assert = ();               # Weird things (beyond functionally) happen if we omit this, as entries (references) are rewritten in compile_select.
   }

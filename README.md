@@ -407,10 +407,10 @@ Assertions take place after computes are finished (see below).
 If you need to know the rows that fail a set of assertions then use
 
 ```
-pick -A --other-fail=failed.txt <assertion> <assertion> ..
+pick -A --assert-other=failed.txt <assertion> <assertion> ..
 ```
 
-This can be useful to quickly check some data and/or your assertions, then drop `--other-fail` and
+This can be useful to quickly check some data and/or your assertions, then drop `--assert-other` and
 retain the assertions to guard against undesired data with process failure.
 
 
@@ -1601,40 +1601,41 @@ options to invoke and control processing of SAM format.
    Available sections are `arithmetic bitop devour dictionary format input math output precision regex sam stack string`.
 -  `-H` summary of pick syntax.
 
--  `-h` do not print header
+-  `-h` do not print header.
 -  `-k` headerless input, use 1 2 .. for input column names, `x-y` for range from `x` to `y`.
+-  `-K` headerless input as `-k` but use derived names to output column names.
 -  `-o` OR multiple **select** criteria. Applies only to **post**-computation select, default is AND.
 -  `-s` OR multiple **preselect** criteria. Applies only to **pre**-computation select, default is AND.
--  `-x` take complement of selected input column(s) (works with `-i`)
--  `-c` only output the count of rows that pass filtering
--  `-i` in-place: `<HANDLE>::<COMPUTE>` replaces `<HANDLE>` if it exists
--  `-/<pat>`  skip lines matching `<pat>`; use e.g. `-/^#` for commented lines, `-/^@` for sam files
+-  `-x` take complement of selected input column(s) (works with `-i`).
+-  `-c` only output the count of rows that pass filtering.
+-  `-i` in-place: `<HANDLE>::<COMPUTE>` replaces `<HANDLE>` if it exists.
+-  `-/<pat>`  skip lines matching `<pat>`; use e.g. `-/^#` for commented lines, `-/^@` for sam files.
 -  `-//<pat>` pass through lines matching <pat> (allows perl regular expressions, e.g. `^ $ . [] * ? (|)` work.
--  `-v` verbose; this ups the level so `-vv` and `-vvv` will make pick even more verbose
+-  `-v` verbose; this ups the level so `-vv` and `-vvv` will make pick even more verbose.
 -  `-q` quiet; this does the opposite of `-v`.
   
--  `-A` print all input columns (selecting by colspec applies, -`T` accepted)
+-  `-A` print all input columns (selecting by colspec applies, -`T` accepted).
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
--  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O12`), merge all columns at/after position `<N>`
+-  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O12`), merge all columns at/after position `<N>`.
 -  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
--  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`)
--  `-Z` as `-P`, discard rows that have items that need protecting
+-  `-P` protect against 'nan' and 'inf' results (see `-H` for environment variables `PICK_*_INF`).  
+   Consider using `@@` filter statements to remove problematic rows before computation.
+-  `-Z` as `-P`, discard rows that have items that need protecting.
   
--  `-K` headerless input as `-k` but use derived names to output column names
--  `-U` with `-k` and `-K` keep output columns unique and in original order
+-  `-U` with `-k` and `-K` keep output columns unique and in original order.
   
 -  `-R` add `_` column variable if no row name field exists in the header. Note: an empty field is recognised and mapped to `_` automatically.
--  `-f` force processing (allows both identical input and output column names)
+-  `-f` force processing (allows both identical input and output column names).
 -  `-F` fixed names; do not interpret names as regular expressions. Default behaviour is to assume a regular expression if a name contains one of `[ { ( \ * ? ^ $` .
--  `-z  ARG+` print percent-encoding of `ARG+` (no argument prints a few especially useful cases)
--  `-zz ARG+` print percent-decoding of `ARG+`
+-  `-z  ARG+` print percent-encoding of `ARG+` (no argument prints a few especially useful cases).
+-  `-zz ARG+` print percent-decoding of `ARG+`.
   
--  `--inf=<str>` Set divide-by-zero result to `<str>`
+-  `--inf=<str>` Set divide-by-zero result to `<str>`.
   
 -  `--` This option is ignored, all further arguments are considered column names or regular expressions to retrieve column names.
 
 -  `--add-inames=<csv>`, `--inames=<csv>`  
-    comma-separated values to use as column names instead of actual column names.
+    Comma-separated values to use as column names instead of actual column names.
     The list must cover all columns in the input. Names that are used
     in selection, compute and filter expressions must be picked from this list.
     Output names are from the list. If using `-k` then `--inames=CSV` provides temporary
