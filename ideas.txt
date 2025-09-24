@@ -48,6 +48,8 @@
   /  split & select? ^foo,bar,zut^,^2,splitget -> unpack, ^0:1:3-5,up_get
   \  elaborate pack/unpack support. ^3,^%01,nspack  ^%01,spackall  val^%01,unspack
 
+  ?  Some way to reorder or swap columns by name
+
 ---
 
   -  challenge: combine ed and map. replace substring with its map. First ,get it and ,map, then ,ed it.

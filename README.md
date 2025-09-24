@@ -111,6 +111,7 @@ Compensating for the terse stack language, `pick`'s inner computation loop is si
 &emsp;&emsp;[Asserting row integrity](#asserting-row-integrity)  
 [Syntax for computing new columns](#syntax-for-computing-new-columns)  
 &emsp;&emsp;[Examples of computing new columns](#examples-of-computing-new-columns)  
+&emsp;&emsp;[Rotating a column to first position](#rotating-a-column-to-first-position)  
 &emsp;&emsp;[Choosing and finding from pick's arsenal of operators](#choosing-and-finding-from-picks-arsenal-of-operators)  
 &emsp;&emsp;[Operators for testing and choice](#operators-for-testing-and-choice)  
 [Selecting and manipulating multiple columns with regular expressions, lists and ranges](#selecting-and-manipulating-multiple-columns-with-regular-expressions-lists-and-ranges)  
@@ -539,6 +540,19 @@ If you just want columns `2` and `1` in that order it only needs
 ```
 pick -k 2 1 < data.txt
 ```
+
+### Rotating a column to first position
+
+As a byproduct of pick column name processing, it is easy to promote any column `thatcol` to be
+the first column (and thus providing row names) by using `thatcol '.*'` as selection.
+For example, using the file `data.txt` in the `test` subdirectory:
+
+```
+pick fx '.*' < data.txt
+```
+Pick will tell you that it found duplicate column names and made them unique. It will put
+`fx` as the first column. It will (of course) not check that the `fx` column entries are unique.
+
 
 ### Choosing and finding from pick's arsenal of operators
 

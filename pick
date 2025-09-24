@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "25-049a";
+my $v_v_v = "25-267a";
 
   #                     Copyright (c) 2022-2025  Stijn van Dongen
   #
@@ -694,7 +694,8 @@ sub do_ifelse {
 
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
-my $opsections  = join ' ', sort keys %{{ map { ($_, 1) } map { split '/', (split "\t", $_->[3])[3] } values %cp_opdefinitions }};
+my $opsections  = join ' ', (sort keys %{{ map { ($_, 1) } map { split '/', (split "\t", $_->[3])[3] } values %cp_opdefinitions }}, 'selection');
+$opsections =~ s/ (?=input)/\n/;                     # eye-balled to be middleish.
 
 my $regexpointers = <<EOP;
 Useful perl regular expression features:
@@ -1114,7 +1115,7 @@ EOH
     my $elliness = length($1);
     my $filter = @::spec ? $::spec[0] : '.';
     $filter =~ s/,/|/g;
-    print "\nSelect comparison operators:\n  @opsf\n\n";
+    print "\nSelect comparison operators:\n  @opsf\n\n" if $filter =~ /select/i;
     exit 0 if $filter eq 'selection';
     printf "%-14s%-12s%-20s%s\n", 'Operator', 'Consumed', 'Produced', 'Description';
     print  '-' x 80 . "\n";
@@ -1135,7 +1136,7 @@ EOH
       my $opdef = $cp_opdefinitions{$op};
       my @help = split "\t", $opdef->[3];
       die "Error in description @help\n" unless @help == 4;
-      next unless $help[3] =~ $filter || $filter =~ /$help[3]/;
+      next unless $help[3] =~ /$filter/ || $op =~ $filter;
       printf "%-14s%-12s%-20s%s [%s]\n", $op, @help;
       explain_io($op, $opdef->[1]) if $elliness == 2;
       # print $deparse->coderef2text($opdef->[2]), "\n\n\n" if $elliness > 1;
@@ -1147,7 +1148,7 @@ EOH
       print STDERR "\n-- For sam functionality you must use --sam or --sam/<fastafile> --\n";
     }
     if ($filter eq '.') { print "\nUse -l <query> to limit output to sections matching <query>, e.g pick -l string\nSections: $opsections\n" }
-    else { print "\nAll operators in section(s) matching <$filter>\nSections: $opsections\n" }
+    else { print "\nAll operators or sections matching <$filter>\nSections: $opsections\n" }
     exit 0;
   }
   elsif ($options eq '-H') {
