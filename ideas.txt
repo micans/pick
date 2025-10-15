@@ -34,7 +34,7 @@
   -  use of int() in source; it truncates towards zero. 1.9999-like cases might be unwelcome.
      For /any/ etc we need abs(int()), so depending on perl needs deep dive.
 
-  ?  set extra argument for /ep/ and /om/ with ,test. ,setea?  pbb better x y v T ,test4
+  ?   x y v T test4 for om/ep family.
 
   ?  protect against log(-1) etc
 

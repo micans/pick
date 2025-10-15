@@ -1837,7 +1837,7 @@ print STDERR "=== Type annotation @typestack stack size differs from computed st
       }
       $prev_what = $what;
     }
-    $::compute[$i] = [$name, \@expanded_compute, $stack_size];
+    $::compute[$i] = [$name, \@expanded_compute, $stack_size];       # stacksizehook
 
     my $j = $::N + $i;
     $::HEADER[$j] = $name;        # only needed to print the new header.
@@ -2026,7 +2026,7 @@ sub do_compute {
       elsif ($type == $TYPE_LUSPUV) { push @::STACK, $::LC{suv}{$what}; }
       else { die "Really unfortunate."; }
     }
-    my $size = @::STACK;
+    my $size = @::STACK;                             # precomputed at stacksizehook
 print STDERR "=== Please check compute for handle: compiled size $sz versus computed $size\n" unless $sz == $size;
     push @$::Flink, (join "", @::STACK);
   }

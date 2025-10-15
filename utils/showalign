@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ref=${1?Need reference and sam/bam file}
+sam=${2?Need reference and sam/bam file}
+
+samtools view -h $sam | pick --sam/$ref --sam-qlt-sim --sam-aln-prefix='++ ' ::1,aln_allq^^%0A,joinall | wrapalign
+

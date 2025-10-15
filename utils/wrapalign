@@ -26,18 +26,28 @@ while (<>) {
     }
   }
 
+  if (@aln == 5) {
+    $aln[-1] =~ tr |\x21-\x7e|.....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii|;
+  }
+
   for my $l (@pre) { print "$l\n"; }
   print "---\n" if @pre;
+  for my $l (@post) { print "$l\n"; }
+  print "---\n" if @post;
 
   my $o = 0;
-  while ($o < length($aln[0])) {
-    print join "\n", map { '++ ' . substr($_, $o, $lw) } @aln;
-    print "\n.\n";
-    $o += $lw;
+  if (@aln) {
+    while ($o < length($aln[0])) {
+      print join "\n", map { '++ ' . substr($_, $o, $lw) } @aln;
+      print "\n.\n";
+      $o += $lw;
+    }
+  }
+  else {
+    print STDERR "No alignment found at $.\n";
   }
   print "---\n" if @aln;
   for my $l (@post) { print "$l\n"; }
   print "---\n" if @post;
   print "\n\n";
 }
-
