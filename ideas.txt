@@ -1,4 +1,10 @@
 
+  ?  a named split operator
+     :mycol^::^2^wow,colpop
+     split mycol on ::
+     expect exactly 2 fields.
+     available as :wow1 :wow2
+
   -  SAM support. Document/tighten internal conventions.
      Use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
 
