@@ -27,7 +27,7 @@ while (<>) {
   }
 
   if (@aln == 5) {
-    $aln[-1] =~ tr |\x21-\x7e|.....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii|;
+    # $aln[-1] =~ tr |\x21-\x7e|.....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii|;
   }
 
   for my $l (@pre) { print "$l\n"; }
@@ -51,3 +51,4 @@ while (<>) {
   print "---\n" if @post;
   print "\n\n";
 }
+

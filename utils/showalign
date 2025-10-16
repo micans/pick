@@ -2,8 +2,99 @@
 
 set -euo pipefail
 
-ref=${1?Need reference and sam/bam file}
-sam=${2?Need reference and sam/bam file}
+simpleQ=false
+help=false
+use_ref=
+use_sam=
+use_bounds=
+use_zoom=
+N_wrap=0
 
-samtools view -h $sam | pick --sam/$ref --sam-qlt-sim --sam-aln-prefix='++ ' ::1,aln_allq^^%0A,joinall | wrapalign
+while getopts :r:s:e:w:z:Qh opt
+do
+    case "$opt" in
+    r)
+      use_ref=$OPTARG
+      ;;
+    s)
+      use_sam=$OPTARG
+      ;;
+    e)
+      use_bounds=$OPTARG
+      ;;
+    Q)
+      simpleQ=true
+      ;;
+    z)
+      use_zoom=$OPTARG
+      ;;
+    w)
+      N_wrap=$OPTARG
+      ;;
+    h)
+      cat <<EOU
+-r <fname>        reference file (fasta)
+-s <fname>        sam input (- for STDIN)
+-e x,y            ensure alignment includes coordinates [x-y]
+-z u,v            zoom / limit alignment to coordinates [x-y]
+-w N              pass alignment to wrapalign with width N
+-Q                use simplified quality scheme
+
+                  .....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii
+                         3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1 |
+                         -- | -- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |--- |---|
+                         10 | 10 |100 |100 |1e3 |1e3 |1e4 |1e4 |1e5 |1e5 |1e6 |1e6 |1e7 |1e7 |1e8 |1e8 |1e9 |1e9|
+EOU
+      exit
+      ;;
+    :)
+      error="Flag $OPTARG needs argument"
+      false
+      ;;
+    ?)
+      error="Flag $OPTARG unknown"
+      false
+      ;;
+   esac
+done
+
+shift $(($OPTIND-1))
+
+if (( $# > 0 )); then
+  echo "Trailing arguments $@ found" 
+  false
+fi
+
+
+nerr=0
+[[ -n $use_ref ]] || { echo "Need reference (-r)" && ((++nerr)); }
+[[ -n $use_sam ]] || { echo "Need sam input (-s)" && ((++nerr)); }
+
+if ((nerr > 0)); then
+  echo "errors occurred"
+  false
+fi
+
+
+moreargs=
+mode_select=aln_allq
+mode_wrap=cat
+
+if (( N_wrap > 0 )); then
+  mode_wrap="wrapalign $N_wrap"
+fi
+
+if $simpleQ; then
+  moreargs="$moreargs --sam-qlt-sim"
+fi
+
+if [[ -n $use_bounds ]]; then
+  moreargs="$moreargs --sam-aln-xy=$use_bounds"
+elif [[ -n $use_zoom ]]; then
+  moreargs="$moreargs --sam-rbt=$use_zoom"
+  mode_select=rbt_alnall
+fi
+
+samtools view -h $use_sam | pick --sam/$use_ref --sam-aln-prefix='++ ' $moreargs ::1,$mode_select^^%0A,joinall | $mode_wrap
+
 
