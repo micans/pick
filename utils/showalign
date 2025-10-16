@@ -33,8 +33,16 @@ do
       ;;
     h)
       cat <<EOU
+Pretty-print alignments; allows focus on boundaries (-e) or specific intervals (-z).
+Base usage: -r <REFERENCE> -s <SAM-FILE>
+
+Input is SAM. For bam files use
+  samtools view [-h] <bamfile> | showalign -r <REF> -s - [options]
+
+To output wrapped alignments use -w <WIDTH>
+
 -r <fname>        reference file (fasta)
--s <fname>        sam input (- for STDIN)
+-s <fname>        SAM input (- for STDIN)
 -e x,y            ensure alignment includes coordinates [x-y]
 -z u,v            zoom / limit alignment to coordinates [x-y]
 -w N              pass alignment to wrapalign with width N
@@ -95,6 +103,6 @@ elif [[ -n $use_zoom ]]; then
   mode_select=rbt_alnall
 fi
 
-samtools view -h $use_sam | pick --sam/$use_ref --sam-aln-prefix='++ ' $moreargs ::1,$mode_select^^%0A,joinall | $mode_wrap
+cat $use_sam | pick --sam/$use_ref --sam-aln-prefix='++ ' $moreargs ::1,$mode_select^^%0A,joinall | $mode_wrap
 
 
