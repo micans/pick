@@ -9,7 +9,7 @@ use_ref=
 use_sam=
 use_bounds=
 use_zoom=
-extra_header=
+extra_header=1
 dictlist=
 N_wrap=0
 
@@ -57,7 +57,7 @@ do
       ;;
     h)
       cat <<EOU
-Pretty-print alignments; allows focus on boundaries (-e) or specific intervals (-z).
+Pretty-print alignments; allows focus on alignment boundaries (-e) or specific intervals (-z).
 Base usage: -r <REFERENCE> -s <SAM-FILE>
 
 Input is SAM. For bam files use
@@ -67,8 +67,8 @@ To output wrapped alignments use -w <WIDTH>
 
 -r <fname>        reference file (fasta).
 -s <fname>        SAM input (- for STDIN).
--e x,y            ensure alignment includes coordinates [x-y].
--z u,v            zoom / limit alignment to coordinates [x-y].
+-e x,y            ensure alignment includes reference coordinates [x-y].
+-z u,v            zoom / limit alignment to reference coordinates [x-y].
 -w N              pass alignment to wrapalign with width N.
 
 -d fname:tag:defval
@@ -78,10 +78,11 @@ To output wrapped alignments use -w <WIDTH>
                   set defval to __EXIT__ to cause an error if key is not found; default is to leave key unmapped.
                   repeated use of -d is possible.
 
--x <pick-list>    pick code to add to header after read name before alignment.
-                     example: -x '^edit=,aln_nedit,cat' to add number of edits.
-                     issue pick -l sam for possibilities.
-                     currently 'all' operators will not work as the readname is already on the pick stack.
+-x <pick-list>    pick code to replace header before alignment. Default header is just the read name.
+                  -x 1 is the default setting.
+                  example: -x '1^edit=,aln_nedit,cat' to have read name with number of edits.
+                  issue pick -l sam for possibilities.
+                  issue showalign [options] -L to see the constructed pick command line.
 
 -L                show rather than execute the command constructed by showalign.
 -Q                use simplified quality scheme.
@@ -143,9 +144,9 @@ fi
 
 if $list; then
 cat <<EOC
-   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::1"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
+   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
 EOC
 else
-   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::1"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
+   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
 fi
 
