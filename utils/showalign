@@ -51,6 +51,7 @@ To output wrapped alignments use -w <WIDTH>
 -z u,v            zoom / limit alignment to coordinates [x-y]
 -w N              pass alignment to wrapalign with width N
 -x <pick-list>    pick code to add to header after read name before alignment
+                     example: -x '^edit=,aln_nedit,cat' to add number of edits
                      issue pick -l sam for possibilities
 -Q                use simplified quality scheme
 
