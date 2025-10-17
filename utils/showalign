@@ -3,15 +3,17 @@
 set -euo pipefail
 
 simpleQ=false
+list=false
 help=false
 use_ref=
 use_sam=
 use_bounds=
 use_zoom=
 extra_header=
+dictlist=
 N_wrap=0
 
-while getopts :r:s:e:w:z:x:Qh opt
+while getopts :r:s:d:e:w:z:x:QLh opt
 do
     case "$opt" in
     r)
@@ -19,6 +21,21 @@ do
       ;;
     s)
       use_sam=$OPTARG
+      ;;
+    d)
+      IFS=: read fname tag default <<< "$OPTARG"
+      if [[ -z $tag ]]; then
+         echo "-d: expect fname:tag argument"
+         false
+      elif [[ ! -f $fname ]]; then
+         echo "-d: $fname not a regular file"
+         false
+      fi
+      if [[ ! -z $default ]]; then
+         dictlist="$dictlist --fdict-$tag/$default=$fname"
+      else
+         dictlist="$dictlist --fdict-$tag=$fname"
+      fi
       ;;
     e)
       use_bounds=$OPTARG
@@ -28,6 +45,9 @@ do
       ;;
     Q)
       simpleQ=true
+      ;;
+    L)
+      list=true
       ;;
     z)
       use_zoom=$OPTARG
@@ -45,15 +65,26 @@ Input is SAM. For bam files use
 
 To output wrapped alignments use -w <WIDTH>
 
--r <fname>        reference file (fasta)
--s <fname>        SAM input (- for STDIN)
--e x,y            ensure alignment includes coordinates [x-y]
--z u,v            zoom / limit alignment to coordinates [x-y]
--w N              pass alignment to wrapalign with width N
--x <pick-list>    pick code to add to header after read name before alignment
-                     example: -x '^edit=,aln_nedit,cat' to add number of edits
-                     issue pick -l sam for possibilities
--Q                use simplified quality scheme
+-r <fname>        reference file (fasta).
+-s <fname>        SAM input (- for STDIN).
+-e x,y            ensure alignment includes coordinates [x-y].
+-z u,v            zoom / limit alignment to coordinates [x-y].
+-w N              pass alignment to wrapalign with width N.
+
+-d fname:tag:defval
+                  make the dictionary in fname available to pick with name tag and default value defval.
+                  This will be passed as --fdict-tag/defval=fname to pick, to be used as ^tag,map in -x argument.
+                  defval can be omitted.
+                  set defval to __EXIT__ to cause an error if key is not found; default is to leave key unmapped.
+                  repeated use of -d is possible.
+
+-x <pick-list>    pick code to add to header after read name before alignment.
+                     example: -x '^edit=,aln_nedit,cat' to add number of edits.
+                     issue pick -l sam for possibilities.
+                     currently 'all' operators will not work as the readname is already on the pick stack.
+
+-L                show rather than execute the command constructed by showalign.
+-Q                use simplified quality scheme.
 
                   .....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii
                          3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1 |
@@ -110,6 +141,11 @@ elif [[ -n $use_zoom ]]; then
   mode_select=rbt_alnall
 fi
 
-cat $use_sam | pick --sam/$use_ref --sam-aln-prefix='++ ' $moreargs ::1"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
-
+if $list; then
+cat <<EOC
+   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::1"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
+EOC
+else
+   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::1"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
+fi
 
