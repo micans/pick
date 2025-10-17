@@ -58,6 +58,8 @@ do
     h)
       cat <<EOU
 Pretty-print alignments; allows focus on alignment boundaries (-e) or specific intervals (-z).
+Wraps pick command line (use -L to view)
+
 Base usage: -r <REFERENCE> -s <SAM-FILE>
 
 Input is SAM. For bam files use
@@ -73,13 +75,13 @@ To output wrapped alignments use -w <WIDTH>
 
 -d fname:tag:defval
                   make the dictionary in fname available to pick with name tag and default value defval.
-                  This will be passed as --fdict-tag/defval=fname to pick, to be used as ^tag,map in -x argument.
+                  this will be passed as --fdict-tag/defval=fname to pick, to be used as ^tag,map in -x argument.
                   defval can be omitted.
                   set defval to __EXIT__ to cause an error if key is not found; default is to leave key unmapped.
                   repeated use of -d is possible.
 
 -x <pick-list>    pick code to replace header before alignment. Default header is just the read name.
-                  -x 1 is the default setting.
+                  -x 1 is the default setting (1 denotes column one of SAM format - the read name).
                   example: -x '1^edit=,aln_nedit,cat' to have read name with number of edits.
                   issue pick -l sam for possibilities.
                   issue showalign [options] -L to see the constructed pick command line.
@@ -113,12 +115,12 @@ if (( $# > 0 )); then
 fi
 
 
-nerr=0
-[[ -n $use_ref ]] || { echo "Need reference (-r)" && ((++nerr)); }
-[[ -n $use_sam ]] || { echo "Need sam input (-s)" && ((++nerr)); }
+nmiss=0
+[[ -n $use_ref ]] || { echo "Need reference (-r)" && ((++nmiss)); }
+[[ -n $use_sam ]] || { echo "Need sam input (-s)" && ((++nmiss)); }
 
-if ((nerr > 0)); then
-  echo "errors occurred"
+if ((nmiss > 0)); then
+  echo "Required argument(s) missing"
   false
 fi
 
