@@ -6,7 +6,7 @@ simpleQ=false
 list=false
 help=false
 use_ref=
-use_sam=
+use_sam=-
 use_bounds=
 use_zoom=
 extra_header=1
@@ -63,12 +63,12 @@ Wraps pick command line (use -L to view)
 Base usage: -r <REFERENCE> -s <SAM-FILE>
 
 Input is SAM. For bam files use
-  samtools view [-h] <bamfile> | showalign -r <REF> -s - [options]
+  samtools view [-h] <bamfile> | showalign -r <REF> [options]
 
 To output wrapped alignments use -w <WIDTH>
 
 -r <fname>        reference file (fasta).
--s <fname>        SAM input (- for STDIN).
+-s <fname>        SAM input (- for STDIN, which is default).
 -e x,y            ensure alignment includes reference coordinates [x-y].
 -z u,v            zoom / limit alignment to reference coordinates [x-y].
 -w N              pass alignment to wrapalign with width N.
@@ -76,9 +76,9 @@ To output wrapped alignments use -w <WIDTH>
 -d fname:tag:defval
                   make the dictionary in fname available to pick with name tag and default value defval.
                   this will be passed as --fdict-tag/defval=fname to pick, to be used as ^tag,map in -x argument.
-                  defval can be omitted.
-                  set defval to __EXIT__ to cause an error if key is not found; default is to leave key unmapped.
-                  repeated use of -d is possible.
+                  set defval to __EXIT__ to cause an error if key is not found.
+                  defval can be omitted, causing unmappable keys to map to themselves.
+                  repeated use of -d is possible with the same or different tags.
 
 -x <pick-list>    pick code to replace header before alignment. Default header is just the read name.
                   -x 1 is the default setting (1 denotes column one of SAM format - the read name).
@@ -117,13 +117,15 @@ fi
 
 nmiss=0
 [[ -n $use_ref ]] || { echo "Need reference (-r)" && ((++nmiss)); }
-[[ -n $use_sam ]] || { echo "Need sam input (-s)" && ((++nmiss)); }
 
 if ((nmiss > 0)); then
-  echo "Required argument(s) missing"
+  echo "Required argument(s) missing (-h for help)"
   false
 fi
 
+if [[ $use_sam == '-' ]]; then
+   >&2 echo "Reading from STDIN"
+fi
 
 moreargs=
 mode_select=aln_allq
