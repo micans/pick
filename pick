@@ -2144,6 +2144,9 @@ $::Groupi = 2;    # index within group.
     my $new_posx = $ref_posx;
     my $new_posy = $ref_posy;
 
+    $::sam_narrow_context_x = $ref_posx if $::sam_narrow_context_x < $ref_posx;
+    $::sam_narrow_context_y = $ref_posy if $::sam_narrow_context_y > $ref_posy;
+
     if ($::sam_narrow_context_x >= $ref_posx && $::sam_narrow_context_x <= $ref_posy) {
       my ($Dref, $Dqry) = (0, 0);           # deltas.
       while ($cigar =~ /(\d+)(.)/g) {
@@ -3014,7 +3017,7 @@ my $Npostdisc = $Ndisc - $Npredisc;
 if ($I_AM_SAM) { print STDERR "-- $Nskip header lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 else           { print STDERR "-- $Nskip skipped lines in input (passed through $Npthr)\n" if $F_ignore && $L_verbose >= 1; }
 print STDERR "-- $Npredisc/$Npostdisc rows have been pre/post-discarded\n" if @::preselect && $L_verbose >= 1;
-print STDERR "-- $Nsamdisc sam rows have been discarded because of missing sequence(s)\n" if $Nsamdisc > 0 && $L_verbose >= 0;
+print STDERR "-- $Nsamdisc sam rows have been discarded due to insufficient information for compute\n" if $Nsamdisc > 0 && $L_verbose >= 0;
 print STDERR "-- $Nkeep/$Ndisc rows have been kept/discarded\n" if (@::preselect || @::select) && $L_verbose >= 1;
 print STDERR "-- $::Ngroup groups of rows were processed\n" if defined($PSTORE_PIVOT_COLUMN) && $L_verbose >= 1;
 print STDERR "-- $Nprotect items needed not-a-number protection ($Nprotect_discard rows discarded)\n" if $Nprotect;
