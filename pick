@@ -2141,7 +2141,7 @@ $::Groupi = 2;    # index within group.
     my $cigar    = $::Flink->[5];
     my $qrylen   = cgr_sum_qry($cigar);
     my $ref_posx = $::Flink->[3];         # dangersign. Do this now. We are changing $::Flink->[3] below.
-    my $ref_posy = $ref_posx + cgr_sum_ref($cigar);
+    my $ref_posy = $ref_posx + cgr_sum_ref($cigar) - 1;
 
     my $new_cigar = $cigar;
     my $new_posx = $ref_posx;
