@@ -4,6 +4,8 @@
      alternative to rbt.
      maybe allow --sam-rbt=x,y to do this.
 
+  ?  in comparisons allow zero-arg primivites such as rowno.
+
   -  SAM support. Document/tighten internal conventions.
      Use '*' for "no query sequence" rather than empty string? Only externally, use empty string internally?
 

@@ -131,6 +131,7 @@ my $BIT_SAM_RPARTS =    1 <<  9;     # compute parts for reference.
 my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
 my $BIT_SAM_ALN_MRK  =  1 << 11;     # print markers for trailing parts in alignment
 my $BIT_SAM_QLT_SIM  =  1 << 12;     # simplify quality scores
+my $BIT_SAM_NARROW_CONTEXT =   1 <<  13;     # narrow context by modifying cigar string
 
 my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;                # collect bits that SAM_RPARTS depends on.
 my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
@@ -170,6 +171,8 @@ my $arttok = ' *';
 $::sam_max_context = 10000;
 $::sam_context_x = 0;
 $::sam_context_y = 0;
+$::sam_narrow_context_x = 0;
+$::sam_narrow_context_y = 0;
 $::sam_aln_prefix  = "";
 $::sam_rbt_x = 0;
 $::sam_rbt_y = 0;
@@ -1338,6 +1341,10 @@ EOH
        $I_AM_SAM |= $BIT_SAM_CONTEXT;
        ($::sam_context_x, $::sam_context_y) = ($1, $2);
      }
+     elsif ($options =~ /^sam-narrow-xy=(\d+),(\d+)$/) {
+       $I_AM_SAM |= $BIT_SAM_NARROW_CONTEXT;
+       ($::sam_narrow_context_x, $::sam_narrow_context_y) = ($1, $2);
+     }
      elsif ($options =~ /^sam-aln-prefix=(.*)/) {
        $::sam_aln_prefix = $1;
      }
@@ -2071,6 +2078,18 @@ $::Groupi = 2;    # index within group.
   my @sam_qry_cache_prev = ();         # arrays rather than hash, a bit faster.
   my $sam_ref_sequence = '';
 
+  my %cigarchomp = (       # 1: consumes ref, 2: consumes query. 4: consumes alignment
+   M => 7,
+ '=' => 7,
+   X => 7,
+   I => 6,
+   N => 5,
+   D => 5,
+   S => 2,
+   P => 0,
+   H => 0,
+  );
+
   sub sam_check_reflen {
 
     if (length($sam_refdictname)) {
@@ -2112,6 +2131,80 @@ $::Groupi = 2;    # index within group.
     if ($::Flink->[5] =~ s/\d+\KI$/S/) {                   ; }
   }
 
+  sub sam_narrow_view {                   # This should run before any 'suv' traits are computed.
+
+    my $reflen   = &sam_reflen;
+
+    my $cigar    = $::Flink->[5];
+    my $qrylen   = cgr_sum_qry($cigar);
+    my $ref_posx = $::Flink->[3];         # dangersign. Do this now. We are changing $::Flink->[3] below.
+    my $ref_posy = $ref_posx + cgr_sum_ref($cigar);
+
+    my $new_cigar = $cigar;
+    my $new_posx = $ref_posx;
+    my $new_posy = $ref_posy;
+
+    if ($::sam_narrow_context_x >= $ref_posx && $::sam_narrow_context_x <= $ref_posy) {
+      my ($Dref, $Dqry) = (0, 0);           # deltas.
+      while ($cigar =~ /(\d+)(.)/g) {
+        my ($count, $type, $halt, $remainder) = ($1, $2, 0, 0);
+        my $nref = $cigarchomp{$type} & 1 ? $count : 0;
+        my $nqry = $cigarchomp{$type} & 2 ? $count : 0;
+        if ($::sam_narrow_context_x <= $ref_posx + $Dref + $nref - 1) {
+          $halt = 1;
+          $nref = $count - ($ref_posx + $Dref + $nref - $::sam_narrow_context_x);     # we must have $nref > 0 as we pass this bound for the first time.
+          $nqry = $nref if $cigarchomp{$type} & 2;
+          $remainder = $count - $nref;
+        }
+        $Dref += $nref;
+        $Dqry += $nqry;
+        if ($halt) {
+          $new_cigar = $Dqry . 'S' . ($remainder ? ($remainder . $type) : "") . substr($cigar, pos($cigar));
+          $new_posx  = $ref_posx + $Dref;
+          last;
+        }
+      }
+      if ($new_posx >= $ref_posx) {     # maybe neater to use if ($halt).
+         $::Flink->[3] = $new_posx;
+         $::Flink->[5] = $new_cigar;
+      }
+    }
+    else {
+      $::Flink->[1] = 4;
+      $::Flink->[3] = 1;         # fixme?
+      $::Flink->[5] = '*';
+    }
+
+    if ($::sam_narrow_context_y <= $ref_posy && $::sam_narrow_context_y >= $new_posx) {
+      my ($Dref, $Dqry) = (0, 0);           # deltas.
+      while ($new_cigar =~ /(\d+)(.)/g) {
+        my ($count, $type, $halt, $remainder, $cigpartlen) = ($1, $2, 0, 0, length($1)+length($2));
+        my $nref = $cigarchomp{$type} & 1 ? $count : 0;
+        my $nqry = $cigarchomp{$type} & 2 ? $count : 0;
+        if ($::sam_narrow_context_y <= $new_posx + $Dref + $nref - 1) {
+          $halt = 1;
+          $nref = $count - ($new_posx + $Dref + $nref - $::sam_narrow_context_y - 1);     # we must have $nref > 0 as we pass this bound for the first time.
+          $nqry = $nref if $cigarchomp{$type} & 2;
+          $remainder = $nref;
+        }
+        $Dref += $nref;
+        $Dqry += $nqry;
+        if ($halt) {
+          $new_cigar = substr($new_cigar, 0, pos($new_cigar) - $cigpartlen) . ($remainder ? ($remainder . $type) : "") . ($qrylen - $Dqry) . 'S';
+          $new_posy  = $new_posx + $Dref;
+          last;
+        }
+      }
+      if ($new_posy <= $ref_posy) {      # maybe neater to use if ($halt).
+         $::Flink->[5] = $new_cigar;
+      }
+    }
+    else {
+      $::Flink->[1] = 4;
+      $::Flink->[3] = 1;         # fixme?
+      $::Flink->[5] = '*';
+    }
+  }
 
      ## This adjustment does not affect any of the quantities computed related to
      ## trail5p, matched and trail3p (by sam_compute_suv). The view adjustment is achieved
@@ -2574,18 +2667,6 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
   sub get_qry  { return $sam_qry_cache[3]; } # this is in reference orientation.
   sub get_qual { return $sam_qry_cache[4]; } # this is in reference orientation.
 
-  my %cigarchomp = (       # 1: consumes ref, 2: consumes query. 4: consumes alignment
-   M => 7,
- '=' => 7,
-   X => 7,
-   I => 6,
-   N => 5,
-   D => 5,
-   S => 2,
-   P => 0,
-   H => 0,
-  );
-
 
 
  #    deletion           deletion         deletion          no sequence       no sequence   no sequence            trailing      |
@@ -2853,9 +2934,11 @@ while (<>) {
 
   if ($I_AM_SAM) {
 
-    $::LC{suv}{input_cigar} = $F[5];
+    $::LC{suv}{input_cigar} = $F[5];   # fixme. can move/remove (any users)? or sam_narrow_view needs to update it.
 
     sam_check_reflen    if     $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
+    sam_narrow_view         if $I_AM_SAM &  $BIT_SAM_NARROW_CONTEXT;  # Reduce alignment to these bounds.
+
     sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips
     sam_adjust_view_extend  if $I_AM_SAM &  $BIT_SAM_CONTEXT;         # Show trailing parts in alignment
 
