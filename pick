@@ -1340,10 +1340,12 @@ EOH
      elsif ($options =~ /^sam-aln-xy=(\d+),(\d+)$/) {
        $I_AM_SAM |= $BIT_SAM_CONTEXT;
        ($::sam_context_x, $::sam_context_y) = ($1, $2);
+       die "--sam-aln-xy arguments are decreasing" if $::sam_context_x > $::sam_context_y;
      }
      elsif ($options =~ /^sam-narrow-xy=(\d+),(\d+)$/) {
        $I_AM_SAM |= $BIT_SAM_NARROW_CONTEXT;
        ($::sam_narrow_context_x, $::sam_narrow_context_y) = ($1, $2);
+       die "--sam-narrow-xy arguments are decreasing" if $::sam_narrow_context_x > $::sam_narrow_context_y;
      }
      elsif ($options =~ /^sam-aln-prefix=(.*)/) {
        $::sam_aln_prefix = $1;
@@ -1352,6 +1354,7 @@ EOH
        $I_AM_SAM |= $DEP_SAM_RBT_CLXY;
        $::sam_rbt_x = $1;
        $::sam_rbt_y = $2;
+       die "--sam-rbt arguments are decreasing" if $::sam_rbt_x > $::sam_rbt_y;
      }
      elsif ($options eq 'sam-nonf') {      # no normal form.
        $I_AM_SAM |= $BIT_SAM_NONF;         #

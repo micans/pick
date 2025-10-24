@@ -1189,9 +1189,10 @@ to retrieve information from the concatenated fields in picks last input column.
 ### Command line options
 
 ```
---sam-aln-xy=<x>,<y>                # Include reference [x-y] in alignment
+--sam-aln-xy=<x,y>                  # Include reference [x-y] in alignment (extend if necessary)
 --sam-aln-context=<N>               # Add <N> bases of context to alignment outputs
---sam-rbt=<x>,<y>                   # Set region-bound-context coordinates
+--sam-narrow-xy=<x,y>               # Shrink alignment to reference bases [x-y]
+--sam-rbt=<x,y>                     # Set region-bound-context coordinates
 --sam-aln-prefix=<string>           # Set prefix. utils/wrapalign expects '++ '
 --sam-nonf                          # Do not normalise exterior indels to soft clips
 --sam-qlt-sim                       # Simplify quality scores.
