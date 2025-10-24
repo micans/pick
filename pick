@@ -2147,18 +2147,19 @@ $::Groupi = 2;    # index within group.
     my $new_posx = $ref_posx;
     my $new_posy = $ref_posy;
 
-    $::sam_narrow_context_x = $ref_posx if $::sam_narrow_context_x < $ref_posx;
-    $::sam_narrow_context_y = $ref_posy if $::sam_narrow_context_y > $ref_posy;
+    my ($narrowx, $narrowy) = ($::sam_narrow_context_x, $::sam_narrow_context_y);
+    $narrowx = $ref_posx if $narrowx < $ref_posx;
+    $narrowy = $ref_posy if $narrowy > $ref_posy;
 
-    if ($::sam_narrow_context_x >= $ref_posx && $::sam_narrow_context_x <= $ref_posy) {
+    if ($narrowx >= $ref_posx && $narrowx <= $ref_posy) {
       my ($Dref, $Dqry) = (0, 0);           # deltas.
       while ($cigar =~ /(\d+)(.)/g) {
         my ($count, $type, $halt, $remainder) = ($1, $2, 0, 0);
         my $nref = $cigarchomp{$type} & 1 ? $count : 0;
         my $nqry = $cigarchomp{$type} & 2 ? $count : 0;
-        if ($::sam_narrow_context_x <= $ref_posx + $Dref + $nref - 1) {
+        if ($narrowx <= $ref_posx + $Dref + $nref - 1) {
           $halt = 1;
-          $nref = $count - ($ref_posx + $Dref + $nref - $::sam_narrow_context_x);     # we must have $nref > 0 as we pass this bound for the first time.
+          $nref = $count - ($ref_posx + $Dref + $nref - $narrowx);     # we must have $nref > 0 as we pass this bound for the first time.
           $nqry = $nref if $cigarchomp{$type} & 2;
           $remainder = $count - $nref;
         }
@@ -2181,15 +2182,15 @@ $::Groupi = 2;    # index within group.
       $::Flink->[5] = '*';
     }
 
-    if ($::sam_narrow_context_y <= $ref_posy && $::sam_narrow_context_y >= $new_posx) {
+    if ($narrowy <= $ref_posy && $narrowy >= $new_posx) {
       my ($Dref, $Dqry) = (0, 0);           # deltas.
       while ($new_cigar =~ /(\d+)(.)/g) {
         my ($count, $type, $halt, $remainder, $cigpartlen) = ($1, $2, 0, 0, length($1)+length($2));
         my $nref = $cigarchomp{$type} & 1 ? $count : 0;
         my $nqry = $cigarchomp{$type} & 2 ? $count : 0;
-        if ($::sam_narrow_context_y <= $new_posx + $Dref + $nref - 1) {
+        if ($narrowy <= $new_posx + $Dref + $nref - 1) {
           $halt = 1;
-          $nref = $count - ($new_posx + $Dref + $nref - $::sam_narrow_context_y - 1);     # we must have $nref > 0 as we pass this bound for the first time.
+          $nref = $count - ($new_posx + $Dref + $nref - $narrowy - 1);     # we must have $nref > 0 as we pass this bound for the first time.
           $nqry = $nref if $cigarchomp{$type} & 2;
           $remainder = $nref;
         }
