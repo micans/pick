@@ -1,9 +1,4 @@
 
-  ?  narrow view on alignment: modify cigar string to reduce string computations, similar to sam-aln-xy,
-     except that narrowing is supported.
-     alternative to rbt.
-     maybe allow --sam-rbt=x,y to do this.
-
   ?  in comparisons allow zero-arg primivites such as rowno.
 
   -  SAM support. Document/tighten internal conventions.
