@@ -1027,7 +1027,7 @@ adjusting the reference offset (column 4 in SAM format).
 
 Sam operators provided by pick (such as `aln_nmatch`) are aware of these changes and will use the substring of
 the CIGAR sequence that corresponds to the aligned parts.
-In alignments non-aligned parts are indicated in the alignment string with one or more of `_`, `\`` and `.`.
+In alignments non-aligned parts are indicated in the alignment string with one or more of `_`, `` ` `` and `.`.
 The list of symbols used in the alignment string is
 
 ```
