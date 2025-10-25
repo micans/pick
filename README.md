@@ -1070,6 +1070,7 @@ The `T` below 170 is at reference position 170, the `C` below 180 is at referenc
 This alignment was clipped at position 161 and the ruler was clipped accordingly.
 
 
+```
 (require the reference sequences to be loaded - see above)
 ---------------------------------------
 aln_all      -      alignment with four lines for ruler, reference, alignment, query.
