@@ -34,7 +34,6 @@ while (<>) {
   }
 
   for my $l (@pre) { print "$l\n"; }
-  for my $l (@post) { print "$l\n"; }
 
   my $o = 0;
   if (@aln) {
