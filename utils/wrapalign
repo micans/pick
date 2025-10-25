@@ -3,6 +3,43 @@
 use warnings;
 use strict;
 
+#  This reads and outputs the same format, where alignments can be formatted with a specified block width.
+#  Alignments are recognised as lines starting with '++ '. The output contains the same prefix; the
+#  prefix does not contribute to the specified block width. Example:
+
+my $example = <<EOT;
+readGBW1x-1
+GBW2rc
+++ 100       110       120       130       
+++ CCCCCTGAACGCTTATCGCGTGAGCGATTTGCTAAGTTCG
+++ ....................|||x|xx||||-|||-||-|
+++ CTGAGGCTCCTCGCTTATCGTGACCAGTTTG-TAA-TT-G
+++ ............................... ... .. .
+.
+++ 140         150       160       170     
+++ TTTGAA--CGATACGGGCGAGTCTACTAAGATTC--TGCC
+++ -|||x|~~||||------||||-|-|||||-|||~~||||
+++ -TTGCAGGCGAT------GAGT-T-CTAAG-TTCATTGCC
+++  ...........      .... . ..... .........
+.
+++     180       190       2
+++ CTTGCGAGCTCTATCAGAACATATG
+++ |||||....................
+++ CTTGCGAGCTCGTGAACATATGACC
+++ .........................
+.
+EOT
+
+#  The full format is
+#
+#  - paragraphs, split by blank lines (double newline).
+#  - any line not starting with '++ ' or being a single '.' is copied verbatim.
+#  - blocks of lines starting with '++ ' are taken as alignments
+#  - lines consisting of a single '.' are considered to be the separator for already-wrapped alignments.
+#  - these blocks (if present) are concatenated
+#  - the result is wrapped with the specified wrapping width.
+#  - the output blocks again start with '++ ' and wrapped blocks are separated by a line consisting of a single '.' .
+
 local $/ = "";
 
 my $lw = 160;
