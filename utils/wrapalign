@@ -12,28 +12,29 @@ if (@ARGV && $ARGV[0] =~ /^\d+$/) {
 }
 
 while (<>) {
+
   chomp; my $par = $_;
   my @lines = split "\n", $par;
   my @pre = ();
   my @aln = ();
   my @post = ();
+  my $aln_pointer = 0;
+
   while (my $l = shift @lines) {
     if ($l =~ /^\+\+ /) {
-      push @aln, substr($l, 3);
+      $aln[$aln_pointer] .= substr($l, 3);
+      $aln_pointer++;
+    }
+    elsif ($l eq '.') {
+      $aln_pointer = 0;
     }
     else {
       if (@aln) { push @post, $l } else { push @pre, $l }
     }
   }
 
-  if (@aln == 5) {
-    # $aln[-1] =~ tr |\x21-\x7e|.....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii|;
-  }
-
   for my $l (@pre) { print "$l\n"; }
-  print "---\n" if @pre;
   for my $l (@post) { print "$l\n"; }
-  print "---\n" if @post;
 
   my $o = 0;
   if (@aln) {
@@ -46,9 +47,7 @@ while (<>) {
   else {
     print STDERR "No alignment found at $.\n";
   }
-  print "---\n" if @aln;
   for my $l (@post) { print "$l\n"; }
-  print "---\n" if @post;
   print "\n\n";
 }
 
