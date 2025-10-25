@@ -8,12 +8,13 @@ help=false
 use_ref=
 use_sam=-
 use_bounds=
+beyond_bounds=
 use_zoom=
 extra_header=1
 dictlist=
 N_wrap=0
 
-while getopts :r:s:d:e:w:z:x:QLh opt
+while getopts :r:s:d:b:e:w:z:x:QLh opt
 do
     case "$opt" in
     r)
@@ -37,8 +38,11 @@ do
          dictlist="$dictlist --fdict-$tag=$fname"
       fi
       ;;
-    e)
+    b)
       use_bounds=$OPTARG
+      ;;
+    e)
+      beyond_bounds=$OPTARG
       ;;
     x)
       extra_header=$OPTARG
@@ -57,7 +61,7 @@ do
       ;;
     h)
       cat <<EOU
-Pretty-print alignments; allows focus on alignment boundaries (-e) or specific intervals (-z).
+Pretty-print alignments; allows focus on alignment boundaries (-b or -e) or specific intervals (-z).
 Wraps pick command line (use -L to view)
 
 Base usage: -r <REFERENCE> -s <SAM-FILE>
@@ -69,8 +73,9 @@ To output wrapped alignments use -w <WIDTH>
 
 -r <fname>        reference file (fasta).
 -s <fname>        SAM input (- for STDIN, which is default).
--e x,y            ensure alignment includes reference coordinates [x-y].
--z u,v            zoom / limit alignment to reference coordinates [x-y].
+-e N              show N bases context beyond alignment bound.
+-b x,y            ensure alignment includes reference coordinates [x-y].
+-z u,v            zoom / narrow alignment to reference coordinates [x-y] (removes all other alignment information).
 -w N              pass alignment to wrapalign with width N.
 
 -d fname:tag:defval
@@ -142,6 +147,10 @@ if [[ -n $use_bounds ]]; then
   moreargs="$moreargs --sam-aln-xy=$use_bounds"
 elif [[ -n $use_zoom ]]; then
   moreargs="$moreargs --sam-narrow-xy=$use_zoom"
+fi
+
+if [[ -n $beyond_bounds ]]; then
+  moreargs="$moreargs --sam-aln-context=$beyond_bounds"
 fi
 
 if $list; then
