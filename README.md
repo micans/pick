@@ -988,6 +988,32 @@ include the computation and extraction of quantities for quality control.
 
 ### Extended view of alignments
 
+An easy way to use pick for viewing alignments is to use the wrapper script `utils/showalign`.
+Its simplest usage is
+
+```
+showalign -r <ref.fa> -s <qry.sam> 
+
+# or
+
+samtools view [options] | showalign -r <ref.fa> -s - 
+```
+
+`showalign` has options to zoom in on alignments, show more sequence context and wrap alignments
+to certain line widths (requiring `utils/wrapalign`). With `-L` it will just output the `pick`
+command line it uses internally. Its most immediately useful options are
+
+```
+-r <fname>    reference file (fasta).
+-s <fname>    SAM input (- for STDIN, which is default).
+-e N          show N bases context beyond alignment bound.
+-b x,y        ensure alignment includes reference coordinates [x-y].
+-z u,v        zoom / narrow alignment to reference coordinates [x-y] (removes all other alignment information).
+-w N          pass alignment to wrapalign with width N.
+```
+
+These `showalign` options make use of the `pick` functionality described below.
+
 `--sam-aln-context=<N>` - show additional context of reference sequence and
 (soft-clipped) query sequence in printed alignments, e.g. with `,aln_all`, up to an additional
 length of `N` bases.
