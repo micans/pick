@@ -128,7 +128,6 @@ if [[ $use_sam == '-' ]]; then
 fi
 
 moreargs=
-mode_select=aln_allq
 mode_wrap=cat
 
 if (( N_wrap > 0 )); then
@@ -142,15 +141,14 @@ fi
 if [[ -n $use_bounds ]]; then
   moreargs="$moreargs --sam-aln-xy=$use_bounds"
 elif [[ -n $use_zoom ]]; then
-  moreargs="$moreargs --sam-rbt=$use_zoom"
-  mode_select=rbt_alnall
+  moreargs="$moreargs --sam-narrow-xy=$use_zoom"
 fi
 
 if $list; then
 cat <<EOC
-   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
+   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",aln_allq^^%0A,joinall | $mode_wrap
 EOC
 else
-   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",$mode_select^^%0A,joinall | $mode_wrap
+   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",aln_allq^^%0A,joinall | $mode_wrap
 fi
 
