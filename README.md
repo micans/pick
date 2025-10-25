@@ -1056,14 +1056,30 @@ To avoid this behaviour use `--sam-nonf` (*no normalform*).
 
 ### Operators to output alignments
 
+Below `ruler` refers to a line of output that pinpoints the reference coordinates at every
+tenth base position. For example in
+
 ```
+60       170         180
+TACTAAGATTC--TGCCCTTGCGAGCTCTA
+|-|||||-|||~~|||||||||||||||-x
+T-CTAAG-TTCATTGCCCTTGCGAGCTC-G
+```
+
+The `T` below 170 is at reference position 170, the `C` below 180 is at reference position 180.
+This alignment was clipped at position 161 and the ruler was clipped accordingly.
+
+
 (require the reference sequences to be loaded - see above)
 ---------------------------------------
-aln_aln      -      alignment string between reference and query
-aln_qry      -      alignment string for query
-aln_ref      -      alignment string for reference
-aln_rlr      -      alignment ruler string containing reference positions
-aln_qlt      -      alignment string for query quality
+aln_all      -      alignment with four lines for ruler, reference, alignment, query.
+aln_allq     -      as above, with a fifth line for quality.
+
+aln_rlr      -      ruler
+aln_ref      -      reference
+aln_aln      -      alignment
+aln_qry      -      query
+aln_qlt      -      quality
 ```
 
 ### Operators to retrieve mismatch and indel positions and sequences
