@@ -23,6 +23,28 @@ my $v_v_v = "25-267a";
   #      OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   #      SOFTWARE.
 
+=begin comment
+
+The structure of this program is:
+
+. parse command line: options and filter/selection/compute specifications
+. action options such as dictionary loading, defer specifications
+
+. read header line (obtain column names)
+. compile specifications into executable structures for compute and filtering
+. while read line:
+    . perform admin (e.g. SAM preloading)
+    . run executable structures for compute and filtering
+    . perform admin (e.g. demuxing)
+
+The outline above has deliberately been written as a single script without
+packages. The implementation is still being made clearer and better documented
+but is essentially simple.  Pick has a test set and has been battle tested for
+a number of years.
+
+=cut
+
+
 use strict;
 use warnings;
 use Digest::MD5 qw(md5_hex);
