@@ -5,16 +5,20 @@ set -euo pipefail
 simpleQ=false
 list=false
 help=false
-use_ref=
+
+viewer="samtools view -h"
+mode_wrap=cat
+extra_header=1
+N_wrap=0
 use_sam=-
+
+use_ref=
 use_bounds=
 beyond_bounds=
 use_zoom=
-extra_header=1
 dictlist=
-N_wrap=0
 
-while getopts :r:s:d:b:e:w:z:x:QLh opt
+while getopts :r:s:d:b:e:w:z:x:SQLh opt
 do
     case "$opt" in
     r)
@@ -50,6 +54,9 @@ do
     Q)
       simpleQ=true
       ;;
+    S)
+      viewer=cat
+      ;;
     L)
       list=true
       ;;
@@ -57,17 +64,14 @@ do
       use_zoom=$OPTARG
       ;;
     w)
-      N_wrap=$OPTARG
+      N_wrap=$OPTARG          # upgrade: test for number.
       ;;
     h)
       cat <<EOU
 Pretty-print alignments; allows focus on alignment boundaries (-b or -e) or specific intervals (-z).
 Wraps pick command line (use -L to view)
 
-Base usage: -r <REFERENCE> -s <SAM-FILE>
-
-Input is SAM. For bam files use
-  samtools view [-h] <bamfile> | showalign -r <REF> [options]
+Base usage: -r <REFERENCE> -s <SAM|BAM-FILE>
 
 To output wrapped alignments use -w <WIDTH>
 
@@ -93,7 +97,8 @@ To output wrapped alignments use -w <WIDTH>
               issue showalign [options] -L to see the constructed pick command line.
 
 -L            show rather than execute the command constructed by showalign.
--Q            use simplified quality scheme.
+-S            assume SAM format. Use if samtools is not available and input is SAM.
+-Q            use simplified quality scheme as below.
 
               .....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii
                      3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1  | 3  | 1 |
@@ -134,7 +139,6 @@ if [[ $use_sam == '-' ]]; then
 fi
 
 moreargs=
-mode_wrap=cat
 
 if (( N_wrap > 0 )); then
   mode_wrap="wrapalign $N_wrap"
@@ -156,9 +160,9 @@ fi
 
 if $list; then
 cat <<EOC
-   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",aln_allq^^%0A,joinall | $mode_wrap
+   $viewer $use_sam | pick --sam/"$use_ref" $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",aln_allq^^%0A,joinall | $mode_wrap
 EOC
 else
-   cat $use_sam | pick --sam/$use_ref $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",aln_allq^^%0A,joinall | $mode_wrap
+   $viewer $use_sam | pick --sam/"$use_ref" $dictlist --sam-aln-prefix='++ ' $moreargs ::"$extra_header",aln_allq^^%0A,joinall | $mode_wrap
 fi
 

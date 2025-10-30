@@ -1,4 +1,9 @@
 
+
+  !  try column, use default value if not existing.
+     :name^alternative,trycol. but looking back is fraught; prevents compute inbetween.
+     should be done at compile time.
+
   ?  in comparisons allow zero-arg primivites such as rowno.
 
   -  SAM support. Document/tighten internal conventions.
