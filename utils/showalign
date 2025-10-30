@@ -118,6 +118,12 @@ EOU
    esac
 done
 
+
+if ! command -v "samtools" > /dev/null && [[ $viewer != 'cat' ]]; then
+  >&2 echo "Command samtools not found. If input is SAM use option -S"
+  false
+fi
+
 shift $(($OPTIND-1))
 
 if (( $# > 0 )); then
