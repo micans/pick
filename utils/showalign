@@ -71,7 +71,8 @@ do
 Pretty-print alignments; allows focus on alignment boundaries (-b or -e) or specific intervals (-z).
 Wraps pick command line (use -L to view)
 
-Base usage: -r <REFERENCE> -s <SAM|BAM-FILE>
+Base usage: showalign -r <REFERENCE> -s <SAM|BAM-FILE>
+          : samtools view -F 2308 <SAM|BAM-FILE> | showalign -r <REFERENCE> -S
 
 To output wrapped alignments use -w <WIDTH>
 
@@ -84,10 +85,11 @@ To output wrapped alignments use -w <WIDTH>
 
 -d fname:tag:defval
               make the dictionary in fname available to pick with name tag and default value defval.
-              this will be passed as --fdict-tag/defval=fname to pick, to be used as ^tag,map in -x argument.
+              this will be passed as --fdict-tag/defval=fname to pick, to be used as KEY^tag,map in -x argument.
               set defval to __EXIT__ to cause an error if key is not found.
               defval can be omitted, causing unmappable keys to map to themselves.
               repeated use of -d is possible with the same or different tags.
+              A dictionary is a file with two columns, tab separated, <KEY><TAB><VALUE>.
 
 -x <pick-list>
               pick code to replace header before alignment. Default header is just the read name.
@@ -97,7 +99,7 @@ To output wrapped alignments use -w <WIDTH>
               issue showalign [options] -L to see the constructed pick command line.
 
 -L            show rather than execute the command constructed by showalign.
--S            assume SAM format. Use if samtools is not available and input is SAM.
+-S            assume SAM format. Use if samtools is not available or if input is SAM without header.
 -Q            use simplified quality scheme as below.
 
               .....,,,,,aaaaaAAAAAbbbbbBBBBBcccccCCCCCdddddDDDDDeeeeeEEEEEfffffFFFFFgggggGGGGGhhhhhHHHHHiiii
