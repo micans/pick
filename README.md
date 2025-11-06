@@ -1025,6 +1025,10 @@ These behaviours are implemented by changing the CIGAR sequence itself and intro
 `I` segments (additional query sequence) and `D` segments (additional reference sequence), as well as optionally
 adjusting the reference offset (column 4 in SAM format).
 
+`--sam-narrow-xy=<X>,<Y>` - reduce the alignment to reference coordinates `X-Y`. Like the previous options this changes
+the cigar string and the reference offset in the SAM record directly after it has been read before further processing.
+This can be used to efficiently zoom in on a reference sub-sequence of interest.
+
 Sam operators provided by pick (such as `aln_nmatch`) are aware of these changes and will use the substring of
 the CIGAR sequence that corresponds to the aligned parts.
 In alignments non-aligned parts are indicated in the alignment string with one or more of `_`, `` ` `` and `.`.
@@ -1234,7 +1238,7 @@ to retrieve information from the concatenated fields in picks last input column.
 ```
 --sam-aln-xy=<x,y>                  # Include reference [x-y] in alignment (extend if necessary)
 --sam-aln-context=<N>               # Add <N> bases of context to alignment outputs
---sam-narrow-xy=<x,y>               # Shrink alignment to reference bases [x-y]
+--sam-narrow-xy=<x,y>               # Confine alignment to reference bases [x-y]
 --sam-rbt=<x,y>                     # Set region-bound-context coordinates
 --sam-aln-prefix=<string>           # Set prefix. utils/wrapalign expects '++ '
 --sam-nonf                          # Do not normalise exterior indels to soft clips

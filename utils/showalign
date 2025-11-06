@@ -78,9 +78,9 @@ To output wrapped alignments use -w <WIDTH>
 
 -r <fname>    reference file (fasta).
 -s <fname>    SAM input (- for STDIN, which is default).
--e N          show N bases context beyond alignment bound.
+-e N          show N positions sequence context beyond alignment bounds.
 -b x,y        ensure alignment includes reference coordinates [x-y].
--z u,v        zoom / narrow alignment to reference coordinates [x-y] (removes all other alignment information).
+-z u,v        zoom/narrow alignment to reference coordinates [u-v] (removes all other alignment information).
 -w N          pass alignment to wrapalign with width N.
 
 -d fname:tag:defval
@@ -110,11 +110,11 @@ EOU
       exit
       ;;
     :)
-      error="Flag $OPTARG needs argument"
+      echo "Flag $OPTARG needs argument"
       false
       ;;
     ?)
-      error="Flag $OPTARG unknown"
+      echo "Flag $OPTARG unknown"
       false
       ;;
    esac
