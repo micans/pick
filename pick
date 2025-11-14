@@ -2395,7 +2395,10 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
 
       if ($get_qry_parts && $l != $::LC{suv}{qry_len}) {                              # spot3 qry_len_fixme
         if ($::Flink->[5] eq '*') { $::LC{suv}{qry_len} = $l; }
-        else { errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{suv}{qry_len}"); }
+        else {
+          errm(0, "Length discrepancy sequence-length $l vs cigar-inferred $::LC{suv}{qry_len} read $::Flink->[0] $::Flink->[1] $::Flink->[2]");
+          return 1;
+        }
       }
 
       $::LC{suv}{qry_posx}      =  $::LC{suv}{qry_trail5p_N} + 1;
@@ -2412,6 +2415,7 @@ print STDERR "-- $::Flink->[0] cigar OUT $::Flink->[5]\n" if $B_debug;
         $::LC{suv}{qry_trail3p} = '*';
       }
     }
+    return 0;
   }
                         # fixme do not attempt to lookup '*' reference (unmapped query),
                         # improve structure.
@@ -2986,7 +2990,7 @@ while (<>) {
     if ($I_AM_SAM & ($BIT_SAM_QSEQ | $BIT_SAM_RSEQ)) {                # Either query or ref sequence needed.
       if (sam_setup_sequences($I_AM_SAM & $BIT_SAM_QSEQ, $I_AM_SAM & $BIT_SAM_RSEQ)) { $Nsamdisc++; $Ndisc++; next; }
     }
-    sam_compute_suv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS);         # this runs always e.g. qry_trail5p_N et al
+    if (sam_compute_suv($I_AM_SAM & $BIT_SAM_QPARTS, $I_AM_SAM & $BIT_SAM_RPARTS))   { $Nsamdisc++; $Ndisc++; next; }
     sam_compute_aln()   if $I_AM_SAM & $BIT_SAM_ALN;
     ref_bounded_tally($::sam_rbt_x, $::sam_rbt_y) if $I_AM_SAM & $BIT_SAM_RBT_CLXY;    # --sam-rbt=x,y was used.
   }
