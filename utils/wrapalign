@@ -57,7 +57,8 @@ while (<>) {
   my @post = ();
   my $aln_pointer = 0;
 
-  while (my $l = shift @lines) {
+  while (@lines) {
+    my $l = shift @lines;
     if ($l =~ /^\+\+ /) {
       $aln[$aln_pointer] .= substr($l, 3);
       $aln_pointer++;
@@ -81,7 +82,7 @@ while (<>) {
     }
   }
   else {
-    print STDERR "No alignment found at $.\n";
+    print STDERR "No wrappable alignment found at $.\n";
   }
   for my $l (@post) { print "$l\n"; }
   print "\n\n";
