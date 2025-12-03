@@ -1,4 +1,6 @@
 
+  ?  an @criterion that stops processing after true/false transition.
+
   ?  in comparisons allow zero-arg primivites such as rowno.
 
   -  SAM support. Document/tighten internal conventions.
