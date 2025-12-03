@@ -888,8 +888,7 @@ sub read_dict {
    $::dict{$name} = {} unless $::dict{$name};
    $::dord{$name} = {} unless $::dord{$name};
    while(<$fh>) {
-      # chomp; my @F = split "\t";
-      chomp; my @F = split "\t", $_, 2;
+      chomp; my @F = split "\t";
       my $value = 1;
       if (@F >= 2 && $mode eq 'f') { $value = $F[1]; } else { $n_novalue++; }
       $::dict{$name}{$F[0]} = $value;
