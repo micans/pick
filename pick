@@ -888,12 +888,14 @@ sub read_dict {
    $::dict{$name} = {} unless $::dict{$name};
    $::dord{$name} = {} unless $::dord{$name};
 
+   my $fill_dord = ( grep { /\^\Q$name\E,dord/ } @::spec ) ? 1 : 0;      # on the nose, but effective.
+
    while(<$fh>) {
       chomp; my @F = split "\t";
       my $value = 1;
       if (@F >= 2 && $mode eq 'f') { $value = $F[1]; } else { $n_novalue++; }
       $::dict{$name}{$F[0]} = $value;
-      $::dord{$name}{$F[0]} = $.;
+      $::dord{$name}{$F[0]} = $. if $fill_dord;
    }
    if (! $fh->close()) { print STDERR "Error closing dictionary file $fname\n"; }
    my $n = keys %{$::dict{$name}};

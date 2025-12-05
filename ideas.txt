@@ -1,9 +1,4 @@
 
-  !  dord expensive for large data; make user load it explicitly.
-     this will reduce load on strim.
-     if we load dictionaries after compilation, we can infer whether dord is needed.
-     (perhaps dictionary names are needed during compilation)
-
   ?  an @criterion that stops processing after true/false transition.
 
   ?  in comparisons allow zero-arg primivites such as rowno.
@@ -23,6 +18,8 @@
 
   -  quants: for very large data, use heap to find data separating values.
      warn at compile time if dictionary does not exist.
+
+  -  dord currently prevented from loading if not used, via on the nose check.
 
   -  does debug need stacky?
 
