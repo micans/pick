@@ -520,7 +520,7 @@ my %cp_samdefs = (
      sam_rbt         => [ 0, ':u,u', sub { &ref_bounded_tally($::STACK[-2], $::STACK[-1]); $#::STACK -= 2; }, "x y\t-\tcompute region-bound-tally quantities for reference positions [x-y]\tsam" ],
      rbt_alnall      => [ 0, 's:', sub { push @::STACK, join "\n", map { $::sam_aln_prefix . $::LC{suv}{$_} } qw(rbt_alnrlr rbt_alnref rbt_alnaln rbt_alnqry rbt_alnqlt) }, "-\trbt_alnall\talignment for region\tsam" ],
      sam_get         => [ 2, 's:s,s', sub { $::STACK[-2] = ($::Flink->[11] =~ /(^|\t)\Q$::STACK[-2]\E:(.*?)(\t|$)/ ? $2 : $::STACK[-1]) }, "tag def\tsam_get\tvalue for <tag>, use def if absent\tsam" ],
-     sam_put         => [ 0, ':s,s', sub { $::Flink->[11] .= "\t$::STACK[-2]:$::STACK[-1]"; $#::STACK -= 2;}, "tag val\tsam_put\tstore val in tag in column 11\tsam" ],
+     sam_put         => [ 0, ':s,s', sub { my $tag = $::STACK[-2]; $tag =~ s/^(..)[.-]/$1:/; $::Flink->[11] .= "\t$tag:$::STACK[-1]"; $#::STACK -= 2;}, "tag val\tsam_put\tstore val in tag in column 11\tsam" ],
 
      suv             => [ 1, 's:s', sub { my $r = $::LC{suv}{$::STACK[-1]};  die "no SUV for $::STACK[-1]" unless defined($r); $::STACK[-1] = $r; }, "key\tvalue\tsam unified view lookup\tsam" ],
 
@@ -887,6 +887,7 @@ sub read_dict {
    my $n_novalue = 0;
    $::dict{$name} = {} unless $::dict{$name};
    $::dord{$name} = {} unless $::dord{$name};
+
    while(<$fh>) {
       chomp; my @F = split "\t";
       my $value = 1;
