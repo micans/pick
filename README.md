@@ -1300,6 +1300,9 @@ Hence, in the presence of selection, demux files may contain zero data rows.
 Demux output files have or do not have a header line in line with the `-k` and `-h` options,
 just like normal output.
 
+Use `--demux-buffer=<N>` to delay writes until `N` records have accumulated. For large
+data this will speed up proceedings.
+
 
 ### Combining demuxing and deselecting
 
@@ -1454,8 +1457,15 @@ pick  -h ::^'# (zut=#)':key:zut,fmtall:sequence,fasta > out.fa
 ```
 
 The `,fastq` operator works in exactly the same way as the `,fasta` operator.
-The result is a FASTQ record, where the quality string is currently always set to `Z`
+The result is a FASTQ record, where the quality string is set to `Z`
 in every position.
+
+The `,fastQ` operator additionally requires a quality string. For example, to
+demux reads from a BAM file based on the reference name:
+
+```
+samtools view some.bam | pick --demux-buffer=100 --demux=output --sam output:=^fastq/:3^.fastq.gz ::1:10:11,fastQ
+```
 
 
 ### Useful regular expression features

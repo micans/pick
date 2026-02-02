@@ -1,4 +1,12 @@
 
+  -  compile before reading the header line; infer a number of checks that are
+     tested after reading the header line, currently also in compile_compute.
+     - table dictionary load immediately before compilation so that column/dictionary names are known.
+     - other dictionaries load after compilation is successful
+     - during compile, accumulate column names expected to be present.
+     - maybe -x and adjacent logic tricky.
+     - during compile, column names are not yet associated with offsets, so placeholder/postpone.
+
   ?  an @criterion that stops processing after true/false transition.
 
   ?  in comparisons allow zero-arg primivites such as rowno.
