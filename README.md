@@ -80,17 +80,16 @@ In simple to middling cases pick can avoid both the need for a script (R, awk, P
 having to load the entire data set into memory.
 I use it in conjunction with UNIX tools such as `comm`, `join`, `sort` and `datamash` to simplify file-based computational workflows
 and make them more robust and understandable by promoting the use of column names as handles
-(as opposed to column indexes as used with `cut` and `awk`). You can
+(as opposed to column indexes as used with `cut` and `awk`). You can **use column names or column indexes to**
 
-- Use column names or column indexes to
 - Select columns
 - Change columns (using computation and string operations)
 - Combine columns into new columns (using computation and string operations)
-- Filter (or fork) rows on boolean clauses computed on columns
+- Filter or fork rows on boolean clauses computed on columns
+- Split/demultiplex rows to different output files based on (computed) labels in columns
 - Select multiple columns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression
 - Import dictionaries to test membership or to map values
-- Split/demultiplex rows to different output files based on (computed) labels in columns
 
 
 There is no downside, except, as ever, it comes with its own syntax for
@@ -98,10 +97,9 @@ computation. For plain column selection and row filtering this syntax is not nee
 **pick command lines look pleasant enough for common use cases.**
 
 Computation syntax is minimalist and terse, employing a stack language with just three types (variables, constants and operators).
-In order to work as a command line tool, the `pick` computation language **does away with whitespace entirely.**
-On first sight it might look arcane or terrifying, requiring a long second look.
-Compensating for the terse stack language, `pick`'s inner computation loop is simple and dependable.
-
+Accordingly, there is almost nothing to learn.
+In order to work efficiently as a command line tool, the `pick` computation language **does away with whitespace entirely** and
+uses punctuation to distinguish the three types.
 
 [Pick one or more columns](#pick-one-or-more-columns)  
 [Pick columns and filter or select rows](#pick-columns-and-filter-or-select-rows)  
