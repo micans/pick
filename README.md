@@ -85,7 +85,7 @@ and make them more robust and understandable by promoting the use of column name
 - Select columns
 - Change columns (using computation and string operations)
 - Combine columns into new columns (using computation and string operations)
-- Filter or fork rows on boolean clauses computed on columns
+- Filter or fork rows on boolean clauses computed on old and new columns
 - Split/demultiplex rows to different output files based on (computed) labels in columns
 - Select multiple columns using ranges or regular expressions
 - Take the same action on multiple columns using a lambda expression

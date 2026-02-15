@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Pick version
-my $v_v_v = "25-267a";
+my $v_v_v = "26-046";
 
   #                     Copyright (c) 2022-2025  Stijn van Dongen
   #
@@ -718,7 +718,7 @@ sub do_ifelse {
 
 my $envsettings = join "\n", map { sprintf("  %-20s %8s", $_, $PNAN{$_}) } keys %PNAN;
 my $opsections  = join ' ', (sort keys %{{ map { ($_, 1) } map { split '/', (split "\t", $_->[3])[3] } values %cp_opdefinitions }}, 'selection');
-$opsections =~ s/ (?=input)/\n/;                     # eye-balled to be middleish.
+# $opsections =~ s/ (?=input)/\n/;                     # eye-balled to be middleish.
 
 my $regexpointers = <<EOP;
 Useful perl regular expression features:
@@ -733,8 +733,36 @@ Regular expression examples:
    - pick -i '.*'::__^'(%5E\\s+|\\s+\$)',delg        # remove trailing/leading whitespace in all cells
 EOP
 
+my $misc_long_options =
+q{  --quant-NAME=fname Use quantiles in file fname for lookup with ,qnl and ,qnu
+  --idx-list         Output list of selected indexes
+  --name-list        Output list of selected column names
+  --idx-map          Output the two lists above
+  --progress         Ping progress every 1000000 rows
+  --progress=K/N     Ping progress every K rows, ping newline after N pings
+  --group=COLNAME    Group on COLNAME value, load previous row item with ^col,pload
+  --group-first-ref=COLNAME
+                     Group, skip first in group, load first row item with ^col,pload
+  --version          Output version
+  --inf=STRING       Set result of divide-by-zero to STRING (or use export PICK_DIV_INF=STRING)
+  --assert-other=fname
+                     Write all failing assertion rows to fname
+  --remind-me=TOPIC  Write reminder of TOPIC. Available topics: sam.
+  --sam              Read sam format (drop headers)
+  --sam-h            Read sam format, forward headers
+  --sam/ref.fa       Import reference fasta file
+  --sam-h/ref.fa     Import reference fasta file
+  --sam-aln-context  Display this much context around alignments
+  --sam-aln-mrk      Print markers near alignment (experimental, subject to change)
+  --sam-qlt-sim      Simplify quality scores; five step contraction to .,aAbBcCdDeEfF (..)
+  --sam-aln-xy=X/Y   Extend alignment to coordinates X-Y (if widening).
+  --sam-narrow-xy=X/Y  Reduce alignment to coordinates X-Y (if narrowing).
+  --sam-aln-prefix=STRING  put STRING before alignment display. Use '++ ' to work with showalign and wrapalign
+  --sam-rbt=X/Y      Set region-bound-tally coordinates (see pick -l sam)
+  --sam-nonf         Do not normalise exterior indels to soft clips};
 
-my $help_options=q{Options:
+my $help_options =
+q{Options:
   -h do not print header
   -o OR multiple select criteria (default is AND)
   -s OR multiple preselect criteria (default is AND)
@@ -774,7 +802,7 @@ my $help_options=q{Options:
   -zz ARG+ print url-decoding of ARG+
   -l or -l <string> list operators (matching section string if specified)
      to specify multiple sections use a comma-separated string.
-     sections: } . $opsections . q{
+     sections: } . $opsections . "\n\n$misc_long_options" . q{
 
   -H Longer pick description
 
@@ -807,6 +835,7 @@ my $help_options=q{Options:
 
   --other=fname      write discarded rows to fname
   --demux=colname    use the value in colname as file name to write the row to.
+  --demux-buffer=N   Buffer N items before writing to demux channel
 
   --version          version
 
@@ -822,10 +851,6 @@ my $help_options=q{Options:
        yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
 
                      Can be used to detect group boundaries in sorted data.
-
-  --idx-list         Output list of selected indexes
-  --name-list        Output list of selected column names
-  --idx-map          Output the two lists above
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria

@@ -6,6 +6,7 @@
      - during compile, accumulate column names expected to be present.
      - maybe -x and adjacent logic tricky.
      - during compile, column names are not yet associated with offsets, so placeholder/postpone.
+     - pluk: ::foo,i  ,u ,f  -> validate or transform
 
   ?  an @criterion that stops processing after true/false transition.
 
