@@ -75,6 +75,12 @@ while (<>) {
 
   my $o = 0;
   if (@aln) {
+    my @lengths = sort { $b <=> $a } map { length($_) } @aln; 
+    if ($lengths[0] > $lengths[-1]) {
+      for (@aln) {
+        $_ .= ' ' x ($lengths[0] - length($_));
+      }
+    }
     while ($o < length($aln[0])) {
       print join "\n", map { '++ ' . substr($_, $o, $lw) } @aln;
       print "\n.\n";
