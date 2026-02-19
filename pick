@@ -733,7 +733,7 @@ Regular expression examples:
    - pick -i '.*'::__^'(%5E\\s+|\\s+\$)',delg        # remove trailing/leading whitespace in all cells
 EOP
 
-my $misc_long_options =
+my $help_long_options =
 q{  --quant-NAME=fname Use quantiles in file fname for lookup with ,qnl and ,qnu
   --idx-list         Output list of selected indexes
   --name-list        Output list of selected column names
@@ -759,52 +759,7 @@ q{  --quant-NAME=fname Use quantiles in file fname for lookup with ,qnl and ,qnu
   --sam-narrow-xy=X/Y  Reduce alignment to coordinates X-Y (if narrowing).
   --sam-aln-prefix=STRING  put STRING before alignment display. Use '++ ' to work with showalign and wrapalign
   --sam-rbt=X/Y      Set region-bound-tally coordinates (see pick -l sam)
-  --sam-nonf         Do not normalise exterior indels to soft clips};
-
-my $help_options =
-q{Options:
-  -h do not print header
-  -o OR multiple select criteria (default is AND)
-  -s OR multiple preselect criteria (default is AND)
-  -x take complement of selected input column(s) (works with -i)
-  -i in-place: <HANDLE>::<COMPUTE> replaces <HANDLE> if it exists
-  -/<pat>  skip lines matching <pat>; use e.g. -/^# for commented lines, -/^@ for sam files
-  -//<pat> pass through lines matching <pat>
-     <pat> allows perl regular expressions, e.g. ^ $ . [] * ? (|) work.
-  -v verbose (-vv -vvv increase verbosity)
-  -e squash all white-space from computes and selections before parsing them
-  -q quiet (-qq -qqq increase quietness)
-  -d debug
-
-  -f force processing (allows both identical input and output column names)
-  -F fixed names; do not interpret names as regular expressions.
-     Default behaviour is to assume a regular expression if a name contains one of ^ $ [ \{ ( \ * ?
-  -R add _ column variable if no row name field exists in the header;
-    NOTE an empty field is recognised and mapped to _ automatically
-
-  -A print all input columns (selecting by colspec applies.
-  -A<N> <N> integer; insert new columns at position <N>. Negative <N> is relative to rightmost column.
-  -O<N> <N> integer; allow ragged input - merge all columns at/after position <N>
-  -E<N> <N> integer; expect <N> rows returned, exit with error if this is not the case.
-  / -P protect against 'nan' and 'inf' results (see -H for environment variables PICK_*_INF)
-  \ -Z as above, discard rows that need protecting
-
-  -k headerless input, use 1 2 .. for input column names
-     x-y for range from x to y
-     a+x-y*k for range from a + k*x to a+y*k with incrementes of k
-  -K headerless input, as above, use derived names to output column names
-  -U with -k and -K keep output columns unique and in original order
-  -W (weird mode) header exists but use 1 2 .. for column names (selection not applied to header)
-    1. consider using a=longcolumnname b=longercolumname; pick $a $b @$b/gt/0 @$a/lt/0 < data.txt
-    2. consider using --inames=CSV (see below; this will change names in the output)
-
-  -z  ARG+ print url-encoding of ARG+  (no argument prints a few especially useful cases)
-  -zz ARG+ print url-decoding of ARG+
-  -l or -l <string> list operators (matching section string if specified)
-     to specify multiple sections use a comma-separated string.
-     sections: } . $opsections . "\n\n$misc_long_options" . q{
-
-  -H Longer pick description
+  --sam-nonf         Do not normalise exterior indels to soft clips
 
   --inames=CSV       comma-separated values to use as column names instead of actual column names.
   --add-inames=CSV   The list must cover all columns in the input. Names that are used
@@ -850,12 +805,56 @@ q{Options:
 
        yes | head | pick -k --pstore/x:1,y:0 x::^y,pload y::x^x,pload,add
 
-                     Can be used to detect group boundaries in sorted data.
+                     Can be used to detect group boundaries in sorted data.};
+
+my $help_short_options =
+q{Options:
+  -h do not print header
+  -o OR multiple select criteria (default is AND)
+  -s OR multiple preselect criteria (default is AND)
+  -x take complement of selected input column(s) (works with -i)
+  -i in-place: <HANDLE>::<COMPUTE> replaces <HANDLE> if it exists
+  -/<pat>  skip lines matching <pat>; use e.g. -/^# for commented lines, -/^@ for sam files
+  -//<pat> pass through lines matching <pat>
+     <pat> allows perl regular expressions, e.g. ^ $ . [] * ? (|) work.
+  -v verbose (-vv -vvv increase verbosity)
+  -e squash all white-space from computes and selections before parsing them
+  -q quiet (-qq -qqq increase quietness)
+  -d debug
+
+  -f force processing (allows both identical input and output column names)
+  -F fixed names; do not interpret names as regular expressions.
+     Default behaviour is to assume a regular expression if a name contains one of ^ $ [ \{ ( \ * ?
+  -R add _ column variable if no row name field exists in the header;
+    NOTE an empty field is recognised and mapped to _ automatically
+
+  -A print all input columns (selecting by colspec applies.
+  -A<N> <N> integer; insert new columns at position <N>. Negative <N> is relative to rightmost column.
+  -O<N> <N> integer; allow ragged input - merge all columns at/after position <N>
+  -E<N> <N> integer; expect <N> rows returned, exit with error if this is not the case.
+  / -P protect against 'nan' and 'inf' results (see -H for environment variables PICK_*_INF)
+  \ -Z as above, discard rows that need protecting
+
+  -k headerless input, use 1 2 .. for input column names
+     x-y for range from x to y
+     a+x-y*k for range from a + k*x to a+y*k with incrementes of k
+  -K headerless input, as above, use derived names to output column names
+  -U with -k and -K keep output columns unique and in original order
+  -W (weird mode) header exists but use 1 2 .. for column names (selection not applied to header)
+    1. consider using a=longcolumnname b=longercolumname; pick $a $b @$b/gt/0 @$a/lt/0 < data.txt
+    2. consider using --inames=CSV (see below; this will change names in the output)
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
   -AT is useful for inspecting/checking select criteria
   use -Ai <name>::<COMPUTE> to change column <name> to <COMPUTE>,
-  use -Aik <num>::<COMPUTE> to change column <num> to <COMPUTE>.};
+  use -Aik <num>::<COMPUTE> to change column <num> to <COMPUTE>.
+
+  -H Longer pick description
+  -z  ARG+ print url-encoding of ARG+  (no argument prints a few especially useful cases)
+  -zz ARG+ print url-decoding of ARG+
+  -l or -l <string> list operators (matching section string if specified)
+     to specify multiple sections use a comma-separated string.
+     sections: } . $opsections . "\n\n$help_long_options";
 
 my $spec_forms = q{
   (1) <HANDLE>                 output <HANDLE> (column name, index, or derived compute name)
@@ -1227,7 +1226,7 @@ Simple example: pick TAG ID < table.txt
 <colspec>$spec_forms
   See further below for <op> list.
 
-$help_options
+$help_short_options
 
 <colspec>
 HANDLE identifies either a column by name, or a derived value as in form (4).
@@ -1855,7 +1854,8 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
             die "Stack underflow in compute [$name], operator $what" unless $stack_size >= $N_required;
             if ($what eq 'sprintf') {
                my ($N, $fmt) = get_printall_format($expanded_compute[0][1]);
-$stack_size--, die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name" unless $N + 1 == $stack_size;
+               $stack_size--;
+               die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name (Use #, not %)" unless $N + 1 == $stack_size;
                $expanded_compute[0][1] = $fmt;
             }
             elsif ($what eq 'test') {
