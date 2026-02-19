@@ -32,7 +32,6 @@ EOT
 
 #  The full format is
 #
-#  - paragraphs, split by blank lines (double newline).
 #  - any line not starting with '++ ' or being a single '.' is copied verbatim.
 #  - blocks of lines starting with '++ ' are taken as alignments
 #  - lines consisting of a single '.' are considered to be the separator for already-wrapped alignments.
@@ -40,57 +39,57 @@ EOT
 #  - the result is wrapped with the specified wrapping width.
 #  - the output blocks again start with '++ ' and wrapped blocks are separated by a line consisting of a single '.' .
 
-local $/ = "";
-
 my $lw = 160;
 
 if (@ARGV && $ARGV[0] =~ /^\d+$/) {
   $lw = shift @ARGV;
 }
 
+sub aln_append {
+  my $s1 = scalar @::aln;
+  my $s2 = scalar @::aln_unit;
+  if ($s1 && $s1 != $s2) {
+    die "Alignment has subunits of different counts (current $s1 new $s2 at $.)";
+  }
+  my @lengths = sort { $b <=> $a } map { length($_) } @::aln_unit;
+  for (my $i=0; $i < @::aln_unit; $i++) {
+    $::aln[$i] .= $::aln_unit[$i] . ' ' x ($lengths[0] - length($::aln_unit[$i]));
+  }
+  @::aln_unit = ();
+}
+
+sub aln_flush {
+  my $o = 0;
+  while ($o < length($::aln[0])) {
+    print join "\n", map { '++ ' . substr($_, $o, $lw) } @::aln;
+    print "\n.\n";
+    $o += $lw;
+  }
+  @::aln = ();
+}
+
+@::aln = ();
+@::aln_unit = ();
+
+
 while (<>) {
 
-  chomp; my $par = $_;
-  my @lines = split "\n", $par;
-  my @pre = ();
-  my @aln = ();
-  my @post = ();
-  my $aln_pointer = 0;
+  chomp;
+  my $l = $_;
 
-  while (@lines) {
-    my $l = shift @lines;
-    if ($l =~ /^\+\+ /) {
-      $aln[$aln_pointer] .= substr($l, 3);
-      $aln_pointer++;
-    }
-    elsif ($l eq '.') {
-      $aln_pointer = 0;
-    }
-    else {
-      if (@aln) { push @post, $l } else { push @pre, $l }
-    }
+  if ($l =~ /^\+\+ /) {
+    push @::aln_unit, substr($l, 3);
   }
-
-  for my $l (@pre) { print "$l\n"; }
-
-  my $o = 0;
-  if (@aln) {
-    my @lengths = sort { $b <=> $a } map { length($_) } @aln; 
-    if ($lengths[0] > $lengths[-1]) {
-      for (@aln) {
-        $_ .= ' ' x ($lengths[0] - length($_));
-      }
-    }
-    while ($o < length($aln[0])) {
-      print join "\n", map { '++ ' . substr($_, $o, $lw) } @aln;
-      print "\n.\n";
-      $o += $lw;
-    }
+  elsif ($l eq '.' && @::aln_unit) {
+    aln_append();
   }
   else {
-    print STDERR "No wrappable alignment found at $.\n";
+    aln_append() if @::aln_unit;
+    aln_flush()  if @::aln;
+    print "$l\n";
   }
-  for my $l (@post) { print "$l\n"; }
-  print "\n\n";
 }
+
+aln_append() if @::aln_unit;
+aln_flush()  if @::aln;
 
