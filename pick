@@ -415,14 +415,14 @@ my %cp_opdefinitions =
      cgmax     => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
      cgcount   => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
 
-     get       => [ 2, 's:s,s', sub { my $item =  $::STACK[-2] =~ qr/$::STACK[-1]/
+     get       => [ 2, 's:s,s', sub { my $re = $::STACK[-1]; $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg; my $item =  $::STACK[-2] =~ qr/$re/
                                              ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
      uie       => [ 2, 's:s,s', sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/branch/test" ],
-     ed        => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
-     edg       => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
-     del       => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
-     delg      => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
-     npat      => [ 2, 'u:s,s', sub { $::STACK[-2] = () = ($::STACK[-2] =~ /$::STACK[-1]/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
+     ed        => [ 3, 's:s,s,s', sub { my $re = $::STACK[-2]; $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg; $::STACK[-3] =~ s/$re/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
+     edg       => [ 3, 's:s,s,s', sub { my $re = $::STACK[-2]; $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg; $::STACK[-3] =~ s/$re/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
+     del       => [ 2, 's:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] =~ s/$re// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
+     delg      => [ 2, 's:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] =~ s/$re//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
+     npat      => [ 2, 'u:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] = () = ($::STACK[-2] =~ /$re/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
      nchar     => [ 2, 'u:s,s', sub { my ($x, $L, $n) = ($::STACK[-2], length($::STACK[-2]), 0); while ($L--) { $n++ if chop($x) eq $::STACK[-1] } $::STACK[-2] = $n; }, "x c\tnc\tCount char c in x\tstring" ],
      map       => [ 2, 's:s,s', sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
                                "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
