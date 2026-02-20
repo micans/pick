@@ -1920,7 +1920,7 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                if ($it->[1] eq '~' || $it->[1] eq '/~') {
                   my $it2 = $expanded_compute[-2];
                   if ($it2->[0] == $TYPE_SCALAR) { $it2->[1] = compile_re($it2->[1], "test($it->[1])"); }
-                  else                           { print STDERR "-- regular expression for ,test operator will be obtained from $it2->[1] --\n"; }
+                  else                           { print STDERR "-- regular expression for ,test operator will be obtained from $it2->[1] --\n" unless $it2->[1] eq 'reqm'; }
                }
             }
             elsif ($what =~ /^(del|get|delg|ed|edg|npat|edbr|edgbr)$/) {

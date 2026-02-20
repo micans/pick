@@ -1472,7 +1472,7 @@ samtools view some.bam | pick --demux-buffer=100 --demux=output --sam output:=^f
    be relevant for `get` (see below).  **In pick computations** this has to be
    specified as `(?%3A...)` due to the special meaning of the colon.
 
--  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  del  delg`, e.g.
+-  Use `\K` (keep) to anchor a pattern but retain it with `ed  edg  edbr edgbr del  delg`, e.g.
 
    `:HANDLE^'patx\Kpaty',delg` will retain pattern `patx` and only delete pattern `paty`.
 
@@ -1768,7 +1768,7 @@ Output: `md5 urldc urlec zp`
 
 Precision: `dd frac pct pml sn`
 
-Regular expressions: `del delg ed edg get`
+Regular expressions: `del delg ed edg get npat edbr edgbr reqm`
 
 Sam file support: `qrystart qryend  qrycov  qrylen refstart refend refcov reflen cgsum cgmax cgcount`  
 Use `--sam` (sam input) or `--sam-h` (additionally copy/output sam header) to activate these operators
@@ -1804,7 +1804,9 @@ delg        x p         x =~ s/p//          Globally delete pattern p in x [stri
 div         x y         x/y                 Division, fraction, (cf -P and PICK_DIV_INF) [arithmetic]
 dup         x           x x                 Duplicate top entry x [stack]
 ed          x p s       x =~ s/p/s/         Substitute pattern p by s in x [string/regex]
+edbr        x p s       x =~ s/p/s/         As ed, $1 $2 .. available [string/regex]
 edg         x p s       x =~ s/p/s/g        Globally substitute pattern p by s in x [string/regex]
+edgbr       x p s       x =~ s/p/s/g        As edg, $1 $2 .. available [string/regex]
 exp         x           e**x                Exponential function applied to x [math]
 exp10       x           10^x                10 to the power of x [math]
 fasta       i s         fasta format        ID and sequence in FASTA format [sam]
@@ -1846,6 +1848,7 @@ pml         x y N       pct(x/y)            Promille of x relative to y with N d
 pop         x           -                   Remove top entry x from stack [stack]
 pow         x y         x**y                x raised to power y [arithmetic]
 r0wno       -           x                   Push current table (start zero) row number x onto stack [input]
+reqm        s           re                  quote-meta-regex [string/regex]
 rc          x           rc(x)               Reverse complement [string]
 rev         x           rev(x)              String reverse of x [string]
 rot13       x           rot13(x)            Rot13 encoding of x [crypto]
