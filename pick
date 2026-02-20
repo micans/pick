@@ -415,13 +415,15 @@ my %cp_opdefinitions =
      cgmax     => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'max') }, "c s\tMax of s in c\tMax of lengths of s items in cigar string c\tstring/sam" ],
      cgcount   => [ 2, 'u:s,s', sub { $::STACK[-2] = acigar($::STACK[-2], $::STACK[-1], 'count') }, "c s\tCount of s in c\tCount of s items in cigar string c\tstring/sam" ],
 
-     get       => [ 2, 's:s,s', sub { my $re = $::STACK[-1]; $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg; my $item =  $::STACK[-2] =~ qr/$re/
-                                             ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
+     get       => [ 2, 's:s,s', sub { my $item =  $::STACK[-2] =~ $::STACK[-1] ? (defined($1) ? $1 : $&) : ""; $::STACK[-2] = $item; }, "x p\tp-match-of-x\tIf x matches pattern p take outer () group or entire match, empty string otherwise (cf uie)\tstring/regex" ],
      uie       => [ 2, 's:s,s', sub { $::STACK[-2] = $::STACK[-1] unless length($::STACK[-2])}, "x y\tx-or-y\tUse x if not empty, otherwise use y\tstring/branch/test" ],
-     ed        => [ 3, 's:s,s,s', sub { my $re = $::STACK[-2]; $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg; $::STACK[-3] =~ s/$re/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
-     edg       => [ 3, 's:s,s,s', sub { my $re = $::STACK[-2]; $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg; $::STACK[-3] =~ s/$re/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
-     del       => [ 2, 's:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] =~ s/$re// }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
-     delg      => [ 2, 's:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] =~ s/$re//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
+     ed        => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
+     edg       => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
+     edbr      => [ 3, 's:s,s,s', sub { $::STACK[-3] = do_ed_br($::STACK[-3], $::STACK[-2], $::STACK[-1], 0); }, "x p s\tx =~ s/p/s/\tAs ed, \$1 \$2 .. available\tstring/regex" ],
+     edgbr     => [ 3, 's:s,s,s', sub { $::STACK[-3] = do_ed_br($::STACK[-3], $::STACK[-2], $::STACK[-1], 1); }, "x p s\tx =~ s/p/s/\tAs edg, \$1 \$2 .. available\tstring/regex" ],
+     del       => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]//  }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
+     delg      => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
+     reqm      => [ 1, 's:s',   sub { my $re = quotemeta($::STACK[-1]); $::STACK[-1] = qr/$re/; }, "s\tre\tquote-meta-regex\tstring/regex" ],
      npat      => [ 2, 'u:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] = () = ($::STACK[-2] =~ /$re/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
      nchar     => [ 2, 'u:s,s', sub { my ($x, $L, $n) = ($::STACK[-2], length($::STACK[-2]), 0); while ($L--) { $n++ if chop($x) eq $::STACK[-1] } $::STACK[-2] = $n; }, "x c\tnc\tCount char c in x\tstring" ],
      map       => [ 2, 's:s,s', sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
@@ -713,6 +715,28 @@ sub do_ifelse {
   else {
     return length($_[0]) ? $_[1] : $_[2];
   }
+}
+
+sub do_ed_br_helper {
+    my ($target, $inst, $starts, $ends) = @_; # $inst is now a local copy of the template
+    $inst =~ s{\$(\d+)}{
+        my $idx = $1;
+        (defined $starts->[$idx])
+            ? substr($target, $starts->[$idx], $ends->[$idx] - $starts->[$idx])
+            : ""
+    }ge;
+    return $inst;
+};
+
+sub do_ed_br {
+   my ($data, $pattern, $replace, $global) = @_;
+
+   if ($global) {
+       $data =~ s/$pattern/do_ed_br_helper($data, $replace, [ @- ], [ @+ ])/ge;
+   } else {
+       $data =~ s/$pattern/do_ed_br_helper($data, $replace, [ @- ], [ @+ ])/e;
+   }
+   return $data;
 }
 
 
@@ -1522,6 +1546,8 @@ my $TYPE_LUSPUV = 4;    # Look up s(p)uv. sam (parts) unified view.
 
 my %chartypetonum = ( '^', $TYPE_SCALAR, ':', $TYPE_HANDLE, ',', $TYPE_OPATOR );
 
+my @typelist = ( 'not used', 'SCALAR', 'HANDLE', 'OPATOR', 'LUSPUV' );
+
 sub parse_compute {
 
   my ($handle, $spec) = @_;
@@ -1868,6 +1894,17 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                my $test = $expanded_compute[-1];
                die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname" unless $test->[0] == $TYPE_SCALAR;
                $::pstore_init{$test->[1]} = $PSTORE_DEFAULT;
+            }
+            elsif ($what =~ /^(del|get|delg|ed|edg|npat|edbr|edgbr)$/) {
+               my $test = substr($what, 0, 2) eq 'ed' ? $expanded_compute[-2] : $expanded_compute[-1];
+               if ($test->[0] == $TYPE_SCALAR) {
+                  $test->[1] =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
+                  $test->[1] = qr/$test->[1]/;
+               }
+               else {
+                  print STDERR "-- Operator $what allowed through with regular expression '$test->[1]' of type $typelist[$test->[0]] --\n";
+                  print STDERR "-- Use reqm to protect if necessary --\n";
+               }
             }
             elsif ($what eq 'sam_get') {
               my $test = $expanded_compute[-2];
