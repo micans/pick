@@ -728,6 +728,25 @@ sub do_ed_br_helper {
     return $inst;
 };
 
+sub compile_re {
+   my ($re, $caller) = @_;
+   $re =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
+   my $re2 = eval { qr/$re/ };
+   if ($@) {
+      print STDERR "-- $re regex compile error, caller $caller: $@";
+      print STDERR <<EOT;
+Ensure pick receives a valid perl regular expression. E.g. use '\\Q<yourstuff>\\E'
+as esccaping mechanism (use single quotes in the shell to retain backslash characters).
+If you use column entries as regex (who needs that?) then they need to be valid
+regular expressions, or use the ,reqm operator to make them match as a literal string.
+> pick -l regex
+provides a few reminders of useful perl regex constructs.
+EOT
+      exit(1);
+   }
+   return $re2;
+}
+
 sub do_ed_br {
    my ($data, $pattern, $replace, $global) = @_;
 
@@ -1751,13 +1770,8 @@ sub compile_select {
     $sel->[3] = $presel_handle ? $presel_handle->{$name} : $::handle_map{$name};    # fixme overwrite inelegant
 
     if ($op eq '~' || $op eq '/~') {
-      if ($indirection) {
-        print STDERR "-- column $name entries will be used as regular expression --\n";
-      }
-      else {
-        $val =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
-        $sel->[2] = qr/$val/;
-      }
+      if ($indirection) { print STDERR "-- column $name entries will be used as regular expression --\n"; }
+      else              { $sel->[2] = compile_re($val, "select($op)"); }
     }
     if ($indirection) {
        if ($caller eq 'select') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
@@ -1905,21 +1919,13 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                unless $it->[0] == $TYPE_SCALAR && defined($sel_opdefinitions{$it->[1]});
                if ($it->[1] eq '~' || $it->[1] eq '/~') {
                   my $it2 = $expanded_compute[-2];
-                  if ($it2->[0] == $TYPE_SCALAR) {
-                     $it2->[1] =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
-                     $it2->[1] = qr/$it2->[1]/;
-                  }
-                  else {
-                     print STDERR "-- regular expression for ,test operator will be obtained from $it2->[1] --\n";
-                  }
+                  if ($it2->[0] == $TYPE_SCALAR) { $it2->[1] = compile_re($it2->[1], "test($it->[1])"); }
+                  else                           { print STDERR "-- regular expression for ,test operator will be obtained from $it2->[1] --\n"; }
                }
             }
             elsif ($what =~ /^(del|get|delg|ed|edg|npat|edbr|edgbr)$/) {
                my $it = substr($what, 0, 2) eq 'ed' ? $expanded_compute[-2] : $expanded_compute[-1];
-               if ($it->[0] == $TYPE_SCALAR) {
-                  $it->[1] =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
-                  $it->[1] = qr/$it->[1]/;
-               }
+               if ($it->[0] == $TYPE_SCALAR) { $it->[1] = compile_re($it->[1], $what); }
                else {
                   print STDERR "-- Operator $what allowed through with regular expression '$it->[1]' of type $typelist[$it->[0]] --\n";
                   print STDERR "-- Use reqm to protect if necessary --\n";
