@@ -1904,7 +1904,7 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
             if ($what eq 'sprintf') {
                my ($N, $fmt) = get_printall_format($expanded_compute[0][1]);
                $stack_size--;
-               die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name (Use #, not %)" unless $N + 1 == $stack_size;
+               die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name (Use #, not %)" unless $N == $stack_size;
                $expanded_compute[0][1] = $fmt;
             }
             elsif ($what eq 'pload') {
@@ -1927,7 +1927,7 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                my $it = substr($what, 0, 2) eq 'ed' ? $expanded_compute[-2] : $expanded_compute[-1];
                if ($it->[0] == $TYPE_SCALAR) { $it->[1] = compile_re($it->[1], $what); }
                else {
-                  print STDERR "-- Operator $what allowed through with regular expression '$it->[1]' of type $typelist[$it->[0]] --\n";
+                  print STDERR "-- Operator $what allowed through with regular expression resulting from '$it->[1]' of type $typelist[$it->[0]] --\n" unless $it->[1] eq 'reqm';
                   print STDERR "-- Use reqm to protect if necessary --\n";
                }
             }
