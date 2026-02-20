@@ -1750,6 +1750,15 @@ sub compile_select {
     $sel->[0] = $opdef->[1];             # fixme overwrite inelegant
     $sel->[3] = $presel_handle ? $presel_handle->{$name} : $::handle_map{$name};    # fixme overwrite inelegant
 
+    if ($op eq '~' || $op eq '/~') {
+      if ($indirection) {
+        print STDERR "-- column $name entries will be used as regular expression --\n";
+      }
+      else {
+        $val =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
+        $sel->[2] = qr/$val/;
+      }
+    }
     if ($indirection) {
        if ($caller eq 'select') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
        else                     { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$val}); }
@@ -1884,33 +1893,43 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name (Use #, not %)" unless $N + 1 == $stack_size;
                $expanded_compute[0][1] = $fmt;
             }
-            elsif ($what eq 'test') {
-               my $test = $expanded_compute[-1];
-               die "Operator 'test' requires third operand to be a known test (you supplied $test->[1])"
-               unless $test->[0] == $TYPE_SCALAR && defined($sel_opdefinitions{$test->[1]});
-            }
             elsif ($what eq 'pload') {
                die "Operator 'pload' requires option --pstore (or --group)" unless $B_pstore;
-               my $test = $expanded_compute[-1];
-               die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname" unless $test->[0] == $TYPE_SCALAR;
-               $::pstore_init{$test->[1]} = $PSTORE_DEFAULT;
+               my $it = $expanded_compute[-1];
+               die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname" unless $it->[0] == $TYPE_SCALAR;
+               $::pstore_init{$it->[1]} = $PSTORE_DEFAULT;
+            }
+            elsif ($what eq 'test') {
+               my $it = $expanded_compute[-1];
+               die "Operator 'test' requires third operand to be a known test (you supplied $it->[1])"
+               unless $it->[0] == $TYPE_SCALAR && defined($sel_opdefinitions{$it->[1]});
+               if ($it->[1] eq '~' || $it->[1] eq '/~') {
+                  my $it2 = $expanded_compute[-2];
+                  if ($it2->[0] == $TYPE_SCALAR) {
+                     $it2->[1] =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
+                     $it2->[1] = qr/$it2->[1]/;
+                  }
+                  else {
+                     print STDERR "-- regular expression for ,test operator will be obtained from $it2->[1] --\n";
+                  }
+               }
             }
             elsif ($what =~ /^(del|get|delg|ed|edg|npat|edbr|edgbr)$/) {
-               my $test = substr($what, 0, 2) eq 'ed' ? $expanded_compute[-2] : $expanded_compute[-1];
-               if ($test->[0] == $TYPE_SCALAR) {
-                  $test->[1] =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
-                  $test->[1] = qr/$test->[1]/;
+               my $it = substr($what, 0, 2) eq 'ed' ? $expanded_compute[-2] : $expanded_compute[-1];
+               if ($it->[0] == $TYPE_SCALAR) {
+                  $it->[1] =~ s/\\Q(.*?)\\E/quotemeta($1)/eg;
+                  $it->[1] = qr/$it->[1]/;
                }
                else {
-                  print STDERR "-- Operator $what allowed through with regular expression '$test->[1]' of type $typelist[$test->[0]] --\n";
+                  print STDERR "-- Operator $what allowed through with regular expression '$it->[1]' of type $typelist[$it->[0]] --\n";
                   print STDERR "-- Use reqm to protect if necessary --\n";
                }
             }
             elsif ($what eq 'sam_get') {
-              my $test = $expanded_compute[-2];
-              die "Operator 'sam_get' requires operand that is a column name scalar, e.g. ^NM.i or ^NM-i" unless $test->[0] == $TYPE_SCALAR;
-              $test->[1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
-              die "Expect sam tag format XX:[AifZHB]" unless $test->[1] =~ /^..:[AifZHB]/;
+              my $it = $expanded_compute[-2];
+              die "Operator 'sam_get' requires operand that is a column name scalar, e.g. ^NM.i or ^NM-i" unless $it->[0] == $TYPE_SCALAR;
+              $it->[1] =~ s/(^..)[-.]/$1:/;            # to avoid forcing use of %3A to encode colon.
+              die "Expect sam tag format XX:[AifZHB]" unless $it->[1] =~ /^..:[AifZHB]/;
             }
            $stack_size += ($N_pushed - $N_consumed);
            my ($post, $pre) = split ':', $cp_opdefinitions{$comp->[1]}[1];
