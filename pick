@@ -361,8 +361,8 @@ my %cp_opdefinitions =
      hmeanall  => [ 0, 'n:n*', sub { @::STACK = hmeanall }, "*\thmean(Stack)\tHarmonic mean of all entries in stack\tarithmetic/devour" ],
      gmeanall  => [ 0, 'n:n*', sub { my $x = 1; $x *= abs($_) for @::STACK; @::STACK = @::STACK ? ($x**(1/@::STACK)) : (1.0) }, "*\tgmean(Stack)\tGeometric mean of all entries in stack, multiplication\tarithmetic/devour" ],
      joinall   => [ 1, 's:s*,s', sub { my $j = pop(@::STACK); my $x = join $j, @::STACK; @::STACK = ($x) }, "* s\tStack-joined-by-s\tStringified stack with s as separator\tstring/devour" ],
-     fmtall    => [ 1, 's:s,s*', sub { my $fmt = shift(@::STACK); @::STACK = fmtall($fmt) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/format/devour" ],
-     sprintf   => [ 1, 's:s,s*', sub { my $fmt = shift(@::STACK); @::STACK = sprintf($fmt, @::STACK) }, "f *\tSprintf-*-into-f\tSprintf stack\tstring/format/devour" ],
+     fmtall    => [ 1, 's:s,s*', sub { my $fmt = shift(@::STACK); @::STACK = ( fmtall($fmt) ) }, "f *\tMap-*-into-f\tIn f replace # instances by stack\tstring/format/devour" ],
+     sprintf   => [ 1, 's:s,s*', sub { my $fmt = shift(@::STACK); @::STACK = ( sprintf($fmt, @::STACK) ) }, "f *\tSprintf-*-into-f\tSprintf stack\tstring/format/devour" ],
 
      add       => [ 2, 'n:n,n', sub { $::STACK[-2] += $::STACK[-1] }, "x y\tx+y\tAdd x and y, sum, addition\tarithmetic" ],
      rand      => [ 1, 'n:n',   sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
@@ -1903,8 +1903,7 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
             die "Stack underflow in compute [$name], operator $what" unless $stack_size >= $N_required;
             if ($what eq 'sprintf') {
                my ($N, $fmt) = get_printall_format($expanded_compute[0][1]);
-               $stack_size--;
-               die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name (Use #, not %)" unless $N == $stack_size;
+               die "sprintf format count $N in format [$fmt] does not correspond to stack size $stack_size in compute $name (Use #, not %)" unless $N + 1 == $stack_size;
                $expanded_compute[0][1] = $fmt;
             }
             elsif ($what eq 'pload') {
