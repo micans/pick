@@ -1934,9 +1934,37 @@ is stored as a stack with code references where needed.  I see no drastic
 improvements available in pure perl, but I'd love to be wrong about this
 (unwrapping the code references may lead to some speed-up but code modularity would suffer).
 
-It is tempting to implement pick in C or Rust to get a speed boost.  However,
-reinventing an integer/float/string equivalence system (with its many niggling
-corner cases) from scratch does not seem right (where's the C library for that?).
+
+### Warnings
+
+Pick conducts many checks during both compile and run time and has an array of useful warnings it may emit.
+Some warnings may come from perl itself due to specific data/operator combinations.
+They are most likely to be among these examples:
+
+```
+Non-fatal:
+   - Argument "foo" isn't numeric in addition (+)
+
+Fatal:
+   - Can't take log of -1
+   - Illegal division by zero
+```
+
+Use pick `-P` option to protect against the fatal errors, or use row filtering 
+with [preselections](#preselections). For the numeric/string conflict make sure the data is valid
+for the computation.
+
+
+### Future speed
+
+It is tempting to implement pick in C or Rust to get a speed boost.
+~~However, reinventing an integer/float/string equivalence system (with its many niggling corner cases) from scratch does not seem right (where's the C library for that?).~~
+My thinking has changed around this - (1) using pick a lot (2) large file speed boost please (3) fun project.
+I aim to reimplement pick in Rust (working name pluk), but it will probably be a while before I get to it, having to learn Rust to a decent standard first.
+
+
+### Current speed
+
 Below gives a rough indication of pick speed relative to baseline perl speed;
 the latter is measured as a skeleton loop over lines of input with each line split into fields.
 The timings can be perfomed by running `make time` and `make time2` in the test directory.
