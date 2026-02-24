@@ -101,6 +101,6 @@ Accordingly, there is almost nothing to learn.
 In order to work efficiently as a command line tool, the `pick` computation language **does away with whitespace entirely** and
 uses punctuation to distinguish the three types.
 
-Full documentation is in the [Pick User Manual(doc/PICK-USER-MANUAL.md)
+Full documentation is in the [Pick User Manual](doc/PICK-USER-MANUAL.md)
 
 
