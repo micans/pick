@@ -53,7 +53,7 @@ use List::Util qw(min max);
 use IO::File;
 use Data::Dumper;
 use POSIX;
-use IO::Uncompress::AnyInflate;
+use IO::Uncompress::Gunzip;
 # use B::Deparse ();      # seems slow to load. I use it incidentally to pretty-print all code refs.
 
 
@@ -927,8 +927,8 @@ my $nameslist = "";
 sub read_quant {
    my ($name, $fname) = @_;
 
-   my $fh = IO::Uncompress::AnyInflate->new($fname, Transparent => 1)
-   or die "Error opening $fname for dict loading: $IO::Uncompress::AnyInflate::AnyInflateError\n";
+   my $fh = IO::Uncompress::Gunzip->new($fname, Transparent => 1)
+   or die "Error opening $fname for dict loading: $IO::Uncompress::Gunzip::GunzipError\n";
 
    $::quant{$name} = [];
    my $cur = -POSIX::DBL_MAX;
@@ -949,8 +949,8 @@ print STDERR "-- quant $name has $n levels after reading $fname\n" if $L_verbose
 sub read_dict {
    my ($name, $fname, $mode) = @_;
 
-   my $fh = IO::Uncompress::AnyInflate->new($fname, Transparent => 1)
-   or die "Error opening $fname for dict loading: $IO::Uncompress::AnyInflate::AnyInflateError\n";
+   my $fh = IO::Uncompress::Gunzip->new($fname, Transparent => 1)
+   or die "Error opening $fname for dict loading: $IO::Uncompress::Gunzip::GunzipError\n";
 
    my $n_novalue = 0;
    $::dict{$name} = {} unless $::dict{$name};
@@ -974,8 +974,8 @@ print STDERR "-- dictionary $name has $n_novalue keys set to value 1\n" if $L_ve
 sub read_tbdict {
    my ($name, $keycol, $fname) = @_;
 
-   my $fh = IO::Uncompress::AnyInflate->new($fname, Transparent => 1)
-   or die "Error opening $fname for table dict loading: $IO::Uncompress::AnyInflate::AnyInflateError\n";
+   my $fh = IO::Uncompress::Gunzip->new($fname, Transparent => 1)
+   or die "Error opening $fname for table dict loading: $IO::Uncompress::Gunzip::GunzipError\n";
 
    my $header=<$fh>; chomp $header; my @header = split "\t", $header; my %h = ();
    my $keycolindex = defined($keycol) ? -1 : 0;
@@ -1004,8 +1004,8 @@ print STDERR "-- Keys to be used with [^:]KEY,map\n" if $L_verbose >= 1 && !leng
 sub read_fadict {
    my ($name, $fname, $NF) = @_;
 
-   my $fh = IO::Uncompress::AnyInflate->new($fname, Transparent => 1)
-   or die "Error opening $fname for table dict loading: $IO::Uncompress::AnyInflate::AnyInflateError\n";
+   my $fh = IO::Uncompress::Gunzip->new($fname, Transparent => 1)
+   or die "Error opening $fname for table dict loading: $IO::Uncompress::Gunzip::GunzipError\n";
 
    my ($id, $seq) = (undef, "");
    while(<$fh>) {
@@ -1080,8 +1080,8 @@ sub get_revquant {
 sub read_fqdict {
    my ($name, $fname) = @_;
 
-   my $fh = IO::Uncompress::AnyInflate->new($fname, Transparent => 1)
-   or die "Error opening $fname for table dict loading: $IO::Uncompress::AnyInflate::AnyInflateError\n";
+   my $fh = IO::Uncompress::Gunzip->new($fname, Transparent => 1)
+   or die "Error opening $fname for table dict loading: $IO::Uncompress::Gunzip::GunzipError\n";
 
    my $id = undef;
    while(<$fh>) {

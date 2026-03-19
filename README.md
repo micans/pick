@@ -100,6 +100,7 @@ Computation syntax is minimalist and terse, employing a stack language with just
 Accordingly, there is almost nothing to learn.
 In order to work efficiently as a command line tool, the `pick` computation language **does away with whitespace entirely** and
 uses punctuation to distinguish the three types.
+The stack language eases typing command lines left-to-right without the need for backtracking and editing.
 
 Full documentation is in the [Pick User Manual](doc/PICK-USER-MANUAL.md)
 

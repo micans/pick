@@ -345,9 +345,10 @@ The result of it is the sum of the value in the `foo` column and 144.
 
 Advantages of this notation are (1) whitespace is not needed (often avoiding
 the need to quote computations) (2) the separation of types means there is no
-list of reserved words (operators can be added freely) and (3) the stack syntax avoids
+list of reserved words (operators can be added freely) (3a) the stack syntax avoids
 the need for grouping syntax such as braces or parentheses, again aiding brevity
-and reducing the need to quote.
+and reducing the need to quote and (3b) the stack syntax gels with typing command lines
+left-to-right. The last may seem weird, but I find it noticeably useful.
 
 Each computation needs a name. It can be thought of as a variable name. If the computation
 is output as a new column the name will be used as the column name. The two forms are below,
@@ -794,9 +795,13 @@ See below for more information about SAM format support.
 
 ## SAM format support
 
-SAM support is currently entirely focused on single-end reads. Aspects of paired-end alignment that do not depend
-on the paired-end / single-end dichotomy may be perfectly amenable to pick processing but none of it
-has been tested by me.
+SAM support is currently entirely focused on single-end reads.  Aspects of paired-end alignment that do not depend
+on the paired-end / single-end dichotomy may be perfectly amenable to pick processing but none of it has been tested by me.
+Reference sequences are only required if an operator is used that needs to inspect (parts of) the reference sequence.
+References with large contigs (such as mammalian genomes) should in principle work but pick's supporting datastructure
+is entirely straightforward and un-optimised, so it should be called upon only as a measure of last resort.
+Pick has been tested with reference sequence collections such as transgenes and screens, that is, potentially
+large collections of smallish sequences.
 
 Pick follows a streaming paradigm but has provisions for caching where SAM format requires it,
 namely the query sequence field (column 10).
