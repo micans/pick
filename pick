@@ -34,7 +34,9 @@ The structure of this program is:
 . compile specifications into executable structures for compute and filtering
 . while read line:
     . perform admin (e.g. SAM preloading)
-    . run executable structures for compute and filtering
+    . pre-filter
+    . execute compute code
+    . post-filter
     . perform admin (e.g. demuxing)
 
 The outline above has deliberately been written as a single script without
@@ -1601,7 +1603,8 @@ sub parse_compute {
 
                                              # /sam_activate/
       if (defined($cp_sam_setup_seqs{$what})) {
-        if (!$use_sam_shortcut) {
+        if (!$use_sam_shortcut) {            # checkme: nothing happens if $use_sam_shortcut && defined($cp_sam_setup_seqs{$what}).
+                                             # use_sam_shortcut <=> %suv_direct_lookup membership, which has empty intersection with cp_sam_setup_seqs.
           $sambits   = $cp_sam_setup_seqs{$what};
           $I_AM_SAM |= $sambits;
         }
@@ -1774,7 +1777,7 @@ sub compile_select {
       else              { $sel->[2] = compile_re($val, "select($op)"); }
     }
     if ($indirection) {
-       if ($caller eq 'select') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
+       if ($caller eq 'select' || $caller eq 'assert') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
        else                     { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$val}); }
        $sel->[2] = $presel_handle ? $presel_handle->{$val} : $::handle_map{$val};  # fixme overwrite inelegant
     }
