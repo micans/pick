@@ -2295,6 +2295,7 @@ $::Groupi = 2;    # index within group.
     my $new_cigar = $cigar;
     my $start    = $::dict{$::sam_cds_startmap}{$::Flink->[2]};
     my $end      = $::dict{$::sam_cds_endmap}{$::Flink->[2]};
+    my $n_switch = 0;
 
     die "No start/end entries found for $::Flink->[2]" unless defined($start) && defined($end);
 
@@ -2305,11 +2306,30 @@ $::Groupi = 2;    # index within group.
         if ($ref_posx+1 > $end || $ref_posx+$count+1<$start) {
           substr($new_cigar, $+[0]-1, 1, 'D');
           pos($new_cigar) = $+[0];
+          $n_switch += $count;
         }
       }
       $ref_posx += $nref;
     }
-    $::Flink->[5] = $new_cigar;
+    if ($n_switch) {
+      $::Flink->[5] = $new_cigar;
+      if ($::Flink->[11] =~ /NM:i:(\d+)/) {
+        my $n_updated_edit = $1 + $n_switch;
+        substr($::Flink->[11], $-[0], $+[0]-$-[0], "NM:i:$n_updated_edit");
+      }
+    }
+
+    # """
+    # If you are writing a script to automate this, updating MD:Z: and AS:i: from
+    # scratch is computationally tedious. The most robust approach when modifying
+    # CIGAR strings programmatically (such as using pysam in Python or Bio::DB::Sam
+    # in Perl) is:
+    #   - Update the CIGAR string and the NM tag.
+    #   - Remove the MD, AS, and cs tags entirely.
+    #   - Pass the modified BAM through a tool like samtools calmd, which
+    #     will automatically re-evaluate the CIGAR against the reference FASTA and
+    #     cleanly regenerate correct MD, NM, and AS tags for you.
+    # """
   }
 
 
