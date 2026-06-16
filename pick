@@ -157,6 +157,7 @@ my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
 my $BIT_SAM_ALN_MRK  =  1 << 11;     # print markers for trailing parts in alignment
 my $BIT_SAM_QLT_SIM  =  1 << 12;     # simplify quality scores
 my $BIT_SAM_NARROW_CONTEXT =   1 <<  13;     # narrow context by modifying cigar string
+my $BIT_SAM_CDSINTRONS =   1 <<  14;     # change introns outside CDS coordinates to deletions
 
 my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;                # collect bits that SAM_RPARTS depends on.
 my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
@@ -805,6 +806,8 @@ q{  --quant-NAME=fname Use quantiles in file fname for lookup with ,qnl and ,qnu
   --sam-aln-prefix=STRING  put STRING before alignment display. Use '++ ' to work with showalign and wrapalign
   --sam-rbt=X/Y      Set region-bound-tally coordinates (see pick -l sam)
   --sam-nonf         Do not normalise exterior indels to soft clips
+  --sam-cds=start,end Expect/use CDS coordinates in 'start' and 'end' dictionaries
+  --sam-cdsintrons-only   Adjust cigar N to D if deletion is outside cds coordinates
 
   --inames=CSV       comma-separated values to use as column names instead of actual column names.
   --add-inames=CSV   The list must cover all columns in the input. Names that are used
@@ -1468,6 +1471,13 @@ EOH
      elsif ($options eq 'sam-nonf') {      # no normal form.
        $I_AM_SAM |= $BIT_SAM_NONF;         #
      }
+     elsif ($options =~ /^sam-cds=(\S+),(\S+)/) {      # no normal form.
+       $::sam_cds_startmap = $1;
+       $::sam_cds_endmap   = $2;
+     }
+     elsif ($options eq 'sam-cdsintrons-only') {      # no normal form.
+       $I_AM_SAM |= $BIT_SAM_CDSINTRONS;   #
+     }
      else {
        die "Unrecognised long option --$options";
      }
@@ -1492,6 +1502,11 @@ EOH
      if (defined($1)) {
         $INSERT_OFFSET = $1 + 0;
      }
+  }
+
+  if ($I_AM_SAM & $BIT_SAM_CDSINTRONS) {
+    die "Require matching dictionaries ($::sam_cds_startmap / $::sam_cds_endmap)"
+    unless defined($dict::{$::sam_cds_startmap}) && defined($dict::{$::sam_cds_endmap});
   }
 
   $B_print_header = 0 if $options =~ s/h//;
@@ -1747,13 +1762,13 @@ sub compile_select {
        # the if-else here is not entirely satisfactory - handle_map{$name} lookup is not checked for preselect; this is OK but still.
        #
     if ($caller eq 'select' || $caller eq 'assert') {
-      die "Handle [$name] in $caller does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
+      die "(Select) handle [$name] in $caller does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
       if (!$indirection && defined($::handle_map{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2) {
         print STDERR "-- You used $val (a column handle) as a constant in $op test, did you want :$val? --\n"
       }
     }
     else {
-      die "Handle [$name] in $caller does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
+      die "(Preselect) handle [$name] in $caller does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$name});
       if (!$indirection && defined($presel_handle->{$val}) && $op !~ /is(not)?in/ && $L_verbose >= -2) {
         if ($name eq $val && ($op eq '/ne/' || $op eq '/=')) {
           # print STDERR "-- Concatenating tables methinks\n";
@@ -1777,8 +1792,8 @@ sub compile_select {
       else              { $sel->[2] = compile_re($val, "select($op)"); }
     }
     if ($indirection) {
-       if ($caller eq 'select' || $caller eq 'assert') { die "Handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
-       else                     { die "Handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$val}); }
+       if ($caller eq 'select' || $caller eq 'assert') { die "(Indirection select) handle [$val] in select does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$val}); }
+       else                     { die "(Indirection preselect) handle [$val] in preselect does not reference a known entity among @::INPUT_HEADER\n" unless defined($presel_handle->{$val}); }
        $sel->[2] = $presel_handle ? $presel_handle->{$val} : $::handle_map{$val};  # fixme overwrite inelegant
     }
     { my ($code, $indirection, $val, $name, $arg) = @$sel;
@@ -1970,7 +1985,7 @@ print STDERR "=== Type annotation @typestack stack size differs from computed st
     for my $comp (@expanded_compute) {
       my ($type, $what) = @$comp;
       if ($type == $TYPE_HANDLE) {
-         die "Handle [$what] in compute $name does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$what});
+         die "(Compute) handle [$what] in compute $name does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$what});
          $comp->[1] = $::handle_map{$what};     # fixme overwrite inelegant
                               # inplace NOTE. when using foo::foo^1,add, this maps the lookup for the second foo to the offset
                               # for the current foo, and the second foo no longer exists. The first foo does not have an
@@ -2087,7 +2102,7 @@ print STDERR "-- Identical output column names exist ($job)\n";
 
   for (my $i=0; $i<@::output_nm; $i++) {
     my $name = $::output_nm[$i];
-    die "Handle [$name] in output does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
+    die "(Output) handle [$name] in output does not reference a known entity among @::HEADER\n" unless defined($::handle_map{$name});
   }
   @::output_os = map { $::handle_map{$_} } @::output_nm;
 
@@ -2267,6 +2282,36 @@ $::Groupi = 2;    # index within group.
     if ($::Flink->[5] =~ s/^\d+\KI/S/) {                   ; }
     if ($::Flink->[5] =~ s/\d+\KI$/S/) {                   ; }
   }
+
+
+  # Note below checks only a single CDS.
+  # Caveat alignment spanning multiple genes may fall through the cracks (not be fixed).
+
+  sub sam_cdsintrons_only {
+
+    my $cigar    = $::Flink->[5];
+    my $ref_posx = $::Flink->[3];
+
+    my $new_cigar = $cigar;
+    my $start    = $::dict{$::sam_cds_startmap}{$::Flink->[2]};
+    my $end      = $::dict{$::sam_cds_endmap}{$::Flink->[2]};
+
+    die "No start/end entries found for $::Flink->[2]" unless defined($start) && defined($end);
+
+    while ($new_cigar =~ /(\d+)(.)/g) {
+      my ($count, $type) = ($1, $2);
+      my $nref = ($cigarchomp{$type} & 1) ? $count : 0;
+      if ($type eq 'N') {
+        if ($ref_posx+1 > $end || $ref_posx+$count+1<$start) {
+          substr($new_cigar, $+[0]-1, 1, 'D');
+          pos($new_cigar) = $+[0];
+        }
+      }
+      $ref_posx += $nref;
+    }
+    $::Flink->[5] = $new_cigar;
+  }
+
 
   sub sam_narrow_view {                   # This should run before any 'suv' traits are computed.
 
@@ -3081,7 +3126,8 @@ while (<>) {
 
     $::LC{suv}{input_cigar} = $F[5];   # fixme. can move/remove (any users)? or sam_narrow_view needs to update it.
 
-    sam_check_reflen    if     $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
+    sam_check_reflen        if $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
+    sam_cdsintrons_only     if $I_AM_SAM &  $BIT_SAM_CDSINTRONS;      # Change introns outside CDS to deletions
     sam_narrow_view         if $I_AM_SAM &  $BIT_SAM_NARROW_CONTEXT;  # Reduce alignment to these bounds.
 
     sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips
