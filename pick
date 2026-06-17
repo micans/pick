@@ -157,7 +157,7 @@ my $BIT_SAM_ALN    =    1 << 10;     # compute alignment.
 my $BIT_SAM_ALN_MRK  =  1 << 11;     # print markers for trailing parts in alignment
 my $BIT_SAM_QLT_SIM  =  1 << 12;     # simplify quality scores
 my $BIT_SAM_NARROW_CONTEXT =   1 <<  13;     # narrow context by modifying cigar string
-my $BIT_SAM_CDSINTRONS =   1 <<  14;     # change introns outside CDS coordinates to deletions
+my $BIT_SAM_ND_ADJUST =   1 <<  14;     # change introns outside CDS coordinates to deletions
 
 my $DEP_SAM_RPARTS =    $BIT_SAM_RPARTS | $BIT_SAM_RSEQ;                # collect bits that SAM_RPARTS depends on.
 my $DEP_SAM_QPARTS =    $BIT_SAM_QPARTS | $BIT_SAM_QSEQ;
@@ -202,6 +202,8 @@ $::sam_narrow_context_y = 0;
 $::sam_aln_prefix  = "";
 $::sam_rbt_x = 0;
 $::sam_rbt_y = 0;
+$::sam_nda_ival_dname = 'no-name-given';
+$::sam_nda_ival = {};
 
 sub errm {
   local $" = '][';
@@ -806,8 +808,7 @@ q{  --quant-NAME=fname Use quantiles in file fname for lookup with ,qnl and ,qnu
   --sam-aln-prefix=STRING  put STRING before alignment display. Use '++ ' to work with showalign and wrapalign
   --sam-rbt=X/Y      Set region-bound-tally coordinates (see pick -l sam)
   --sam-nonf         Do not normalise exterior indels to soft clips
-  --sam-cds=start,end Expect/use CDS coordinates in 'start' and 'end' dictionaries
-  --sam-cdsintrons-only   Adjust cigar N to D if deletion is outside cds coordinates
+  --sam-ND-adjust=start,end Adjust cigar N to D if deletion is outside coordinates
 
   --inames=CSV       comma-separated values to use as column names instead of actual column names.
   --add-inames=CSV   The list must cover all columns in the input. Names that are used
@@ -1471,12 +1472,9 @@ EOH
      elsif ($options eq 'sam-nonf') {      # no normal form.
        $I_AM_SAM |= $BIT_SAM_NONF;         #
      }
-     elsif ($options =~ /^sam-cds=(\S+),(\S+)/) {      # no normal form.
-       $::sam_cds_startmap = $1;
-       $::sam_cds_endmap   = $2;
-     }
-     elsif ($options eq 'sam-cdsintrons-only') {      # no normal form.
-       $I_AM_SAM |= $BIT_SAM_CDSINTRONS;   #
+     elsif ($options =~ /^sam-ND-adjust=(\S+)/) {
+       $::sam_nda_ival_dname = $1;
+       $I_AM_SAM |= $BIT_SAM_ND_ADJUST;
      }
      else {
        die "Unrecognised long option --$options";
@@ -1504,9 +1502,19 @@ EOH
      }
   }
 
-  if ($I_AM_SAM & $BIT_SAM_CDSINTRONS) {
-    die "Require matching dictionaries ($::sam_cds_startmap / $::sam_cds_endmap)"
-    unless defined($dict::{$::sam_cds_startmap}) && defined($dict::{$::sam_cds_endmap});
+  if ($I_AM_SAM & $BIT_SAM_ND_ADJUST) {
+    my $d = $dict::{$::sam_nda_ival_dname};
+    die "--sam-ND-adjust requires dictionary named $::sam_nda_ival_dname" unless defined($d);
+    for my $k (keys %$d) {
+      my @list = split ',', $d->{$k};
+      my @xy   = map { [ split '-', $_ ] } @list;
+      for my $ival (@xy) {
+         die "No interval (@$ival)" unless @$ival == 2;
+         die "Not positive (@$ival)" unless $ival->[0] > 0 && $ival->[1] > 0;
+         die "Not ordered (@$ival)" unless $ival->[0] <= $ival->[1];
+      }
+      $::sam_nda_ival->{$k} = [ @xy ];
+    }
   }
 
   $B_print_header = 0 if $options =~ s/h//;
@@ -2287,23 +2295,22 @@ $::Groupi = 2;    # index within group.
   # Note below checks only a single CDS.
   # Caveat alignment spanning multiple genes may fall through the cracks (not be fixed).
 
-  sub sam_cdsintrons_only {
+  sub sam_introns_only {
 
     my $cigar    = $::Flink->[5];
     my $ref_posx = $::Flink->[3];
 
     my $new_cigar = $cigar;
-    my $start    = $::dict{$::sam_cds_startmap}{$::Flink->[2]};
-    my $end      = $::dict{$::sam_cds_endmap}{$::Flink->[2]};
+    my $introns   = $::sam_nda_ival->{$::Flink->[2]};
     my $n_switch = 0;
 
-    die "No start/end entries found for $::Flink->[2]" unless defined($start) && defined($end);
+    die "No start/end entries found for $::Flink->[2]" unless defined($introns);
 
     while ($new_cigar =~ /(\d+)(.)/g) {
       my ($count, $type) = ($1, $2);
       my $nref = ($cigarchomp{$type} & 1) ? $count : 0;
       if ($type eq 'N') {
-        if ($ref_posx+1 > $end || $ref_posx+$count+1<$start) {
+        if (!grep { $ref_posx+1 <= $_->[1] && $ref_posx+$count+1 >= $_->[0] } @$introns) {
           substr($new_cigar, $+[0]-1, 1, 'D');
           pos($new_cigar) = $+[0];
           $n_switch += $count;
@@ -3147,7 +3154,7 @@ while (<>) {
     $::LC{suv}{input_cigar} = $F[5];   # fixme. can move/remove (any users)? or sam_narrow_view needs to update it.
 
     sam_check_reflen        if $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
-    sam_cdsintrons_only     if $I_AM_SAM &  $BIT_SAM_CDSINTRONS;      # Change introns outside CDS to deletions
+    sam_introns_only        if $I_AM_SAM &  $BIT_SAM_ND_ADJUST;       # Change introns outside CDS to deletions
     sam_narrow_view         if $I_AM_SAM &  $BIT_SAM_NARROW_CONTEXT;  # Reduce alignment to these bounds.
 
     sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips

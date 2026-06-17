@@ -1,0 +1,20 @@
+#!/usr/bin/perl -an -F'\t'
+
+use warnings;
+use strict;
+use Scalar::Util qw(looks_like_number);
+
+BEGIN {
+  $::k = shift;
+  $::N = shift;
+  die "Need <k> <N>" unless looks_like_number($::k) && looks_like_number($::N) && $::k >= 1 && $::N >= 1;
+  $::k--;
+  $::last = "\t";
+  $::count = 0;
+}
+
+if ($F[$::k] ne $::last) {
+  $::count = 0; $::last = $F[$::k];
+}
+print if ++$::count <= $::N;
+
