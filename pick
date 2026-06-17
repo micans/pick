@@ -1502,21 +1502,6 @@ EOH
      }
   }
 
-  if ($I_AM_SAM & $BIT_SAM_ND_ADJUST) {
-    my $d = $dict::{$::sam_nda_ival_dname};
-    die "--sam-ND-adjust requires dictionary named $::sam_nda_ival_dname" unless defined($d);
-    for my $k (keys %$d) {
-      my @list = split ',', $d->{$k};
-      my @xy   = map { [ split '-', $_ ] } @list;
-      for my $ival (@xy) {
-         die "No interval (@$ival)" unless @$ival == 2;
-         die "Not positive (@$ival)" unless $ival->[0] > 0 && $ival->[1] > 0;
-         die "Not ordered (@$ival)" unless $ival->[0] <= $ival->[1];
-      }
-      $::sam_nda_ival->{$k} = [ @xy ];
-    }
-  }
-
   $B_print_header = 0 if $options =~ s/h//;
   $B_regex        = 0 if $options =~ s/F//;
   $B_protect      = 1 if $options =~ s/P//;
@@ -1540,6 +1525,21 @@ EOH
   if ($options ne '-') {
     print STDERR "Option string not fully parsed: $options remains\n";
     exit 1;
+  }
+}
+
+if ($I_AM_SAM & $BIT_SAM_ND_ADJUST) {
+  my $d = $::dict{$::sam_nda_ival_dname};
+  die "--sam-ND-adjust requires dictionary named $::sam_nda_ival_dname" unless defined($d);
+  for my $k (keys %$d) {
+    my @list = split ',', $d->{$k};
+    my @xy   = map { [ split '-', $_ ] } @list;
+    for my $ival (@xy) {
+       die "No interval (@$ival)" unless @$ival == 2;
+       die "Not positive (@$ival)" unless $ival->[0] > 0 && $ival->[1] > 0;
+       die "Not ordered (@$ival)" unless $ival->[0] <= $ival->[1];
+    }
+    $::sam_nda_ival->{$k} = [ @xy ];
   }
 }
 
@@ -2304,7 +2304,7 @@ $::Groupi = 2;    # index within group.
     my $introns   = $::sam_nda_ival->{$::Flink->[2]};
     my $n_switch = 0;
 
-    die "No start/end entries found for $::Flink->[2]" unless defined($introns);
+    return unless defined($introns);
 
     while ($new_cigar =~ /(\d+)(.)/g) {
       my ($count, $type) = ($1, $2);
@@ -3154,7 +3154,7 @@ while (<>) {
     $::LC{suv}{input_cigar} = $F[5];   # fixme. can move/remove (any users)? or sam_narrow_view needs to update it.
 
     sam_check_reflen        if $I_AM_SAM &  $BIT_SAM_CHECKLEN;        # Done only once.
-    sam_introns_only        if $I_AM_SAM &  $BIT_SAM_ND_ADJUST;       # Change introns outside CDS to deletions
+    sam_introns_only        if $I_AM_SAM &  $BIT_SAM_ND_ADJUST;       # Change introns outside intron annotation to deletions
     sam_narrow_view         if $I_AM_SAM &  $BIT_SAM_NARROW_CONTEXT;  # Reduce alignment to these bounds.
 
     sam_normalform      unless $I_AM_SAM &  $BIT_SAM_NONF;            # Change trailing insertions to soft clips
