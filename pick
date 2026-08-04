@@ -3,7 +3,7 @@
 # Pick version
 my $v_v_v = "26-046";
 
-  #                     Copyright (c) 2022-2025  Stijn van Dongen
+  #                     Copyright (c) 2022-2026  Stijn van Dongen
   #
   #      Permission is hereby granted, free of charge, to any person obtaining a copy
   #      of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,7 @@ use warnings;
 use Digest::MD5 qw(md5_hex);
 use Scalar::Util qw(looks_like_number);
 use List::Util qw(min max);
+use List::MoreUtils qw(first_index);
 use IO::File;
 use Data::Dumper;
 use POSIX;
@@ -100,6 +101,7 @@ helphelp(0) unless @::spec;
 my $PAT_PURGE      = '';    # ::/my style is somewhat intractable. :: tend to be thing accessed in subroutines.
 my $PAT_PASS       = '';    # PURGE is removed before processing, PASS is passed through before processing.
 my $INSERT_OFFSET  = undef; # with -A, where to put extra columns (by default at the end).
+my $INSERT_OFFSET_NAME = undef; # with --A=<name>
 my $OFFSET_OMEGA   = -1;    # with -O<N>, accept overflow ragged columns from position <N> onwards.
 my $sam_refdictname   = "";    # The first dictionary specified. Either with --sam/fname or --fasta-dict=fname
 my $progress1      = 0;
@@ -385,7 +387,7 @@ my %cp_opdefinitions =
      r0wno     => [ 0, 'u:',    sub { push @::STACK, $::Nrows -2+$B_headless }, "-\tx\tPush current table (start zero) row number x onto stack\tinput" ],
      lineno    => [ 0, 'u:',    sub { push @::STACK, $.      }, "-\tx\tPush file line number x onto stack\tinput" ],
      groupno   => [ 0, 'u:',    sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
-     groupi    => [ 0, 'u:',    sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group offset x onto stack\tinput" ],
+     groupi    => [ 0, 'u:',    sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group (1-based) offset x onto stack\tinput" ],
 
      save      => [ 2, 'T:T,s',  sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
 
@@ -894,7 +896,6 @@ q{Options:
     2. consider using --inames=CSV (see below; this will change names in the output)
 
   Short options combine, e.g. -ok/^@ for headerless input, comments indicated by ^@, OR selection.
-  -AT is useful for inspecting/checking select criteria
   use -Ai <name>::<COMPUTE> to change column <name> to <COMPUTE>,
   use -Aik <num>::<COMPUTE> to change column <num> to <COMPUTE>.
 
@@ -1335,6 +1336,10 @@ EOH
        read_tbdict($2, undef, $5) if $1 eq 'table-';
        $::dictnotfound{$2} = $4 if length($3);        # for read_fadict this happens twice. tidy up sometime.
      }
+     elsif ($options =~ /^A=(.*)/) {
+       $B_printall     = 1;
+       $INSERT_OFFSET_NAME = $1;
+     }
      elsif ($options =~ /^table-dict(\/(.*?))?(\^(.*?))?=(.+)$/) {
        my $header = read_tbdict("", defined($3) ? $4 : undef, $5);
        if (defined($2)) { $::dictnotfound{$_} = $2 for @$header; }
@@ -1546,7 +1551,6 @@ if ($I_AM_SAM & $BIT_SAM_ND_ADJUST) {
 $B_print_header = 0 if $B_count;
 
 @::spec = map { s/\s+//g; $_; } @::spec if $B_whitesquash;
-
 
 die "-O<N> requires -k\n" if $OFFSET_OMEGA > 0 && !$B_headless;
 
@@ -2065,9 +2069,16 @@ print STDERR "ddd new column names before -x/-A treatment: @new_names\n" if $B_d
     else {
        @::output_nm = @::HEADER;
     }
-    if (defined($INSERT_OFFSET)) {
-      $INSERT_OFFSET = @::output_nm if $INSERT_OFFSET > @::output_nm;
-      $INSERT_OFFSET = -1 * @::output_nm if $INSERT_OFFSET < -1 * @::output_nm;
+    if (defined($INSERT_OFFSET) || defined($INSERT_OFFSET_NAME)) {
+      if (defined($INSERT_OFFSET_NAME)) {
+         $INSERT_OFFSET = first_index { $_ eq $INSERT_OFFSET_NAME } @::output_nm;
+         die "$INSERT_OFFSET_NAME not found among column names" unless $INSERT_OFFSET >= 0;
+         $INSERT_OFFSET += 1;
+      }
+      else {
+         $INSERT_OFFSET = @::output_nm if $INSERT_OFFSET > @::output_nm;
+         $INSERT_OFFSET = -1 * @::output_nm if $INSERT_OFFSET < -1 * @::output_nm;
+      }
       splice @::output_nm, $INSERT_OFFSET, 0, @new_names;
     }
     else {
