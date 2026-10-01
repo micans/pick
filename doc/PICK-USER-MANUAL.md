@@ -110,7 +110,7 @@ The following index expressions are supported:
 x                    column x
 x-y                  columns from x to y
 x-                   column x and all onward
-'o+x-y*m'            columns o+x to o+my with increments of m (quotes needed for *)
+'o+x-y*m'            columns o+mx to o+my with increments of m (quotes needed for *)
 'x-y*m'              columns mx to my with increments of m (quotes needed for *)
 o+x-y                columns o+x to o+y
 ```
@@ -840,12 +840,12 @@ that return quantities related to a particular stretch of reference defined by a
 # aln_matched_cgr aln_nedit_pia aln_nedit_piu aln_trail3p_cgr aln_trail5p_cgr
 # isforward patchiness patchiness2
 # qry_qual
-# sam_rbt rbt_alnall rbt_alnaln rbt_alnqry rbt_alnref rbt_alnrlr
+# sam_rbt sam_put suv rbt_alnall rbt_alnaln rbt_alnqlt rbt_alnqry rbt_alnref rbt_alnrlr
 # rbt_dx rbt_dy
 # rbt_ndel rbt_nedit rbt_nins rbt_nmatch rbt_nmatchx
 # rbt_qryx rbt_qry rbt_qrylen rbt_qryy
 # rbt_refx rbt_refy
-# ref_matched ref_trail3p ref_trail5p
+# ref_matched ref_trail3p ref_trail5p ref_trail3p_V ref_trail5p_V
 ```
 
 ### Activating SAM support and loading reference sequences
@@ -856,8 +856,8 @@ pick is in a position to do so.
 The following shorthands can be used to specify SAM format and a reference fasta file to be loaded.
 The sequences will be stored in the dictionary called `SAMFA`.
 ```
-   --sam/FILENAME                # short for     --sam --fa-dict-SAMFA/__EXIT__=FILENAME
-   --sam-h/FILENAME              # short for   --sam-h --fa-dict-SAMFA/__EXIT__=FILENAME
+   --sam/FILENAME                # short for     --sam --fasta-dict-SAMFA/__EXIT__=FILENAME
+   --sam-h/FILENAME              # short for   --sam-h --fasta-dict-SAMFA/__EXIT__=FILENAME
 ```
 
 Either of these options will
@@ -868,7 +868,7 @@ Either of these options will
 
 If a fasta file is specified then any reference ID that can not be retrieved from the fasta file
 will cause pick to exit with an error. This can be avoided, if necessary, by using the longer form,
-e.g. `--sam --fa-dict-SAMFA/=FILENAME` where the default `not-found` value is set to the empty string.
+e.g. `--sam --fasta-dict-SAMFA/=FILENAME` where the default `not-found` value is set to the empty string.
 
 If sequence lengths are found in the header they will be compared to the fasta
 sequences (if present) and a summary is written to diagnostic output.  With
@@ -1591,7 +1591,7 @@ options to invoke and control processing of SAM format.
 -  `-v` verbose; this ups the level so `-vv` and `-vvv` will make pick even more verbose.
 -  `-q` quiet; this does the opposite of `-v`.
   
--  `-A` print all input columns (selecting by colspec applies, -`T` accepted).
+-  `-A` print all input columns (selecting by colspec applies).
 -  `-A<N>` `<N>` integer; insert new columns at position `<N>`. Negative `<N>` is relative to rightmost column.
 -  `-O<N>` `<N>` integer; allow ragged input (e.g. SAM use `-O12`), merge all columns at/after position `<N>`.
 -  `-E<N>` `<N>` integer; expect <N> rows returned, exit with error if this is not the case.
@@ -1657,19 +1657,23 @@ The documentation is output when given `-H` (`-h` is the option to prevent
 output of column names) or `-l` for a table of operators, also supplied below.
 
 
-Arithmetic: `add addall catall decr div idiv incr max maxall min minall mod mul mulall pow sub`
+Arithmetic: `add addall decr div idiv incr ipow max maxall min minall mod mul mulall neg pow rand sub`
 
-Bit operators: `and or xor`
+Bit operators: `bitand bitlsh bitoff bitor bitrsh bitxor` (`and`, `or`, `xor`, `lsh`, `rsh` are deprecated aliases)
 
-Stack devourers: `addall gmeanall hmeanall joinall maxall meanall minall mulall`
+Stack devourers: `addall catall fmtall gmeanall hmeanall joinall maxall meanall minall mulall sprintf`
 
-Dictionary: `map`
+Branching and testing: `ifelse test uie`
 
-Formatting: `binto dd frac hexto md5 octto pct pml sn tobin tohex tooct urldc urlec`
+Bio: `dnagc dnatl fasta fastq fastQ forward rc todna`
 
-Input: `binto hexto lineno md5 octto rowno r0wno urldc urlec`
+Dictionary and quantiles: `dord map tmap qnl qnu`
 
-Math: `abs ceil cos dd exp exp10 floor int log log10 sign sin sn sq sqrt tan`
+Formatting: `binto dd fmtall frac hexto md5 octto pct pml ppl ppr round sn sprintf tobin tohex tooct urldc urlec zp`
+
+Input: `binto groupi groupno hexto lineno md5 octto rowno r0wno urldc urlec`
+
+Math: `abs ceil cos dd exp exp10 floor int log log10 log2 neg round sign sin sn sq sqrt tan`
 
 Output: `md5 urldc urlec zp`
 
@@ -1677,13 +1681,38 @@ Precision: `dd frac pct pml sn`
 
 Regular expressions: `del delg ed edg get npat edbr edgbr reqm`
 
-Sam file support: `qrystart qryend  qrycov  qrylen refstart refend refcov reflen cgsum cgmax cgcount`  
+Sam file support: `cgsum cgmax cgcount` and, with `--sam`, the operators listed in the [SAM section](#sam-format-support).  
 Use `--sam` (sam input) or `--sam-h` (additionally copy/output sam header) to activate these operators
 and set various pick options.
 
 Stack control: `dup pop xch`
 
-String manipulation: `cat del delg ed edg get joinall lc len map md5 rc rev substr uc uie urldc urlec`
+State: `fetch pload save`
+
+String manipulation: `cat del delg ed edg get head join joinall lc len map md5 nchar npat ppl ppr rc rev rot13 shed skip strim substr tail uc uie urldc urlec`
+
+Experimental and debugging: `_strpair debug`
+
+Notes on some of the less obvious operators:
+
+- `fmtall` and `sprintf` take a format string first (deepest on the stack) and consume the entire stack.
+  `fmtall` replaces each `#` by the next stack value. `sprintf` turns each `#` into `%`, so a full
+  conversion is needed, e.g. `::^'#s=#.2f':name:value,sprintf`. Both need `%3A` instead of a literal colon.
+- `join` takes `x y j` and yields `xjy`; `joinall` joins the entire stack with the last element.
+- `head`, `tail`, `skip` and `shed` take a string and a length `k`, yielding respectively the first `k`
+  characters, the last `k` characters, all but the first `k`, and all but the last `k`.
+  `strim` takes a string and two lengths and removes that many characters from the start and the end.
+- `ppl` and `ppr` pad with blanks to a given width; `ppl` left-aligns and `ppr` right-aligns.
+- `round` rounds halves to even (`2.5` gives `2`, `3.5` gives `4`). `ipow` yields the product of `y` copies of `x`
+  (so `x` to the power `0` is `1`) and stays exact for large integers; for negative `y` it falls back to `pow`.
+- `save` stores a value under a name for the current row and leaves the value on the stack;
+  `fetch` retrieves it in a later compute of the same row. Registers are reset for each row.
+- `dord` yields the position of a key in a `--cdict`, `--fdict` or `--kdict` dictionary (its order of specification or line number).
+- `forward` takes a boolean and a sequence and yields the sequence if the boolean is true,
+  its reverse complement otherwise. `dnatl` translates in frame `f` (0, 1 or 2); trailing bases that do
+  not form a codon are shown in braces. `todna` maps `uU` to `tT`, other lower-case letters to `n` and remaining non-`ACGTN` characters to `N`.
+- `rand` yields a random number in `[0, x)`; output is not reproducible between runs.
+- `debug` with argument `cache` dumps internal per-row state; `_strpair` is experimental.
 
 
 Below is the table pick supplies when given `-l`.
@@ -1691,12 +1720,16 @@ Below is the table pick supplies when given `-l`.
 ```
 Operator    Consumed    Produced            Description
 --------------------------------------------------------------------------------
-F0          -           F[0]                First input column [demo]
 abs         x           abs(x)              Absolute value of x [math]
 add         x y         x+y                 Add x and y, sum, addition [arithmetic]
 addall      *           sum(Stack)          Sum of all entries in stack [arithmetic/devour]
-and         x y         x and y             Bitwise and between x and y [bitop]
 binto       x           x'                  Read binary representation x [input/format]
+bitand      x y         x and y             Bitwise and between x and y (deprecated alias: and) [bitop]
+bitlsh      x y         x << y              Shift x left by y [bitop]
+bitoff      x y         x rm y              Remove y bits from x [bitop]
+bitor       x y         x or y              Bitwise or between x and y (deprecated alias: or) [bitop]
+bitrsh      x y         x >> y              Shift x right by y [bitop]
+bitxor      x y         x xor y             Bitwise exclusive or between x and y (deprecated alias: xor) [bitop]
 cat         x y         xy                  Concatenation of x and y [string]
 catall      *           Stack-joined        Stringified stack [string/devour]
 ceil        x           ceil(x)             The ceil of x [math]
@@ -1705,10 +1738,14 @@ cgmax       c s         Max of s in c       Max of lengths of s items in cigar s
 cgsum       c s         Sum of s in c       Sum of lengths of s items in cigar string c [string/sam]
 cos         x           cos(x)              Cosine of x [math]
 dd          x N         x'                  Floating point x printed with N decimal digits [math/format/precision]
+debug       mode        -                   [cache] dump internal state [state/stack]
 decr        x           x--                 x decremented by one [arithmetic]
 del         x p         x =~ s/p//          Delete pattern p in x [string/regex]
 delg        x p         x =~ s/p//          Globally delete pattern p in x [string/regex]
 div         x y         x/y                 Division, fraction, (cf -P and PICK_DIV_INF) [arithmetic]
+dnagc       x N         gc(x)               Percentage GC content of x with N decimal digits [bio]
+dnatl       x f         x'                  DNA sequence x translated in frame f [input/format/bio]
+dord        x D         ord-of-x            Use order of x in dictionary D [string/dictionary]
 dup         x           x x                 Duplicate top entry x [stack]
 ed          x p s       x =~ s/p/s/         Substitute pattern p by s in x [string/regex]
 edbr        x p s       x =~ s/p/s/         As ed, $1 $2 .. available [string/regex]
@@ -1717,18 +1754,26 @@ edgbr       x p s       x =~ s/p/s/g        As edg, $1 $2 .. available [string/r
 exp         x           e**x                Exponential function applied to x [math]
 exp10       x           10^x                10 to the power of x [math]
 fasta       i s         fasta format        ID and sequence in FASTA format [sam]
+fastQ       i s q       fastq format        ID, sequence, quality in FASTQ format [format/bio]
 fastq       i s         fastq format        ID and sequence in FASTQ format [sam]
+fetch       n           reg(n)              retrieve value in register with name n [state/stack]
 floor       x           floor(x)            The floor of x [math]
+fmtall      f *         Map-*-into-f        In f replace # instances by stack [string/format/devour]
+forward     B seq       forward             seq if B else rc(seq) [string]
 frac        x y N       x/y                 Division, fraction x/y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 get         x r         r-match-of-x        If x matches regex r take outer () group or entire match, empty string otherwise (cf uie) [string/regex]
 gmeanall    *           gmean(Stack)        Geometric mean of all entries in stack, multiplication [arithmetic/devour]
 groupi      -           x                   Push within-group offset x onto stack [input]
 groupno     -           x                   Push group number x onto stack [input]
+head        x k         x[0:k-1]            Initial part of string x, of length k [head,tail,skip,shed] [string]
 hexto       x           x'                  Read hex representation x [input/format]
 hmeanall    *           hmean(Stack)        Harmonic mean of all entries in stack [arithmetic/devour]
 idiv        x y         x // y              Integer division, divide (cf -P and PICK_DIV_INF) [arithmetic]
+ifelse      B x y       x or y              If B put x else put y [branch/test]
 incr        x           x++                 x incremented by one [arithmetic]
 int         x           int(x)              x truncated towards zero (do not use for rounding) [math]
+ipow        x y         x**y                x raised to power y using integer multiplication (negative y as pow) [arithmetic]
+join        x y j xjy   Joined-by-j         Join two elements with string separator [string/devour]
 joinall     * s         Stack-joined-by-s   Stringified stack with s as separator [string/devour]
 lc          x           lc(x)               Lower case of x [string]
 len         x           len(x)              Length of string x [string]
@@ -1746,29 +1791,46 @@ minall      *           min(Stack)          Min over all entries in stack [arith
 mod         x y         x mod y             x modulo y, remainder [arithmetic]
 mul         x y         x*y                 Multiply x and y, multiplication, product [arithmetic]
 mulall      *           product(Stack)      Product of all entries in stack, multiplication [arithmetic/devour]
+nchar       x c         nc                  Count char c in x [string]
 neg         x           -x                  The sign-reversed value of x [math]
+npat        x p         np                  Count occurrences of pattern p in x [string/regex]
 octto       x           x'                  Read octal representation x [input/format]
-or          x y         x or y              Bitwise or between x and y [bitop]
 pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 pload       c           prevrow[c]          Field of column c in the previous row [state]
 pml         x y N       pct(x/y)            Promille of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
 pop         x           -                   Remove top entry x from stack [stack]
 pow         x y         x**y                x raised to power y [arithmetic]
+ppl         x N         x'                  x right-padded with blanks to width N (left-aligned) [output/string/format]
+ppr         x N         x'                  x left-padded with blanks to width N (right-aligned) [output/string/format]
+qnl         x Q         Q(x)/#Q             0-1 normalised quantile-of-x (lower tail) [math]
+qnu         x Q         1-Q(x)/#Q           0-1 normalised quantile-of-x (upper tail) [math]
 r0wno       -           x                   Push current table (start zero) row number x onto stack [input]
-reqm        s           re                  quote-meta-regex [string/regex]
+rand        x           rand(x)             Random real in range [0, x) [arithmetic]
 rc          x           rc(x)               Reverse complement [string]
+reqm        s           re                  quote-meta-regex [string/regex]
 rev         x           rev(x)              String reverse of x [string]
 rot13       x           rot13(x)            Rot13 encoding of x [crypto]
+round       x           round(x)            The integer nearest to x, halves to even (2.5 -> 2, 3.5 -> 4) [math]
 rowno       -           x                   Push current table (start one) row number x onto stack [input]
+save        x n         x                   store x in register with name n [state/stack]
+shed        x k         x[0:#x-k-1]         Leading part of string x, shedding last k [head,tail,skip,shed] [string]
 sign        x           sign(x)             The sign of x (-1, 0 or 1) [math]
 sin         x           sin(x)              Sine of x [math]
+skip        x k         x[k:#x-1]           Trailing part of string x, skipping first k [head,tail,skip,shed] [string]
 sn          x N         x'                  Floating point x in scientific notation with N decimal digits [math/format/precision]
+sprintf     f *         Sprintf-*-into-f    Sprintf stack [string/format/devour]
 sq          x           x^2                 Square of x [math]
 sqrt        x           sqrt(x)             Square root of x [math]
+strim       s nx ny     s'                  trim both ends of string [string]
+_strpair    x y         pair(x,y)           Pairwise character identity [string/EXPERIMENTAL]
 sub         x y         x-y                 Subtract y from x, subtraction [arithmetic]
 substr      x i k       x[i:i+k-1]          Substring of x starting at i (zero-based) of length k [string]
+tail        x k         x[#x-k:#x-1]        Trailing part of string x, of length k [head,tail,skip,shed] [string]
 tan         x           tan(x)              Tangens of x [math]
+test        x y T       B                   test T applied to x y [branch/test]
+tmap        x D c       map-of-x            Use map of x in dictionary D for column c (if found); cf --table-dict-D= [string/dictionary]
 tobin       x           x'                  Binary representation of x [format]
+todna       x           x'                  Preserve case, translate uU to tT, nN for non-DNA [format]
 tohex       x           x'                  Hex representation of x [format]
 tooct       x           x'                  Octal representation of x [format]
 uc          x           uc(x)               Upper case of x [string]
@@ -1776,7 +1838,6 @@ uie         x y         x-or-y              Use x if not empty, otherwise use y 
 urldc       x           urldc(x)            percent decoding of x [string/format/input/output]
 urlec       x           urlec(x)            percent encoding of x [string/format/input/output]
 xch         x y         y x                 Exchange x and y [stack]
-xor         x y         x xor y             Bitwise exclusive or between x and y [bitop]
 zp          x N         x'                  x left zero-padded to width of N [output/string/format]
 ```
 

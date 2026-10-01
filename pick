@@ -52,7 +52,6 @@ use warnings;
 use Digest::MD5 qw(md5_hex);
 use Scalar::Util qw(looks_like_number);
 use List::Util qw(min max);
-use List::MoreUtils qw(first_index);
 use IO::File;
 use Data::Dumper;
 use POSIX;
@@ -108,6 +107,7 @@ my $progress1      = 0;
 my $progress2      = 0;
 
 my $B_print_header = 1;     # B_oolean. Also accessed in subroutines.
+my $B_noheader     = 0;     # -h given explicitly; overrides options that switch the header on.
 my $B_select_and   = 1;     # Require all selections to match (use -o for any)
 my $B_preselect_and  = 1;   # Require all preselections to match (use -o for any)
 my $B_printall     = 0;     # Select all columns
@@ -265,7 +265,7 @@ for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
   sub dna_tl {
     my $codons = uc(shift);
     my $frame  = shift;
-    return "" if length($codons) <= length($frame);
+    return "" if length($codons) <= $frame;
     $codons = substr($codons, $frame) if $frame;
     my $ret = "";
     while ($codons =~ /(...)/g) {
@@ -375,8 +375,8 @@ my %cp_opdefinitions =
      rand      => [ 1, 'n:n',   sub { $::STACK[-1] = rand($::STACK[-1]) }, "x\trand(x)\tRandom real in range [0, x)\tarithmetic" ],
      join      => [ 3, 's:s,s,s', sub { $::STACK[-3] = "$::STACK[-3]$::STACK[-1]$::STACK[-2]" }, "x y j xjy\tJoined-by-j\tJoin two elements with string separator\tstring/devour" ],
      mul       => [ 2, 'n:n,n', sub { $::STACK[-2] *= $::STACK[-1] }, "x y\tx*y\tMultiply x and y, multiplication, product\tarithmetic"  ],
-     div       => [ 2, 'n:n,n', sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
-     idiv      => [ 2, 'i:i,i', sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y ? ($x-($x % $y))/$y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     div       => [ 2, 'n:n,n', sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y+0 ? $x / $y : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx/y\tDivision, fraction, (cf -P and PICK_DIV_INF)\tarithmetic" ],
+     idiv      => [ 2, 'i:i,i', sub { my ($x, $y) = @::STACK[-2,-1]; $::STACK[-2] = !$B_protect || $y+0 ? POSIX::floor($x / $y) : ($Nprotect++, $PNAN{PICK_DIV_INF}) }, "x y\tx // y\tInteger division, divide (cf -P and PICK_DIV_INF)\tarithmetic" ],
      cat       => [ 2, 's:s,s', sub { $::STACK[-2] .= $::STACK[-1] }, "x y\txy\tConcatenation of x and y\tstring/format" ],
      sub       => [ 2, 'n:n,n', sub { $::STACK[-2] -= $::STACK[-1] }, "x y\tx-y\tSubtract y from x, subtraction\tarithmetic" ],
 
@@ -399,7 +399,7 @@ my %cp_opdefinitions =
 
      mod       => [ 2, 'i:i,i', sub { $::STACK[-2] %= $::STACK[-1] }, "x y\tx mod y\tx modulo y, remainder\tarithmetic" ],
      pow       => [ 2, 'f:f,f', sub { $::STACK[-2] **= $::STACK[-1] }, "x y\tx**y\tx raised to power y\tarithmetic" ],
-     ipow      => [ 2, 'i:i,u', sub { my $y = $::STACK[-2]; $::STACK[-2] *= $y while --$::STACK[-1] > 0; }, "x y\tx**y\tx raised to power y ensuring integer artithmetic\tarithmetic" ],
+     ipow      => [ 2, 'i:i,u', sub { my ($x, $y) = @::STACK[-2,-1]; my $r = 1; if ($y < 0) { $r = $x ** $y } else { $r *= $x for 1 .. int($y) } $::STACK[-2] = $r; }, "x y\tx**y\tx raised to power y using integer multiplication (negative y as pow)\tarithmetic" ],
      bitand    => [ 2, 'u:u,u', sub { $::STACK[-2] &= abs(int($::STACK[-1])) }, "x y\tx and y\tBitwise and between x and y\tbitop" ],
      bitor     => [ 2, 'u:u,u', sub { $::STACK[-2] |= abs(int($::STACK[-1])) }, "x y\tx or y\tBitwise or between x and y\tbitop"  ],
      bitoff    => [ 2, 'u:u,u', sub { $::STACK[-2] |= abs(int($::STACK[-1])); $::STACK[-2] ^= int($::STACK[-1]); }, "x y\tx rm y\tRemove y bits from x\tbitop"  ],
@@ -411,8 +411,8 @@ my %cp_opdefinitions =
      dd        => [ 2, 'f:n,u', sub { $::STACK[-2] = sprintf("%.*f", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x printed with N decimal digits\tmath/format/precision" ],
      sn        => [ 2, 'f:n,u', sub { $::STACK[-2] = sprintf("%.*e", $::STACK[-1], $::STACK[-2]) }, "x N\tx'\tFloating point x in scientific notation with N decimal digits\tmath/format/precision" ],
      zp        => [ 2, 's:s,u', sub { my $l = $::STACK[-1] - length($::STACK[-2]); $l = 0 if $l < 0; $::STACK[-2] = '0' x $l . $::STACK[-2] }, "x N\tx'\tx left zero-padded to width of N\toutput/string/format" ],
-     ppl       => [ 2, 's:s,u', sub { $::STACK[-2] = sprintf("%-*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx blank-padded to width of N\toutput/string/format" ],
-     ppr       => [ 2, 's:s,u', sub { $::STACK[-2] = sprintf("%*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx blank-padded to width of N\toutput/string/format" ],
+     ppl       => [ 2, 's:s,u', sub { $::STACK[-2] = sprintf("%-*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx right-padded with blanks to width N (left-aligned)\toutput/string/format" ],
+     ppr       => [ 2, 's:s,u', sub { $::STACK[-2] = sprintf("%*s", $::STACK[-1], $::STACK[-2]); }, "x N\tx'\tx left-padded with blanks to width N (right-aligned)\toutput/string/format" ],
 
      fasta     => [ 2, 's:s,s', sub { $::STACK[-2] = ">$::STACK[-2]\n$::STACK[-1]"; }, "i s\tfasta format\tID and sequence in FASTA format\tformat/bio" ],
      fastq     => [ 2, 's:s,s', sub { $::STACK[-2] = "\@$::STACK[-2]\n$::STACK[-1]\n+\n" . 'Z' x length($::STACK[-1]); }, "i s\tfastq format\tID and sequence in FASTQ format\tformat/bio" ],
@@ -427,14 +427,14 @@ my %cp_opdefinitions =
      ed        => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/  }, "x p s\tx =~ s/p/s/\tSubstitute pattern p by s in x\tstring/regex" ],
      edg       => [ 3, 's:s,s,s', sub { $::STACK[-3] =~ s/$::STACK[-2]/$::STACK[-1]/g }, "x p s\tx =~ s/p/s/g\tGlobally substitute pattern p by s in x\tstring/regex" ],
      edbr      => [ 3, 's:s,s,s', sub { $::STACK[-3] = do_ed_br($::STACK[-3], $::STACK[-2], $::STACK[-1], 0); }, "x p s\tx =~ s/p/s/\tAs ed, \$1 \$2 .. available\tstring/regex" ],
-     edgbr     => [ 3, 's:s,s,s', sub { $::STACK[-3] = do_ed_br($::STACK[-3], $::STACK[-2], $::STACK[-1], 1); }, "x p s\tx =~ s/p/s/\tAs edg, \$1 \$2 .. available\tstring/regex" ],
+     edgbr     => [ 3, 's:s,s,s', sub { $::STACK[-3] = do_ed_br($::STACK[-3], $::STACK[-2], $::STACK[-1], 1); }, "x p s\tx =~ s/p/s/g\tAs edg, \$1 \$2 .. available\tstring/regex" ],
      del       => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]//  }, "x p\tx =~ s/p//\tDelete pattern p in x\tstring/regex" ],
      delg      => [ 2, 's:s,s', sub { $::STACK[-2] =~ s/$::STACK[-1]//g }, "x p\tx =~ s/p//\tGlobally delete pattern p in x\tstring/regex" ],
      reqm      => [ 1, 's:s',   sub { my $re = quotemeta($::STACK[-1]); $::STACK[-1] = qr/$re/; }, "s\tre\tquote-meta-regex\tstring/regex" ],
-     npat      => [ 2, 'u:s,s', sub { my $re = $::STACK[-1]; $::STACK[-2] = () = ($::STACK[-2] =~ /$re/g) }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
+     npat      => [ 2, 'u:s,s', sub { my ($re, $n) = ($::STACK[-1], 0); $n++ while $::STACK[-2] =~ /$re/g; $::STACK[-2] = $n }, "x p\tnp\tCount occurrences of pattern p in x\tstring/regex" ],
      nchar     => [ 2, 'u:s,s', sub { my ($x, $L, $n) = ($::STACK[-2], length($::STACK[-2]), 0); while ($L--) { $n++ if chop($x) eq $::STACK[-1] } $::STACK[-2] = $n; }, "x c\tnc\tCount char c in x\tstring" ],
      map       => [ 2, 's:s,s', sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dict{$d}; die "Dictionary $d does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : dict_not_found($d, $::STACK[-2]); },
-                               "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|fastq-|fastq-)dict-D=\tstring/dictionary"
+                               "x D\tmap-of-x\tUse map of x in dictionary D (if found; cf --(c|f|k|fasta-|fastq-)dict-D=)\tstring/dictionary"
                   ],
      dord      => [ 2, 'u:s,s', sub {  my ($x, $d) = @::STACK[-2,-1]; my $dict = $::dord{$d}; die "Dictionary $d (dord) does not exist" unless defined($dict); my $m = $dict->{$x}; $::STACK[-2] = defined($m) ? $m : ~0; },
                                "x D\tord-of-x\tUse order of x in dictionary D\tstring/dictionary"
@@ -463,7 +463,7 @@ my %cp_opdefinitions =
      binto     => [ 1, 'i:s', sub { $::STACK[-1] = oct("0b$::STACK[-1]") }, "x\tx'\tRead binary representation x\tinput/format" ],
      hexto     => [ 1, 'i:s', sub { $::STACK[-1] = hex($::STACK[-1]) }, "x\tx'\tRead hex representation x\tinput/format" ],
      octto     => [ 1, 'i:s', sub { $::STACK[-1] = oct($::STACK[-1]) }, "x\tx'\tRead octal representation x\tinput/format" ],
-     dnatl     => [ 2, 's:s', sub { $::STACK[-2] = dna_tl($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format/bio" ],
+     dnatl     => [ 2, 's:s,u', sub { $::STACK[-2] = dna_tl($::STACK[-2], $::STACK[-1]) }, "x f\tx'\tDNA sequence x translated in frame f\tinput/format/bio" ],
      dnagc     => [ 2, 'f:s,u', sub { my $gc = length($::STACK[-2]) ? sprintf("%.*f", $::STACK[-1], 100 * ($::STACK[-2] =~ tr|GCgc|GCgc|) / length($::STACK[-2])) : $PNAN{PICK_DNAGC_NAN}; $::STACK[-2] = $gc; }, "x N \tgc(x)\tPercentage GC content of x with N decimal digits\tbio" ],
     _strpair   => [ 2, 's:s,s', sub { $::STACK[-2] = strpair($::STACK[-2], $::STACK[-1]); }, "x y\tpair(x,y)\tPairwise character identity\tstring/EXPERIMENTAL" ],
      urldc     => [ 1, 's:s', sub { $::STACK[-1] = urldecode($::STACK[-1]) }, "x\turldc(x)\tUrl decoding of x\tstring/format/input/output" ],
@@ -477,7 +477,7 @@ my %cp_opdefinitions =
      md5       => [ 1, 's:s', sub { $::STACK[-1] = md5_hex($::STACK[-1]) }, "x\tmd5(x)\tMD5 sum of x\tstring/format/input/output"     ],
      len       => [ 1, 'u:s', sub { $::STACK[-1] = length($::STACK[-1]) }, "x\tlen(x)\tLength of string x\tstring" ],
      rc        => [ 1, 's:s', sub { $::STACK[-1] =~ tr/acgtuACGTU/tgcaaTGCAA/; $::STACK[-1] = reverse($::STACK[-1]) }, "x\trc(x)\tReverse complement\tstring" ],
-     forward   => [ 2, 'u:s', sub { $::STACK[-2] = $::STACK[-2] ? $::STACK[-1]: rc($::STACK[-1]) }, "B seq\tforward\tseq if B else rc(seq)\tstring" ],
+     forward   => [ 2, 's:u,s', sub { $::STACK[-2] = $::STACK[-2] ? $::STACK[-1]: rc($::STACK[-1]) }, "B seq\tforward\tseq if B else rc(seq)\tstring" ],
      strim     => [ 3, 's:s,i,i', sub { my $nx = max(0, $::STACK[-2]); my $ny = max(0, $::STACK[-1]); $::STACK[-3] = $nx + $ny < length($::STACK[-3]) ? substr($::STACK[-3], $nx, length($::STACK[-3]) - $nx - $ny) : "" }, "s nx ny\ts'\ttrim both ends of string\tstring" ],
      abs       => [ 1, 'u:i', sub { $::STACK[-1] = abs($::STACK[-1]) }, "x\tabs(x)\tAbsolute value of x\tmath" ],
      sqrt      => [ 1, 'f:f', sub { $::STACK[-1] = sqrt($::STACK[-1]) }, "x\tsqrt(x)\tSquare root of x\tmath" ],
@@ -486,7 +486,7 @@ my %cp_opdefinitions =
      cos       => [ 1, 'f:f', sub { $::STACK[-1] = cos($::STACK[-1]) }, "x\tcos(x)\tCosine of x\tmath" ],
      sin       => [ 1, 'f:f', sub { $::STACK[-1] = sin($::STACK[-1]) }, "x\tsin(x)\tSine of x\tmath" ],
      tan       => [ 1, 'f:f', sub { my $c = cos($::STACK[-1]); $::STACK[-1] = !$B_protect || $c ? sin($::STACK[-1])/$c : ($Nprotect++, $PNAN{PICK_TAN_INF}) }, "x\ttan(x)\tTangens of x\tmath" ],
-     log       => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1] ? log($::STACK[-1]) : ($Nprotect++, $PNAN{PICK_LOG_INF}) }, "x\tlog(x)\tNatural logarithm of x\tmath" ],
+     log       => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1]) : ($Nprotect++, $PNAN{PICK_LOG_INF}) }, "x\tlog(x)\tNatural logarithm of x\tmath" ],
      log10     => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
      log2      => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
      exp10     => [ 1, 'f:f', sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
@@ -494,7 +494,7 @@ my %cp_opdefinitions =
      neg       => [ 1, 'n:n', sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
      ceil      => [ 1, 'i:f', sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
      floor     => [ 1, 'i:f', sub { $::STACK[-1] = floor($::STACK[-1]) }, "x\tfloor(x)\tThe floor of x\tmath" ],
-     round     => [ 1, 'i:f', sub { $::STACK[-1] = sprintf("%.0f", $::STACK[-1]) }, "x\tround(x)\tThe integer nearest to x\tmath" ],
+     round     => [ 1, 'i:f', sub { $::STACK[-1] = sprintf("%.0f", $::STACK[-1]) }, "x\tround(x)\tThe integer nearest to x, halves to even (2.5 -> 2, 3.5 -> 4)\tmath" ],
      int       => [ 1, 'i:f', sub { $::STACK[-1] = int($::STACK[-1]) }, "x\tint(x)\tx truncated towards zero (do not use for rounding)\tmath" ],
 
    );
@@ -540,7 +540,7 @@ my %cp_samdefs = (
 
 my %cp_sam_setup_seqs = map { $_ => 0 } keys %cp_samdefs;
 
-  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo all_all_pack aln_all aln_allq aln_nedit_pia aln_nedit_piu );
+  $cp_sam_setup_seqs{$_} |=  $DEP_SAM_ALN    for qw( aln_posinfo aln_all_pack aln_all aln_allq aln_nedit_pia aln_nedit_piu );
   $cp_sam_setup_seqs{$_} |=  $BIT_SAM_QSEQ   for qw( qry_seq );
   $cp_sam_setup_seqs{$_} |=  $DEP_SAM_RBT    for qw( rbt_alnall sam_rbt );
 
@@ -879,7 +879,7 @@ q{Options:
   -R add _ column variable if no row name field exists in the header;
     NOTE an empty field is recognised and mapped to _ automatically
 
-  -A print all input columns (selecting by colspec applies.
+  -A print all input columns (selecting by colspec applies).
   -A<N> <N> integer; insert new columns at position <N>. Negative <N> is relative to rightmost column.
   -O<N> <N> integer; allow ragged input - merge all columns at/after position <N>
   -E<N> <N> integer; expect <N> rows returned, exit with error if this is not the case.
@@ -966,7 +966,7 @@ sub read_dict {
    my $fill_dord = ( grep { /\^\Q$name\E,dord/ } @::spec ) ? 1 : 0;      # on the nose. compile time check requires delayed dict reading.
 
    while(<$fh>) {
-      chomp; my @F = split "\t";
+      chomp; my @F = split "\t", $_, -1;            # -1: keep trailing empty field, key<TAB> maps to empty string
       my $value = 1;
       if (@F >= 2 && $mode eq 'f') { $value = $F[1]; } else { $n_novalue++; }
       $::dict{$name}{$F[0]} = $value;
@@ -1092,7 +1092,7 @@ sub read_fqdict {
 
    my $id = undef;
    while(<$fh>) {
-      if ($. % 4 == 1)       { die "Fastq read error on line %." unless /^@(\S+)/; $id = $1; }
+      if ($. % 4 == 1)       { die "Fastq read error on line $." unless /^@(\S+)/; $id = $1; }
       elsif ($. % 4 == 2)    { chomp; $::dict{$name}{$id} = $_; }
    } close($fh);
    if (! $fh->close()) { print STDERR "Error closing fastq dictionary file $fname\n"; }
@@ -1507,7 +1507,7 @@ EOH
      }
   }
 
-  $B_print_header = 0 if $options =~ s/h//;
+  $B_noheader     = 1 if $options =~ s/h//;
   $B_regex        = 0 if $options =~ s/F//;
   $B_protect      = 1 if $options =~ s/P//;
   $B_whitesquash  = 1 if $options =~ s/e//;
@@ -1548,14 +1548,14 @@ if ($I_AM_SAM & $BIT_SAM_ND_ADJUST) {
   }
 }
 
-$B_print_header = 0 if $B_count;
 
-@::spec = map { s/\s+//g; $_; } @::spec if $B_whitesquash;
+@::spec = map { s/\s+//g if /^\@/ || /:[:=]/; $_; } @::spec if $B_whitesquash;     # computes and selections only (cf parse_spec)
 
 die "-O<N> requires -k\n" if $OFFSET_OMEGA > 0 && !$B_headless;
 
 $B_print_header = 0 if $B_headless;
 $B_print_header = 1 if $B_add_names || $B_posthoc_names || $B_sprouthead;
+$B_print_header = 0 if $B_noheader || $B_count;        # explicit -h and -c win.
 
 @::nameslist = $nameslist ? split ',', $nameslist : ();
 
@@ -1608,7 +1608,7 @@ sub parse_compute {
   while ($spec =~ /([,^:])([^,^:]*)/g) {
 
     my ($type, $what) = ($chartypetonum{$1}, $2);
-    $what = urldecode($what) if $type == $TYPE_SCALAR || $type == $TYPE_HANDLE;     # @urldecode ^const :handle
+    $what = urldecode($what) if $type == $TYPE_SCALAR;     # @urldecode ^const; handles are decoded in expand_list_range_and_regex
     push @oplist, [$type, $what];
     $p = pos($spec);
     if ($type == $TYPE_OPATOR) {
@@ -1656,7 +1656,7 @@ sub parse_compute {
 
 sub urlencode {
    my $val = shift;
-   $val =~ s/([^A-Za-z0-9_])/ uc sprintf "%%%0x", ord $1 /eg;
+   $val =~ s/([^A-Za-z0-9_])/ sprintf "%%%02X", ord $1 /eg;
    return $val;
 }
 
@@ -1702,6 +1702,10 @@ sub acigar {
    ## name1 is the existing name (found in header), name2 is the new name, normally the same.
    ## New names can be made by the prefix/suffix convention as well as using regex parentheses ().
    ##
+   ## $spec is expected *not* to be url-decoded; whether an item is a regular expression is decided
+   ## before decoding, so that percent-encoded characters are taken literally. %5E counts as a regex
+   ## character, as ^ must be percent-encoded in computes.
+   ##
 sub expand_list_range_and_regex {
    my ($spec, $has_compute) = @_;
    my @matches = ();
@@ -1717,14 +1721,16 @@ sub expand_list_range_and_regex {
 print STDERR "Suffix [$suffix] contains regex/list characters, did you want '$spec/$suffix/'?\n";
         }
       }
+      ($prefix, $suffix) = map { urldecode($_) } ($prefix, $suffix);          # @urldecode handle prefix/suffix
    }
 
-   for my $item ($spec eq '' ? ("") : split ':', $spec, -1) {
+   for my $rawitem ($spec eq '' ? ("") : split ':', $spec, -1) {
+      my $item = urldecode($rawitem);                                          # @urldecode handle/regex
 print STDERR "-- (output) considering $item\n" if $L_verbose >= 2;
-      if ($B_headless && parse_range($item)) {
+      if ($B_headless && parse_range($rawitem)) {
          push @matches, map { { namein => $_, nameout => $_ } } @::colindexes;        #  global for the win.
       }
-      elsif ($item =~ /[$REGEXP_CHARS]/ && $B_regex) {
+      elsif ($B_regex && ($rawitem =~ /[$REGEXP_CHARS]/ || $rawitem =~ /%5E/i)) {
          my $nfound = 0;
          for my $name (@::HEADER[0..($::N-1)]) {
             if ($name =~ qr/$item/) {
@@ -1836,7 +1842,7 @@ sub parse_spec {
         ($handle, $op, $val) = (urldecode($1), $2, urldecode($3));      # @urldecode @handle/../arg|handle/arg
       }
       else {
-         print STDERR "-- Selection invalid [$_]. I need @<name><op><:name|value>, see pick -l selection for <op>\n";
+         print STDERR "-- Selection invalid [$spec]. I need @<name><op><:name|value>, see pick -l selection for <op>\n";
          exit 1;
       }
       die "Unrecognised operator [$op]\n" unless defined($sel_opdefinitions{$op});
@@ -1865,13 +1871,13 @@ print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] a
                # NOTE. $arg optionally used /ep/ /om/ /epx/ /omx/ ~hasval~ ~hasnotval~
     }
     elsif ($spec =~ /^(.*?)(:[:=])(.*)/) {
-      my ($handle, $type, $compute) = (urldecode($1), $2, $3);    # @urldecode handle::
+      my ($handle, $type, $compute) = ($1, $2, $3);    # handle:: is decoded in expand_list_range_and_regex
       die "Compute cannot be empty\n" unless length($compute);
       $handle = $DUMMY_NAME++ if $handle eq '';
       my ($duplicate, $matches) = expand_list_range_and_regex($handle, 1);
       $compute = ":$compute" unless $compute =~ /^[,:^]/;
       for my $m (@$matches) {
-        my $compute_m = $compute; $compute_m =~ s/:__\b/:$m->{namein}/g;
+        my $compute_m = $compute; my $nm = urlencode($m->{namein}); $compute_m =~ s/:__\b/:$nm/g;     # encoded: taken literally, never as regex or list
         my $parsed_compute = parse_compute($handle, $compute_m);
         push @::compute, [$m->{nameout}, $parsed_compute];
         push @::output_nm, $m->{namein} if $duplicate;            # fixme consider // duplicate combined with := assignment
@@ -1883,7 +1889,6 @@ print STDERR "ddd adding select criterion handle=[$handle] op=[$op] val=[$val] a
       push @::output_nm, @::colindexes;
     }
     else {
-      $spec = urldecode($spec);                                               # @urldecode selection/regex-selection
       my ($unused_variable, $matches) = expand_list_range_and_regex($spec, 0);
       for my $m (@$matches) { push @::output_nm, $m->{namein}; }
     }
@@ -2071,7 +2076,8 @@ print STDERR "ddd new column names before -x/-A treatment: @new_names\n" if $B_d
     }
     if (defined($INSERT_OFFSET) || defined($INSERT_OFFSET_NAME)) {
       if (defined($INSERT_OFFSET_NAME)) {
-         $INSERT_OFFSET = first_index { $_ eq $INSERT_OFFSET_NAME } @::output_nm;
+         ($INSERT_OFFSET) = grep { $::output_nm[$_] eq $INSERT_OFFSET_NAME } 0 .. $#::output_nm;   # core-perl first_index
+         $INSERT_OFFSET = -1 unless defined($INSERT_OFFSET);
          die "$INSERT_OFFSET_NAME not found among column names" unless $INSERT_OFFSET >= 0;
          $INSERT_OFFSET += 1;
       }
@@ -3197,7 +3203,7 @@ while (<>) {
     for my $sel (@::assert) {
       my ($op, $indirection, $val, $colid, $arg) = @$sel;
       $val = $F[$val] if $indirection;
-      die "Assert $k failed for value $val at line $::Nrows\n" unless $op->($F[$colid], $val, $arg);
+      die "Assert $k failed for value $F[$colid] (compared with $val) at line $::Nrows\n" unless $op->($F[$colid], $val, $arg);
       $k++;
     }
     if ($B_protect_discard && $Nprotect_previous != $Nprotect) {
@@ -3255,6 +3261,9 @@ print STDERR "-- $Nsam_lenmiss times a reference sequence length lookup failed\n
 print STDERR "-- $Nsam_lenclash times a reference sequence difference between SAM header and fasta file $sam_refdictname\n" if $Nsam_lenclash;
 print STDERR "-- $Nsam_cigarerr times a cigar string did not match the query sequence\n" if $Nsam_cigarerr;
 print STDERR "-- $Nsam_rbtmiss times a region bound tally query (sam_rbt) had zero overlap\n" if $Nsam_rbtmiss;
+
+demux_tally() if $index_demux >= 0;      # before any exit below, so that buffered demux rows are flushed.
+
 if ($Nsam_rbterr) {
    print STDERR "-- $Nsam_rbterr times a query rbt bound did not match the alignment extraction\n";
    exit 1 unless $B_force;
@@ -3271,8 +3280,6 @@ if ($N_expect >= 0 && $N_expect != $Nkeep) {
 if ($B_assert_other && $Npostdisc) {
    print STDERR "== $Npostdisc rows failed one or more assertions\n";
 }
-
-demux_tally() if $index_demux >= 0;
 
 if (@::preselect && !$B_select_and && !@::select) {
    print STDERR "---> You've used -o with @@ preselection, did you want -s? <---\n";
