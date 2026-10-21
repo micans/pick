@@ -54,6 +54,7 @@ use Scalar::Util qw(looks_like_number);
 use List::Util qw(min max);
 use IO::File;
 use Data::Dumper;
+use Time::Piece;
 use POSIX;
 use IO::Uncompress::Gunzip;
 # use B::Deparse ();      # seems slow to load. I use it incidentally to pretty-print all code refs.
@@ -238,6 +239,14 @@ my %PNAN =                  # Protect against division by zero etc. Defaults tha
 for (keys %PNAN) { $PNAN{$_} = $ENV{$_} if defined($ENV{$_}); }
 
 
+my %timeunits =
+(  s => 1
+,  m => 60
+,  h => 3600
+,  d => 24 * 3600
+,  w => 7 * 24 * 3600
+)  ;
+
 { my %aatocodon =
   ( '*' => [qw ( TAA TAG TGA ) ]
   , A => [qw ( GCT GCC GCA GCG ) ]
@@ -309,6 +318,14 @@ sub boxit {
    return $_[0] if $n < $_[0];
    return $_[1] if $n > $_[1];
    return $n;
+}
+
+sub toseconds {
+  my $amount = shift;
+  my $s = 0;
+  if ($amount =~ /(\S+)([smhdw])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
+  else { alert(0, "$amount could not be parsed as time unit, substituting 0"); }
+  return $s;
 }
 
 # fixme/TODO:
@@ -388,6 +405,9 @@ my %cp_opdefinitions =
      lineno    => [ 0, 'u:',    sub { push @::STACK, $.      }, "-\tx\tPush file line number x onto stack\tinput" ],
      groupno   => [ 0, 'u:',    sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
      groupi    => [ 0, 'u:',    sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group (1-based) offset x onto stack\tinput" ],
+     now       => [ 0, 'u:',    sub { push @::STACK, time() }, "-\tt\tPush current epoch (unix seconds) onto stack\ttime" ],
+     tt        => [ 1, 's:u',   sub { $::STACK[-1] = toseconds($::STACK[-1]) }, "tu\ts\ttranslate to seconds\ttime" ],
+     todate    => [ 1, 'u:s',   sub { my $time = localtime($::STACK[-1]); $::STACK[-1] = $time->strftime('%d-%m-%Y %H:%M:%S'); }, "u\tdate\tTranslate epoch to date\ttime" ],
 
      save      => [ 2, 'T:T,s',  sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
 
@@ -1946,6 +1966,20 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                my $it = $expanded_compute[-1];
                die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname" unless $it->[0] == $TYPE_SCALAR;
                $::pstore_init{$it->[1]} = $PSTORE_DEFAULT;
+            }
+            elsif ($what eq 'tt') {
+               my $it = $expanded_compute[-1];
+               if ($it->[0] == $TYPE_SCALAR) {
+                  # noteme we ccompute this at compile time. requires some care in the accounting here.
+                  # - change the previous entry
+                  # - do not push the curren entry.
+                  # - stack size unchanged, typestack unchanged.
+                  my $s = 0;
+                  if ($it->[1] =~ /(\S+)([smhdw])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
+                  else { die("$it->[1] could not be parsed as time unit"); }
+                  $it->[1] = $s;
+                  next;
+               }
             }
             elsif ($what eq 'test') {
                my $it = $expanded_compute[-1];

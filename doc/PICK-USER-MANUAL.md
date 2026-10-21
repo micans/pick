@@ -1575,7 +1575,7 @@ options to invoke and control processing of SAM format.
 
 -  `-l` print a table of all pick operators.
 -  `-l <str>` as above, limited to operators in sections matching `<str>`.  
-   Available sections are `arithmetic bitop devour dictionary format input math output precision regex sam stack string`.
+   Available sections are `arithmetic bitop devour dictionary format input math output precision regex sam stack string misc`.
 -  `-H` summary of pick syntax.
 
 -  `-h` do not print header.
@@ -1793,6 +1793,7 @@ mul         x y         x*y                 Multiply x and y, multiplication, pr
 mulall      *           product(Stack)      Product of all entries in stack, multiplication [arithmetic/devour]
 nchar       x c         nc                  Count char c in x [string]
 neg         x           -x                  The sign-reversed value of x [math]
+now         -           t                   Push current epoch (unix seconds) onto stack [misc]
 npat        x p         np                  Count occurrences of pattern p in x [string/regex]
 octto       x           x'                  Read octal representation x [input/format]
 pct         x y N       pct(x/y)            Percentage of x relative to y with N decimal digits (cf -P and PICK_DIV_INF) [precision/format]
@@ -1830,9 +1831,11 @@ tan         x           tan(x)              Tangens of x [math]
 test        x y T       B                   test T applied to x y [branch/test]
 tmap        x D c       map-of-x            Use map of x in dictionary D for column c (if found); cf --table-dict-D= [string/dictionary]
 tobin       x           x'                  Binary representation of x [format]
+todate      u           date                Translate epoch to date [misc]
 todna       x           x'                  Preserve case, translate uU to tT, nN for non-DNA [format]
 tohex       x           x'                  Hex representation of x [format]
 tooct       x           x'                  Octal representation of x [format]
+tt          tu          s                   translate 6h etc to seconds (units supported: smhdw)[misc]
 uc          x           uc(x)               Upper case of x [string]
 uie         x y         x-or-y              Use x if not empty, otherwise use y [string]
 urldc       x           urldc(x)            percent decoding of x [string/format/input/output]
