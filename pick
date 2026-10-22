@@ -406,7 +406,7 @@ my %cp_opdefinitions =
      groupno   => [ 0, 'u:',    sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
      groupi    => [ 0, 'u:',    sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group (1-based) offset x onto stack\tinput" ],
      now       => [ 0, 'u:',    sub { push @::STACK, time() }, "-\tt\tPush current epoch (unix seconds) onto stack\ttime" ],
-     tt        => [ 1, 's:u',   sub { $::STACK[-1] = toseconds($::STACK[-1]) }, "tu\ts\ttranslate to seconds\ttime" ],
+     ttu       => [ 1, 's:u',   sub { $::STACK[-1] = toseconds($::STACK[-1]) }, "tu\ts\tTranslate time unit (e.g. 3h or 2d) to seconds\ttime" ],
      todate    => [ 1, 'u:s',   sub { my $time = localtime($::STACK[-1]); $::STACK[-1] = $time->strftime('%d-%m-%Y %H:%M:%S'); }, "u\tdate\tTranslate epoch to date\ttime" ],
 
      save      => [ 2, 'T:T,s',  sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
@@ -510,6 +510,7 @@ my %cp_opdefinitions =
      log10     => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(10) : ($Nprotect++, $PNAN{PICK_LOG10_INF}) }, "x\tlog10(x)\tLogarithm of x in base 10\tmath" ],
      log2      => [ 1, 'f:f', sub { $::STACK[-1] = !$B_protect || $::STACK[-1]+0 ? log($::STACK[-1])/log(2)  : ($Nprotect++, $PNAN{PICK_LOG2_INF}) },  "x\tlog2(x)\tLogarithm of x in base 2\tmath" ],
      exp10     => [ 1, 'f:f', sub { $::STACK[-1] = 10**$::STACK[-1] }, "x\t10^x\t10 to the power of x\tmath" ],
+     exp2      => [ 1, 'f:f', sub { $::STACK[-1] = 2**$::STACK[-1] }, "x\t2^x\t2 to the power of x\tmath" ],
      sign      => [ 1, 'i:n', sub { $::STACK[-1] = $::STACK[-1] > 0 ? 1 : $::STACK[-1] < 0 ? -1 : 0 }, "x\tsign(x)\tThe sign of x (-1, 0 or 1)\tmath" ],
      neg       => [ 1, 'n:n', sub { $::STACK[-1] *= -1 }, "x\t-x\tThe sign-reversed value of x\tmath" ],
      ceil      => [ 1, 'i:f', sub { $::STACK[-1] = ceil($::STACK[-1]) }, "x\tceil(x)\tThe ceil of x\tmath" ],
@@ -1967,13 +1968,14 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                die "Operator 'pload' requires operand that is a column name scalar, e.g. ^2 or ^colname" unless $it->[0] == $TYPE_SCALAR;
                $::pstore_init{$it->[1]} = $PSTORE_DEFAULT;
             }
-            elsif ($what eq 'tt') {
+            elsif ($what eq 'ttu') {
                my $it = $expanded_compute[-1];
                if ($it->[0] == $TYPE_SCALAR) {
-                  # noteme we ccompute this at compile time. requires some care in the accounting here.
-                  # - change the previous entry
-                  # - do not push the curren entry.
-                  # - stack size unchanged, typestack unchanged.
+                     # noteme. Compute this at compile time. requires some care in the accounting here.
+                     # - change the previous entry
+                     # - do not push the current entry.
+                     # - stack size and typestack unchanged due to 'next;', stack checks work out.
+                     # - no other quantities involved.
                   my $s = 0;
                   if ($it->[1] =~ /(\S+)([smhdw])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
                   else { die("$it->[1] could not be parsed as time unit"); }
