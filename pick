@@ -245,6 +245,7 @@ my %timeunits =
 ,  h => 3600
 ,  d => 24 * 3600
 ,  w => 7 * 24 * 3600
+,  y => 31556952
 )  ;
 
 { my %aatocodon =
@@ -323,7 +324,7 @@ sub boxit {
 sub toseconds {
   my $amount = shift;
   my $s = 0;
-  if ($amount =~ /(\S+)([smhdw])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
+  if ($amount =~ /(\S+)([smhdwy])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
   else { alert(0, "$amount could not be parsed as time unit, substituting 0"); }
   return $s;
 }
@@ -406,8 +407,8 @@ my %cp_opdefinitions =
      groupno   => [ 0, 'u:',    sub { push @::STACK, $::Ngroup }, "-\tx\tPush group number x onto stack\tinput" ],
      groupi    => [ 0, 'u:',    sub { push @::STACK, $::Groupi }, "-\tx\tPush within-group (1-based) offset x onto stack\tinput" ],
      now       => [ 0, 'u:',    sub { push @::STACK, time() }, "-\tt\tPush current epoch (unix seconds) onto stack\ttime" ],
-     ttu       => [ 1, 's:u',   sub { $::STACK[-1] = toseconds($::STACK[-1]) }, "tu\ts\tTranslate time unit (e.g. 3h or 2d) to seconds\ttime" ],
-     todate    => [ 1, 'u:s',   sub { my $time = localtime($::STACK[-1]); $::STACK[-1] = $time->strftime('%d-%m-%Y %H:%M:%S'); }, "u\tdate\tTranslate epoch to date\ttime" ],
+     ttu       => [ 1, 's:u',   sub { $::STACK[-1] = toseconds($::STACK[-1]) }, "tu\ts\tTranslate time unit (e.g. 3h, units from smhdwy) to seconds\ttime" ],
+     todate    => [ 1, 'u:s',   sub { my $time = localtime($::STACK[-1]); $::STACK[-1] = $time->strftime('%Y-%m-%d-%H-%M-%S'); }, "u\tdate\tTranslate epoch to date\ttime" ],
 
      save      => [ 2, 'T:T,s',  sub { $::LC{save}{$::STACK[-1]} = $::STACK[-2] }, "x n\tx\tstore x in register with name n\tstate/stack" ],
 
@@ -1977,7 +1978,7 @@ print STDERR "ddd T=$type what=$what\n" if $B_debug;
                      # - stack size and typestack unchanged due to 'next;', stack checks work out.
                      # - no other quantities involved.
                   my $s = 0;
-                  if ($it->[1] =~ /(\S+)([smhdw])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
+                  if ($it->[1] =~ /(\S+)([smhdwy])$/ && looks_like_number($1)) { $s = $1 * $timeunits{$2} }
                   else { die("$it->[1] could not be parsed as time unit"); }
                   $it->[1] = $s;
                   next;

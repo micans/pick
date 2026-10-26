@@ -663,7 +663,7 @@ and associates for each row name its column values by using the column name as k
 Table dictionaries can be loaded in two ways. If a dictionary name is specified (`--table-dict-NAME=`) then `tmap` needs
 to be used, which uses an additional level of indirection (`key` -> `NAME` -> `COLNAME`).
 Otherwise (`--table-dict=`) column names are used as top-level dictionary names and `map` can be used (`key` -> `COLNAME`).
-Multiple dictionary specifications can be used for the same `NAME`.
+Multiple dictionary specifications can be used for the same `NAME`, later definitions will override earlier definitions.
 
 By default if no key is found in the dictionary the value is left alone.
 ```
@@ -691,9 +691,11 @@ Beta  4
 FOONOTFOUND 8
 ```
 
+The not-found string `__EXIT__` is special and will lead pick to stop processing, emit an error,
+and exit with a failed status if a key cannot be mapped.
 **For all fasta dictionaries if no not-found string is specified it will be set to `__EXIT__` and pick
 will thus exit with an error if a sequence cannot be found** (see the section below). This behaviour can be made permissive
-by explictly specifying a `not-found` value.
+by explicitly specifying a `not-found` value.
 
 
 ### Exiting when a column value cannot be mapped
