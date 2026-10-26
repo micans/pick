@@ -653,6 +653,8 @@ Dictionaries can be specified in different ways:
 --table-dict-NAME=/path/to/tablefile   read ID->column->item mapping from table file with row names, use with tmap
 --table-dict=/path/to/tablefile        import columns directly for use with map
 --table-dict^cname=/path/to/tablefile  as previous, use column cname as index
+
+                                    --tdict can be also be used instead of --table-dict
 ```
 
 `NAME` is the name of the dictionary. Multiple dictionaries can be imported.

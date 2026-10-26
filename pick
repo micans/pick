@@ -1013,16 +1013,20 @@ sub read_tbdict {
    my $n = 0;
    $::dict{$name} = {} unless !length($name) || defined($::dict{$name});
    my $root = length($name) ? $::dict{$name} : \%::dict;
+   my @keys = ();
    while(<$fh>) {
       chomp; my @items = split "\t", $_, -1;                      # recognise empty fields (-1 split argument)
+      my $key = $items[$keycolindex];
+      push @keys, $key;
       die "Table read error" unless scalar @items == scalar @header;
       for (my $i=0; $i<@items; $i++) {
          next if $i == $keycolindex;
-         $root->{$h{$i}}{$items[$keycolindex]} = $items[$i];
+         $root->{$h{$i}}{$key} = $items[$i];
       }
      $n++;
    }
    if (! $fh->close()) { print STDERR "Error closing table dictionary file $fname\n"; }
+   @keys = sort @keys; { my $prev = shift @keys; while (@keys) { my $key = shift @keys; die "Repeated key [$key]" unless $key ne $prev; $prev = $key; } }
    my $k = @header - 1;
 print STDERR "-- Table dictionary $name has $n keys for $k columns { @header } after reading $fname\n" if $L_verbose >= 1;
 print STDERR "-- Keys to be used with ^$name\[^:]KEY,tmap\n" if $L_verbose >= 1 && length($name);
@@ -1351,18 +1355,18 @@ EOH
 
      last if $options eq '';
 
-     if ($options =~ /^(k|f|fastq-|fasta-|table-)dict-(\w+)(\/(.*?))?=(.+)$/) {
+     if ($options =~ /^(k|f|t|fastq-|fasta-|table-)dict-(\w+)(\/(.*?))?=(.+)$/) {
        read_dict($2, $5, $1) if $1 eq 'f' || $1 eq 'k';
        read_fadict($2, $5, length($3) ? $4 : '__EXIT__') if $1 eq 'fasta-';
        read_fqdict($2, $5) if $1 eq 'fastq-';
-       read_tbdict($2, undef, $5) if $1 eq 'table-';
+       read_tbdict($2, undef, $5) if $1 eq 'table-' || $1 eq 't';
        $::dictnotfound{$2} = $4 if length($3);        # for read_fadict this happens twice. tidy up sometime.
      }
      elsif ($options =~ /^A=(.*)/) {
        $B_printall     = 1;
        $INSERT_OFFSET_NAME = $1;
      }
-     elsif ($options =~ /^table-dict(\/(.*?))?(\^(.*?))?=(.+)$/) {
+     elsif ($options =~ /^(?:t|table-)dict(\/(.*?))?(\^(.*?))?=(.+)$/) {
        my $header = read_tbdict("", defined($3) ? $4 : undef, $5);
        if (defined($2)) { $::dictnotfound{$_} = $2 for @$header; }
        my $nd = keys %{$::dict{$header->[1]}};
