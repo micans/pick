@@ -1,6 +1,8 @@
 
 #  Pick User Manual
 
+Recommendation to [use pluk instead](http://github.com/micans/pluk).
+
 ## Unix table column/row manipulation using column names
 
 [Pick one or more columns](#pick-one-or-more-columns)  
@@ -1934,10 +1936,12 @@ for the computation or again use preselections.
 
 ### Future speed
 
-It is tempting to implement pick in C or Rust to get a speed boost.
-~~However, reinventing an integer/float/string equivalence system (with its many niggling corner cases) from scratch does not seem right (where's the C library for that?).~~
-My thinking has changed around this - (1) using pick a lot (2) large file speed boost please (3) fun project.
-I aim to reimplement pick in Rust (working name pluk), but it will probably be a while before I get to it, having to learn Rust to a decent standard first.
+Pick has now been implemented in Rust. Claude was involved. Read more [over where pluk lives](http://github.com/micans/pluk).
+
+> It is tempting to implement pick in C or Rust to get a speed boost.
+> ~~However, reinventing an integer/float/string equivalence system (with its many niggling corner cases) from scratch does not seem right (where's the C library for that?).~~
+> My thinking has changed around this - (1) using pick a lot (2) large file speed boost please (3) fun project.
+> I aim to reimplement pick in Rust (working name pluk), but it will probably be a while before I get to it, having to learn Rust to a decent standard first.
 
 
 ### Current speed

@@ -1,6 +1,8 @@
 
 # Unix table column/row manipulation using column names
 
+It is now possible to [use pluk instead](http://github.com/micans/pluk).
+pluk is a reimplementation of pick in Rust.
 
 `pick` is an expressive low-memory **command-line** tool for manipulating text file tables.
 Entire scripts can be replaced by concise command line invocations.

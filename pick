@@ -1580,6 +1580,8 @@ EOH
   }
 }
 
+die "Options -R and -k cannot be combined" if $B_add_row_column && $B_headless;
+
 if ($I_AM_SAM & $BIT_SAM_ND_ADJUST) {
   my $d = $::dict{$::sam_nda_ival_dname};
   die "--sam-ND-adjust requires dictionary named $::sam_nda_ival_dname" unless defined($d);
@@ -3332,7 +3334,7 @@ if ($Nsam_rbterr) {
 }
 
 my $B_header = 1 - $B_headless;
-print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup;
+print STDERR "== Line tally check failed: ($::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup)\n" if $::Nrows != $B_header+$Nkeep+$Ndisc+$::Ngroup && $::Nrows;
 
 if ($N_expect >= 0 && $N_expect != $Nkeep) {
    print STDERR "== Expected number $N_expect but pick found $Nkeep\n";
