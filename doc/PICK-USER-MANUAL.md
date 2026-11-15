@@ -1944,47 +1944,63 @@ Pick has now been implemented in Rust. Claude was involved. Read more [over wher
 > I aim to reimplement pick in Rust (working name pluk), but it will probably be a while before I get to it, having to learn Rust to a decent standard first.
 
 
-### Current speed
+### Speed of pick and its rust implementation pluk
 
-Below gives a rough indication of pick speed relative to baseline perl speed;
+Below gives a rough indication of `pluk` and `pick` speeds relative to baseline perl speed;
 the latter is measured as a skeleton loop over lines of input with each line split into fields.
 The timings can be perfomed by running `make time` and `make time2` in the test directory.
 
+On the tasks below `pluk` is on average (median) 18 times faster than `pick`, with the minimum 16-fold and
+the maximum 24-fold.
 
-### Timings of comparisons and compute, no output
-```
-███▋                                                        87 perl one comparison
-███▊                                                        92 perl two comparisons
-
-█████████▌                                                 230 pick one comparison
-████████████▉                                              309 pick two comparisons
-
-████████████████▌                                          398 pick one compute (addition)
-███████████████████████████                                649 pick two computes (addition)
-██████████████████████████████████▎                        824 pick three computes (addition)
-███████████████████████████████████████████▏              1036 pick four computes (addition)
-█████████████████████████████████████████████████████▍    1283 pick five computes (addition)
-████████████████████████████████████████████████████▏     1251 pick five computes (multiplication)
-███████████████████████████████████▌                       853 pick one compute, (five add operators)
-
-```
 
 ### Timings of output and compute
 ```
-███▋                                                        87 perl print none
-███▌                                                        85 perl print one
-█████                                                      121 perl print all
-█████▌                                                     134 perl print all, add column (addition)
-
-██████                                                     146 pick print none
-████████▊                                                  210 pick print one
-████████████                                               288 pick print all
-█████████████████████████▋                                 617 pick print all, twice
-███████████████████████████████████████▉                   958 pick print all, thrice
-
-████████████████████████▌                                  589 pick print all, add column (addition)
-█████████████████████████▌                                 613 pick print all plus compute
-████████████████████████████████████                       864 pick print all plus long compute
-███████████████████████████████▊                           764 pick print all plus long compute shortcut
-
+                      Timings (milliseconds) of output and compute, 100k rows
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│        perl                                                      task - split fields and:             │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ █▌     37                                                        print none                           │
+│ █▋     41                                                        print one                            │
+│ ██     50                                                        print all                            │
+│ ██▊    66                                                        print all, add column (addition)     │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│        pluk  pick                                                                                     │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ▎       7    137    █████▋                                       print none                           │
+│ ▎       8    152    ██████▎                                      print one                            │
+│ ▎       8    190    ███████▉                                     print all                            │
+│ ▋      16    393    ████████████████▍                            print all, twice                     │
+│ █      25    607    █████████████████████████▎                   print all, thrice                    │
+│ ▋      17    324    █████████████▌                               print all, add column (addition)     │
+│ ▌      14    312    █████████████                                print all plus compute               │
+│ ▉      21    483    ████████████████████▏                        print all plus long compute          │
+│ ▉      22    389    ████████████████▏                            print all plus long compute shortcut │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Timings of comparisons and compute, no output
+```
+                      Timings (milliseconds) of comparisons and compute, no output, 100k rows
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│        perl                                                      task - split fields and:             │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ █▉     45                                                        one comparison                       │
+│ ██     48                                                        two comparisons                      │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│        pluk  pick                                                                                     │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ▍      11    173    ███████▏                                     one comparison                       │
+│ ▌      13    205    ████████▌                                    two comparisons                      │
+│ ▌      14    255    ██████████▋                                  one compute (addition)               │
+│ ▉      21    372    ███████████████▌                             two computes (addition)              │
+│ █▏     28    476    ███████████████████▊                         three computes (addition)            │
+│ █▌     36    590    ████████████████████████▌                    four computes (addition)             │
+│ █▊     43    697    █████████████████████████████                five computes (addition)             │
+│ █▊     44    703    █████████████████████████████▎               five computes (multiplication)       │
+│ █      26    469    ███████████████████▌                         one compute, (five add operators)    │
+│ ██▋    63   1024    ██████████████████████████████████████████▋  three hash lookups (32k keys)        │
+│ ██▌    61    840    ███████████████████████████████████          three hash lookups (10 keys)         │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
