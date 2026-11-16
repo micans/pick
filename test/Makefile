@@ -140,10 +140,10 @@ rrr.txt:
 	{ echo $$'one\ttwo\tthree\tfour\tfive';  for i in {1..100000}; do echo -e "$$RANDOM\t$$RANDOM\t$$RANDOM\t$$RANDOM\t$$RANDOM"; done; } > rrr.txt
 
 time: rrr.txt
-	bash time.txt 2>&1  | $(p) -k 2 1 | ./bar.pl | tee out.txt
+	export prog=../pick; bash time.txt 2>&1  | $(p) -k 2 1 | ./bar.pl | tee out.txt
 
 time2: rrr.txt
-	bash time2.txt 2>&1 | $(p) -k 2 1 | ./bar.pl | tee out2.txt
+	export prog=../pick; bash time2.txt 2>&1 | $(p) -k 2 1 | ./bar.pl | tee out2.txt
 
 hf: rrr.txt
 	command -v hissyfit && $(p) -h ::'.*',addall < rrr.txt | hissyfit --cv=0/163835 --x=0%16384 || echo "No hissyfit"
